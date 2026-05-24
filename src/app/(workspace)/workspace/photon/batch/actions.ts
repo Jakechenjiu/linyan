@@ -36,7 +36,12 @@ const scriptSystemPrompt = `你是一位资深的抖音短视频编导，擅长�
   "hashtags": ["标签1", "标签2", "标签3"]
 }`;
 
-export async function generateScript(formData: FormData) {
+function getField(data: unknown, key: string): string | null {
+  if (typeof (data as any)?.get === "function") return (data as FormData).get(key) as string | null;
+  return (data as Record<string, string>)[key] || null;
+}
+
+export async function generateScript(formData: unknown) {
   let session;
   try {
     session = await auth();
@@ -45,12 +50,12 @@ export async function generateScript(formData: FormData) {
   }
   if (!session?.user?.id) redirect("/login");
 
-  const topic = (formData.get("topic") as string)?.trim();
+  const topic = getField(formData, "topic")?.trim();
   if (!topic) redirect("/workspace/photon/batch?error=请输入视频主题");
 
-  const style = (formData.get("style") as string) || "mix";
-  const platform = (formData.get("platform") as string) || "douyin";
-  const templateId = (formData.get("templateId") as string) || null;
+  const style = getField(formData, "style") || "mix";
+  const platform = getField(formData, "platform") || "douyin";
+  const templateId = getField(formData, "templateId") || null;
 
   let config;
   try {
