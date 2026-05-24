@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Network, Loader2, ArrowRight, Users, RefreshCw, FileText } from "lucide-react";
+import { Network, Loader2, ArrowRight, Users, RefreshCw, FileText, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 
 export default function WanxiangPage() {
@@ -14,6 +14,7 @@ export default function WanxiangPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
+  const [showMirofish, setShowMirofish] = useState(false);
 
   const handleSimulate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,6 +189,31 @@ export default function WanxiangPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* MiroFish 原生前端 */}
+      <div className="space-card rounded-2xl overflow-hidden">
+        <button
+          onClick={() => setShowMirofish(!showMirofish)}
+          className="w-full flex items-center justify-between px-6 py-4 hover:bg-white/[0.02] transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <ExternalLink size={14} className="text-muted-foreground" />
+            <span className="font-mono text-sm font-bold">MiroFish 原生面板</span>
+            <span className="text-[10px] text-muted-foreground">(需 Docker 运行中)</span>
+          </div>
+          {showMirofish ? <ChevronUp size={16} className="text-muted-foreground" /> : <ChevronDown size={16} className="text-muted-foreground" />}
+        </button>
+        {showMirofish && (
+          <div className="border-t border-card-border">
+            <iframe
+              src="/mirofish"
+              className="w-full h-[700px]"
+              title="MiroFish 原生面板"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            />
+          </div>
+        )}
       </div>
     </div>
   );
