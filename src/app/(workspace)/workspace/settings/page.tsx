@@ -63,14 +63,16 @@ export default async function SettingsPage() {
     const dashscopeApiKey = formData.get("dashscopeApiKey") as string;
 
     try {
+      // Only update fields that have actual input; empty = keep existing value
+      const data: Record<string, string | null> = {};
+      if (name?.trim()) data.name = name.trim();
+      if (apiKey?.trim()) data.apiKey = apiKey.trim();
+      if (dashscopeApiKey?.trim()) data.dashscopeApiKey = dashscopeApiKey.trim();
+      data.apiProvider = apiProvider || "deepseek";
+
       await prisma.user.update({
         where: { id: s.user.id },
-        data: {
-          name: name?.trim() || null,
-          apiKey: apiKey?.trim() || null,
-          apiProvider: apiProvider || "deepseek",
-          dashscopeApiKey: dashscopeApiKey?.trim() || null,
-        },
+        data,
       });
     } catch (e) {
       console.error("Failed to save settings:", e);
