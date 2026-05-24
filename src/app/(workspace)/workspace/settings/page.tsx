@@ -91,7 +91,7 @@ export default async function SettingsPage() {
       icon: <Brain size={18} />,
       color: "var(--cyan)",
       configured: hasTextKey,
-      modules: ["星图写作 · AI 续写", "光子发布 · 脚本生成"],
+      modules: ["灵思笔记 · AI 续写/润色/摘要/标签/对话", "星图写作 · AI 续写", "光子发布 · 脚本生成", "万象推演 · AI 深度分析"],
       href: "#ai-text",
     },
     {
@@ -177,9 +177,34 @@ export default async function SettingsPage() {
           <p className="text-xs text-muted-foreground mb-2">
             提供 AI 续写、内容审查、脚本生成等文本能力
           </p>
-          <div className="flex items-center gap-2 mb-5 text-[11px]">
+          <div className="flex items-center gap-2 mb-5 text-[11px] flex-wrap">
+            <span className="px-2 py-0.5 rounded bg-[var(--cyan-soft)] text-[var(--cyan)]">灵思笔记</span>
             <span className="px-2 py-0.5 rounded bg-[var(--cyan-soft)] text-[var(--cyan)]">星图写作</span>
             <span className="px-2 py-0.5 rounded bg-[var(--cyan-soft)] text-[var(--cyan)]">光子发布</span>
+            <span className="px-2 py-0.5 rounded bg-[var(--cyan-soft)] text-[var(--cyan)]">万象推演</span>
+          </div>
+
+          {/* Feature detail */}
+          <div className="p-3 rounded-xl bg-[var(--bg-elevated)] border border-card-border mb-5 space-y-1.5">
+            <h3 className="text-xs font-bold">此 API 驱动以下功能</h3>
+            <div className="grid gap-1 text-[11px] text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span className="text-[var(--cyan)] shrink-0">灵思笔记</span>
+                <span>AI 续写 · 润色 · 摘要 · 标签建议 · 基于笔记对话</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[var(--cyan)] shrink-0">星图写作</span>
+                <span>AI 续写长篇小说 · 内容审查</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[var(--cyan)] shrink-0">光子发布</span>
+                <span>AI 脚本生成 · 标题优化</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[var(--cyan)] shrink-0">万象推演</span>
+                <span>推演结果 AI 深度分析（转折点/风险/行动建议）</span>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -354,8 +379,33 @@ export default async function SettingsPage() {
           <p className="text-xs text-muted-foreground mb-2">
             基于 MiroFish 多智能体框架，运行在 Docker 容器中
           </p>
-          <div className="flex items-center gap-2 mb-5 text-[11px]">
+          <div className="flex items-center gap-2 mb-5 text-[11px] flex-wrap">
             <span className="px-2 py-0.5 rounded bg-[var(--star)]/10 text-[var(--star)]">万象推演 · 多智能体预测</span>
+            <span className="px-2 py-0.5 rounded bg-[var(--star)]/10 text-[var(--star)]">万象推演 · AI 深度分析</span>
+            <span className="px-2 py-0.5 rounded bg-[var(--star)]/10 text-[var(--star)]">万象推演 · 历史推演</span>
+          </div>
+
+          {/* New features */}
+          <div className="p-3 rounded-xl bg-[var(--bg-elevated)] border border-card-border mb-5 space-y-1.5">
+            <h3 className="text-xs font-bold">万象推演支持的功能</h3>
+            <div className="grid gap-1 text-[11px] text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span className="text-[var(--star)] shrink-0">多智能体推演</span>
+                <span>可配置智能体名称和角色，支持 8 种预设角色模板</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[var(--star)] shrink-0">AI 深度分析</span>
+                <span>推演结束后，AI 自动分析关键转折点、风险因素和行动建议（使用上方 AI 文本 API）</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[var(--star)] shrink-0">历史推演</span>
+                <span>推演结果自动保存到数据库，支持查看和删除历史记录</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[var(--star)] shrink-0">导出 Markdown</span>
+                <span>支持将推演报告导出为 Markdown 文件下载</span>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-4">
