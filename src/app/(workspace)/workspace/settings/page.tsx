@@ -11,7 +11,7 @@ const providerOptions = [
 ];
 
 const providerEndpoints: Record<string, string> = {
-  deepseek: "https://api.deepseek.com/anthropic",
+  deepseek: "https://api.deepseek.com/v1",
   openai: "https://api.openai.com/v1",
   anthropic: "https://api.anthropic.com",
 };

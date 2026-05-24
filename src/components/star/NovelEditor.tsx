@@ -87,6 +87,12 @@ export default function NovelEditor({ novelId, chapter }: Props) {
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
         appendText += chunk;
+        // Detect streamed errors
+        if (appendText.startsWith("[ERROR]")) {
+          setError(appendText.replace("[ERROR] ", ""));
+          setStreaming(false);
+          return;
+        }
         setBody(newBody + appendText);
         // Auto-scroll textarea
         if (textareaRef.current) {

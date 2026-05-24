@@ -45,6 +45,11 @@ export default function AiGenerateBtn({ novelId, chapterId, direction, onText, c
         const { done, value } = await reader.read();
         if (done) break;
         text += decoder.decode(value, { stream: true });
+        if (text.startsWith("[ERROR]")) {
+          setError(text.replace("[ERROR] ", ""));
+          setStreaming(false);
+          return;
+        }
         onText(text);
       }
 
