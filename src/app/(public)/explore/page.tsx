@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import Link from "next/link";
-import { Eye, Clock, User } from "lucide-react";
+import { Clock, User } from "lucide-react";
 
 const platformLabels: Record<string, { label: string; color: string }> = {
   wechat: { label: "公众号", color: "#07c160" },
@@ -19,6 +19,17 @@ const typeLabels: Record<string, string> = {
   chapter: "章节",
 };
 
+type ExploreItem = {
+  id: string;
+  title: string;
+  kind: "content" | "story";
+  body: string;
+  updatedAt: Date;
+  user: { name: string | null };
+  platform?: string;
+  contentType?: string;
+};
+
 export default async function ExplorePage() {
   const contents = await prisma.content.findMany({
     where: { status: "published", isPublic: true },
@@ -34,9 +45,15 @@ export default async function ExplorePage() {
     take: 50,
   });
 
-  const allItems = [
-    ...contents.map((c) => ({ kind: "content" as const, ...c })),
-    ...stories.map((s) => ({ kind: "story" as const, ...s })),
+  const allItems: ExploreItem[] = [
+    ...contents.map((c): ExploreItem => ({
+      id: c.id, title: c.title, kind: "content", body: c.body,
+      updatedAt: c.updatedAt, user: c.user, platform: c.platform, contentType: c.contentType,
+    })),
+    ...stories.map((s): ExploreItem => ({
+      id: s.id, title: s.title, kind: "story", body: s.content,
+      updatedAt: s.updatedAt, user: s.user,
+    })),
   ].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
   return (
