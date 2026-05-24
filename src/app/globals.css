@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0e17;
+  --foreground: #e0e8f0;
+  --cyan: #00e5ff;
+  --cyan-soft: rgba(0, 229, 255, 0.08);
+  --nebula: #7c3aed;
+  --nebula-soft: rgba(124, 58, 237, 0.12);
+  --star: #f0e68c;
+  --star-soft: rgba(240, 230, 140, 0.12);
+  --card: #111827;
+  --card-border: rgba(0, 229, 255, 0.12);
+  --muted: #4b5563;
+  --muted-foreground: #9ca3af;
+  --accent: #1e293b;
+  --accent-foreground: #e2e8f0;
+  --destructive: #ef4444;
+  --destructive-foreground: #fef2f2;
+  --ring: rgba(0, 229, 255, 0.3);
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-cyan: var(--cyan);
+  --color-nebula: var(--nebula);
+  --color-star: var(--star);
+  --color-card: var(--card);
+  --color-card-border: var(--card-border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-ring: var(--ring);
+  --radius: var(--radius);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  min-height: 100vh;
+}
+
+/* Sci-fi glow effects */
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.15), 0 0 60px rgba(0, 229, 255, 0.05);
+}
+.glow-nebula {
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.15), 0 0 60px rgba(124, 58, 237, 0.05);
+}
+.glow-star {
+  box-shadow: 0 0 20px rgba(240, 230, 140, 0.15), 0 0 60px rgba(240, 230, 140, 0.05);
+}
+.glow-text {
+  text-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+}
+.glow-border {
+  border-color: rgba(0, 229, 255, 0.2);
+  box-shadow: inset 0 0 30px rgba(0, 229, 255, 0.03);
+}
+
+/* Card styles */
+.space-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  transition: all 0.3s ease;
+}
+.space-card:hover {
+  border-color: rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 30px rgba(0, 229, 255, 0.08);
+}
+
+/* Particle canvas layer */
+.particle-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}

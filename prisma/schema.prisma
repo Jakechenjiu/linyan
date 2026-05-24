@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  password  String?
+  avatar    String?
+  bio       String?
+  createdAt DateTime  @default(now())
+  contents  Content[]
+  mindmaps  MindMap[]
+  stories   Story[]
+  novels    Novel[]
+}
+
+model Novel {
+  id        String    @id @default(cuid())
+  title     String
+  chapters  Chapter[]
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Chapter {
+  id        String   @id @default(cuid())
+  title     String
+  body      String   @default("")
+  order     Int
+  wordCount Int      @default(0)
+  novelId   String
+  novel     Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Content {
+  id          String   @id @default(cuid())
+  title       String
+  body        String   @default("")
+  platform    String   @default("wechat")
+  contentType String   @default("article")
+  wordCount   Int      @default(0)
+  status      String   @default("draft")
+  isPublic    Boolean  @default(false)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MindMap {
+  id        String   @id @default(cuid())
+  title     String
+  markdown  String   @default("")
+  nodeCount Int      @default(0)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Story {
+  id              String   @id @default(cuid())
+  title           String
+  content         String   @default("")
+  wordCount       Int      @default(0)
+  targetWordCount Int      @default(3000)
+  promptId        String?
+  status          String   @default("draft")
+  isPublic        Boolean  @default(false)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
