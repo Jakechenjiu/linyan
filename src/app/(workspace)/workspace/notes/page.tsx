@@ -49,7 +49,7 @@ export default async function NotesPage({ searchParams }: { searchParams: Promis
   return (
     <div className="space-y-8 max-w-4xl">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="glass-card rounded-2xl p-5 flex items-center justify-between">
         <div>
           <h1 className="font-mono text-2xl font-bold tracking-wide">灵思笔记</h1>
           <p className="text-sm text-muted-foreground mt-1">知识管理与双向链接</p>
@@ -143,8 +143,8 @@ export default async function NotesPage({ searchParams }: { searchParams: Promis
               }
             })();
             return (
+              <div className="stagger-item" key={note.id}>
               <Link
-                key={note.id}
                 href={`/workspace/notes/${note.id}`}
                 className="block p-4 rounded-xl border border-card-border bg-[var(--bg-elevated)]/50 hover:border-[var(--cyan)]/30 hover:bg-[var(--bg-elevated)] transition-all group"
               >
@@ -169,6 +169,7 @@ export default async function NotesPage({ searchParams }: { searchParams: Promis
                   </div>
                 )}
               </Link>
+              </div>
             );
           })}
         </div>

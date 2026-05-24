@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { Logo } from "@/components/brand";
 import ParticleBg from "@/components/brand/ParticleBg";
 import ModuleCard from "@/components/shared/ModuleCard";
-import { Star, Zap, FlaskConical, ArrowRight, ChevronDown } from "lucide-react";
+import { Star, Zap, Network, Brain, ArrowRight, ChevronDown } from "lucide-react";
 
 export default async function Home() {
   const session = await auth();
@@ -69,7 +69,7 @@ export default async function Home() {
         </h1>
 
         <p className="text-base md:text-lg text-muted-foreground max-w-xl mb-10 leading-relaxed animate-slide-up" style={{ animationDelay: "0.08s" }}>
-          星图写作 · 光子发布 · 灵感实验室 —— 一个平台，覆盖长篇创作、自媒体爆款、创意实验的全部流程
+          灵思笔记 · 星图写作 · 光子发布 · 万象推演 —— 知识管理、长篇创作、内容分发、AI推演，一个平台全覆盖
         </p>
 
         <div className="flex items-center gap-4 animate-slide-up" style={{ animationDelay: "0.15s" }}>
@@ -95,7 +95,7 @@ export default async function Home() {
       </section>
 
       {/* —— Module Cards —— */}
-      <section className="relative z-10 grid gap-6 md:grid-cols-3 max-w-5xl mx-auto px-6 pb-24">
+      <section className="relative z-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto px-6 pb-24">
         <div className="animate-slide-up" style={{ animationDelay: "0.2s" }}>
           <ModuleCard
             href={session ? "/workspace/star" : "/register"}
@@ -118,15 +118,26 @@ export default async function Home() {
             features={["多平台", "模板生成", "批量产出", "内容日历"]}
           />
         </div>
-        <div className="animate-slide-up" style={{ animationDelay: "0.4s" }}>
+        <div className="animate-slide-up" style={{ animationDelay: "0.35s" }}>
           <ModuleCard
-            href={session ? "/workspace/lab" : "/register"}
-            icon={<FlaskConical size={24} />}
-            title="灵感实验室"
-            subtitle="Inspiration Lab"
-            desc="思维脑图与短篇快速验证。Markdown 大纲转可视化脑图，Prompt 驱动创意爆发。"
-            color="var(--star)"
-            features={["脑图", "短篇生成", "Prompt库", "快速原型"]}
+            href={session ? "/workspace/notes" : "/register"}
+            icon={<Brain size={24} />}
+            title="灵思笔记"
+            subtitle="LingSi Notes"
+            desc="Obsidian 风格知识中枢。双向链接 [[语法]]、标签系统、知识图谱可视化。"
+            color="var(--cyan)"
+            features={["双向链接", "知识图谱", "标签系统", "自动补全"]}
+          />
+        </div>
+        <div className="animate-slide-up" style={{ animationDelay: "0.45s" }}>
+          <ModuleCard
+            href={session ? "/workspace/wanxiang" : "/register"}
+            icon={<Network size={24} />}
+            title="万象推演"
+            subtitle="Wanxiang Sandbox"
+            desc="多智能体 AI 预测引擎。构建平行数字世界，千个智能体自由交互推演未来。"
+            color="var(--nebula)"
+            features={["多智能体", "推演报告", "种子材料", "场景模拟"]}
           />
         </div>
       </section>

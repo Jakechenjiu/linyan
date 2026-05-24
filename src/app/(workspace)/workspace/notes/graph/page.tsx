@@ -42,7 +42,7 @@ export default async function NoteGraphPage() {
         </div>
       </div>
 
-      <div className="space-card rounded-2xl p-4">
+      <div className="glass-card rounded-2xl p-4">
         <GraphView data={graphData} />
       </div>
     </div>

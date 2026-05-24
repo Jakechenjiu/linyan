@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "灵砚 LingYan — AI创作引擎",
-  description: "让AI成为你的创作引擎。星图写作、光子发布、灵感实验室。",
+  description: "让AI成为你的创作引擎。灵思笔记、星图写作、光子发布、万象推演。",
 };
 
 export default function RootLayout({

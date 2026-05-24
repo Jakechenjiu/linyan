@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Network, Loader2, ArrowRight, Users, RefreshCw, FileText, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { Network, Loader2, ArrowRight, Users, RefreshCw, FileText, ExternalLink, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import Link from "next/link";
+import WanxiangResult from "@/components/shared/WanxiangResult";
 
 export default function WanxiangPage() {
-  const router = useRouter();
   const [topic, setTopic] = useState("");
   const [seedMaterial, setSeedMaterial] = useState("");
   const [agentCount, setAgentCount] = useState(10);
@@ -61,7 +60,7 @@ export default function WanxiangPage() {
 
       <div className="grid gap-6 md:grid-cols-5">
         <div className="md:col-span-3 space-y-6">
-          <form onSubmit={handleSimulate} className="space-card rounded-2xl p-6 space-y-5">
+          <form onSubmit={handleSimulate} className="glass-card rounded-2xl p-6 space-y-5">
             <div>
               <label className="block text-sm font-medium mb-2">推演主题</label>
               <input
@@ -180,12 +179,12 @@ export default function WanxiangPage() {
             </Link>
           </div>
 
-          {result && (
-            <div className="space-card rounded-2xl p-5 border-[var(--nebula)]/20">
-              <h3 className="font-mono text-sm font-bold mb-3 text-[var(--nebula)]">推演结果</h3>
-              <pre className="text-xs text-muted-foreground whitespace-pre-wrap max-h-96 overflow-y-auto">
-                {JSON.stringify(result, null, 2)}
-              </pre>
+          {result && <WanxiangResult data={result} />}
+
+          {!result && !loading && (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Sparkles size={40} className="text-muted-foreground/20 mb-3 animate-float" />
+              <p className="text-xs text-muted-foreground">输入主题，启动万象推演</p>
             </div>
           )}
         </div>

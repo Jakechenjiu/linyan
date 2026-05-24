@@ -88,7 +88,7 @@ export default async function WorkspaceDashboard() {
       </div>
 
       {/* Quick Stats (placeholder) */}
-      <div className="space-card rounded-2xl p-6 animate-slide-up" style={{ animationDelay: "0.4s" }}>
+      <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{ animationDelay: "0.4s" }}>
         <h2 className="font-mono text-lg font-bold mb-4 flex items-center gap-2">
           <BarChart3 size={20} className="text-[var(--cyan)]" />
           创作概览

@@ -127,7 +127,7 @@ export default function NoteEditor({
         {tags.map((t) => (
           <span
             key={t}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-[var(--cyan-soft)] text-[var(--cyan)]"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-[var(--cyan-soft)] text-[var(--cyan)]"
           >
             #{t}
             <button type="button" onClick={() => handleRemoveTag(t)} className="hover:text-red-400">&times;</button>
@@ -138,7 +138,7 @@ export default function NoteEditor({
           onChange={(e) => setTagInput(e.target.value)}
           onKeyDown={handleAddTag}
           placeholder="添加标签…"
-          className="text-[10px] bg-transparent border-b border-transparent focus:outline-none focus:border-[var(--cyan)] w-20 transition-colors"
+          className="text-[11px] bg-transparent border-b border-transparent focus:outline-none focus:border-[var(--cyan)] w-24 transition-colors"
         />
       </div>
 
@@ -154,7 +154,7 @@ export default function NoteEditor({
           placeholder="写笔记… 用 [[标题]] 链接到其他笔记"
         />
         {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute z-20 left-0 right-0 bottom-full mb-1 bg-[var(--bg-elevated)] border border-card-border rounded-lg shadow-lg max-h-32 overflow-y-auto">
+          <div className="absolute z-20 left-0 right-0 bottom-full mb-1 bg-[var(--bg-elevated)] border border-card-border rounded-lg shadow-lg max-h-32 overflow-y-auto animate-scale-in">
             {suggestions.map((s, i) => (
               <button
                 key={s.id}
@@ -176,7 +176,7 @@ export default function NoteEditor({
         <div className="flex gap-2">
           <button
             type="submit"
-            className="px-4 py-2 rounded-lg text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_16px_rgba(0,229,255,0.3)] transition-all"
+            className="btn-shimmer px-4 py-2 rounded-lg text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_16px_rgba(0,229,255,0.3)] transition-all"
             style={{ color: "#0a0e17" }}
           >
             {id ? "保存" : "创建笔记"}
