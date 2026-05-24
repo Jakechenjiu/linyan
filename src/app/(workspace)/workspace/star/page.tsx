@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
-import { Plus, BookOpen, BarChart3, Trash2, Clock, Edit3 } from "lucide-react";
+import { Plus, BookOpen, BarChart3, Trash2, Clock, Edit3, Target } from "lucide-react";
 import { revalidatePath } from "next/cache";
 import { genrePresets } from "@/data/genre-presets";
 
@@ -24,9 +24,23 @@ export default async function StarPage() {
   const session = await auth();
   const novels = await prisma.novel.findMany({
     where: { userId: session?.user?.id },
-    include: { _count: { select: { chapters: true } }, chapters: { select: { wordCount: true } } },
+    include: {
+      _count: { select: { chapters: true } },
+      chapters: { select: { wordCount: true } },
+    },
     orderBy: { updatedAt: "desc" },
   });
+
+  // Get today's writing logs for all novels
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayLogs = await prisma.writingLog.findMany({
+    where: {
+      novelId: { in: novels.map((n) => n.id) },
+      date: today,
+    },
+  });
+  const todayMap = new Map(todayLogs.map((l) => [l.novelId, l.wordCount]));
 
   return (
     <div className="space-y-8 max-w-4xl">
@@ -71,6 +85,7 @@ export default async function StarPage() {
             const totalWords = novel.chapters.reduce((sum, ch) => sum + ch.wordCount, 0);
             const genre = genrePresets.find((g) => g.id === novel.genre);
             const progress = novel.targetWordCount ? Math.min(100, Math.round((totalWords / novel.targetWordCount) * 100)) : 0;
+            const todayWords = todayMap.get(novel.id) || 0;
 
             return (
               <div key={novel.id} className="space-card group rounded-xl p-5 hover:border-[var(--cyan)] transition-all">
@@ -102,11 +117,22 @@ export default async function StarPage() {
                   </span>
                 </div>
 
+                {/* Today's progress */}
+                <div className="flex items-center gap-2 mb-3 text-[11px]">
+                  <Target size={11} className="text-[var(--cyan)]" />
+                  <span className="text-muted-foreground">今日</span>
+                  <span className="font-medium text-foreground">{todayWords.toLocaleString()}</span>
+                  <span className="text-muted-foreground">/ {novel.dailyWordTarget.toLocaleString()} 字</span>
+                  <span className="text-[10px] text-[var(--cyan)]">
+                    ({Math.round((todayWords / novel.dailyWordTarget) * 100)}%)
+                  </span>
+                </div>
+
                 {/* Progress bar */}
                 {novel.targetWordCount && totalWords > 0 && (
                   <div className="mb-3">
                     <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                      <span>进度</span>
+                      <span>总进度</span>
                       <span>{progress}%</span>
                     </div>
                     <div className="h-1 rounded-full bg-[var(--accent)] overflow-hidden">

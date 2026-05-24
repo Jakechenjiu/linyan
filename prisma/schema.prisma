@@ -29,16 +29,28 @@ model Novel {
   synopsis        String?   // 一句话简介
   description     String?   // 详细描述
   targetWordCount Int?      // 目标总字数
+  dailyWordTarget Int       @default(1000)  // 每日字数目标
   status          String    @default("planning")  // planning|writing|completed|paused
   coverColor      String?   // 封面主题色
   chapters        Chapter[]
   worldSetting    WorldSetting?
   characters      Character[]
   outlines        Outline[]
+  writingLogs     WritingLog[]
   userId          String
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+}
+
+model WritingLog {
+  id        String   @id @default(cuid())
+  novelId   String
+  novel     Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date  // 写作日期
+  wordCount Int      // 当日新增字数
+  createdAt DateTime @default(now())
+  @@unique([novelId, date])
 }
 
 model WorldSetting {
