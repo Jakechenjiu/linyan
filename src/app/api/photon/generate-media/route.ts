@@ -81,7 +81,7 @@ export async function POST(req: Request) {
 
   const clipsToProcess = requestedClipIds
     ? project.clips.filter((c) => requestedClipIds.includes(c.id))
-    : project.clips.filter((c) => c.status === "pending");
+    : project.clips.filter((c) => c.status === "pending" || c.status === "failed" || c.status === "generating");
 
   if (!clipsToProcess.length) {
     return NextResponse.json({ message: "No clips to process", results: [] });
