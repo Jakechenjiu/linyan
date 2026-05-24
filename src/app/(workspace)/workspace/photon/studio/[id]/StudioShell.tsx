@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Wand2, Clapperboard, Download, Loader2, Play } from "lucide-react";
+import { ArrowLeft, Wand2, Clapperboard, Download, Loader2, Play, Film, ExternalLink } from "lucide-react";
 import TimelineBar from "@/components/photon/TimelineBar";
 import ScriptEditor from "@/components/photon/ScriptEditor";
 import { updateClip, reorderClips, deleteClip, updateProject } from "./actions";
@@ -43,7 +43,10 @@ export default function StudioShell({ project: initialProject }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(clips[0]?.id || null);
   const [generating, setGenerating] = useState(false);
   const [assembling, setAssembling] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [providerType, setProviderType] = useState<"dashscope" | "pixelle">("dashscope");
   const [error, setError] = useState<string | null>(null);
+  const [exportResult, setExportResult] = useState<string | null>(null);
 
   const selectedClip = clips.find((c) => c.id === selectedId) || null;
 
@@ -54,9 +57,7 @@ export default function StudioShell({ project: initialProject }: Props) {
       reordered.splice(toIndex, 0, moved);
       const updated = reordered.map((c, i) => ({ ...c, order: i }));
       setClips(updated);
-      await reorderClips(
-        updated.map((c) => ({ id: c.id, order: c.order }))
-      );
+      await reorderClips(updated.map((c) => ({ id: c.id, order: c.order })));
     },
     [clips]
   );
@@ -100,12 +101,10 @@ export default function StudioShell({ project: initialProject }: Props) {
       const res = await fetch("/api/photon/generate-media", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId: project.id }),
+        body: JSON.stringify({ projectId: project.id, provider: providerType }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "生成失败");
-
-      // Refresh page to get updated clip URLs
       router.refresh();
     } catch (e: any) {
       setError(e.message);
@@ -121,20 +120,36 @@ export default function StudioShell({ project: initialProject }: Props) {
       const res = await fetch("/api/photon/assemble", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          projectId: project.id,
-          resolution: "1080x1920",
-        }),
+        body: JSON.stringify({ projectId: project.id, resolution: "1080x1920" }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "合成失败");
-
       setProject((prev) => ({ ...prev, outputUrl: data.outputUrl, status: "done" }));
       router.refresh();
     } catch (e: any) {
       setError(e.message);
     } finally {
       setAssembling(false);
+    }
+  };
+
+  const handleExportJianying = async () => {
+    setExporting(true);
+    setError(null);
+    setExportResult(null);
+    try {
+      const res = await fetch("/api/photon/export-jianying", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: project.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "导出失败");
+      setExportResult(data.message);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -159,6 +174,18 @@ export default function StudioShell({ project: initialProject }: Props) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* Provider selector */}
+          {canGenerate && (
+            <select
+              value={providerType}
+              onChange={(e) => setProviderType(e.target.value as "dashscope" | "pixelle")}
+              className="px-2 py-1.5 rounded-lg bg-[var(--background)] border border-card-border text-[10px] focus:outline-none focus:border-[var(--cyan)]"
+            >
+              <option value="dashscope">通义万相</option>
+              <option value="pixelle">Pixelle (本地)</option>
+            </select>
+          )}
+
           {canGenerate && (
             <button
               type="button"
@@ -170,6 +197,7 @@ export default function StudioShell({ project: initialProject }: Props) {
               {generating ? "生成中…" : "生成素材"}
             </button>
           )}
+
           {canAssemble && (
             <button
               type="button"
@@ -181,6 +209,18 @@ export default function StudioShell({ project: initialProject }: Props) {
               {assembling ? "合成中…" : "合成视频"}
             </button>
           )}
+
+          {/* Jianying export */}
+          <button
+            type="button"
+            onClick={handleExportJianying}
+            disabled={exporting}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold border border-[var(--cyan)]/30 text-[var(--cyan)] hover:bg-[var(--cyan-soft)] transition-all disabled:opacity-50"
+          >
+            {exporting ? <Loader2 size={14} className="animate-spin" /> : <Film size={14} />}
+            {exporting ? "导出中…" : "导出剪映"}
+          </button>
+
           {hasOutput && (
             <a
               href={project.outputUrl!}
@@ -197,10 +237,24 @@ export default function StudioShell({ project: initialProject }: Props) {
         <div className="text-xs text-red-400 p-3 rounded-xl bg-red-500/5 border border-red-500/20">
           {error}
           {error.includes("API Key") && (
-            <Link href="/workspace/settings" className="ml-2 underline text-[var(--cyan)]">
-              前往设置
-            </Link>
+            <Link href="/workspace/settings" className="ml-2 underline text-[var(--cyan)]">前往设置</Link>
           )}
+          {error.includes("DASHSCOPE_API_KEY") && (
+            <span className="ml-2">
+              <Link href="/workspace/settings" className="underline text-[var(--cyan)]">前往设置</Link>
+              {" "}或访问{" "}
+              <a href="https://dashscope.console.aliyun.com" target="_blank" rel="noopener noreferrer" className="underline text-[var(--cyan)]">
+                DashScope 控制台 <ExternalLink size={10} className="inline" />
+              </a>
+            </span>
+          )}
+        </div>
+      )}
+
+      {exportResult && (
+        <div className="text-xs text-green-400 p-3 rounded-xl bg-green-500/5 border border-green-500/20 flex items-center gap-2">
+          <Film size={14} />
+          {exportResult}
         </div>
       )}
 
@@ -219,9 +273,8 @@ export default function StudioShell({ project: initialProject }: Props) {
         </span>
       </div>
 
-      {/* Main layout: timeline left, editor right */}
+      {/* Main layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Timeline */}
         <div className="lg:col-span-2">
           <TimelineBar
             clips={clips}
@@ -232,7 +285,6 @@ export default function StudioShell({ project: initialProject }: Props) {
           />
         </div>
 
-        {/* Editor */}
         <div className="lg:col-span-1">
           {selectedClip ? (
             <ScriptEditor

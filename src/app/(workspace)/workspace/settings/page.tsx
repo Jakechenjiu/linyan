@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { User, Settings, Shield, Key, Zap, Eye, EyeOff } from "lucide-react";
+import { User, Settings, Shield, Key, Zap, Eye, EyeOff, Film } from "lucide-react";
 
 const providerOptions = [
   { value: "deepseek", label: "DeepSeek", desc: "性价比最高，推荐" },
@@ -126,6 +126,53 @@ export default async function SettingsPage() {
                 API 调用由你选择的 AI 提供商直接计费。
                 DeepSeek 约 ¥1/百万 token，一篇 3000 字章节续写约 ¥0.01-0.03。
                 不填 Key 时将使用系统默认 Key（限流）。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* DashScope Video API */}
+        <div className="space-card rounded-2xl p-6">
+          <h2 className="font-mono text-lg font-bold mb-1 flex items-center gap-2">
+            <Film size={20} className="text-[var(--nebula)]" />
+            通义万相（视频生成）
+          </h2>
+          <p className="text-xs text-muted-foreground mb-4">
+            AI 短视频工厂使用阿里云 DashScope 通义万相 API 生成视频素材。在 .env 中配置后即可使用。
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                DASHSCOPE_API_KEY
+                {process.env.DASHSCOPE_API_KEY ? (
+                  <span className="text-xs text-green-400 ml-2">已配置</span>
+                ) : (
+                  <span className="text-xs text-muted-foreground ml-2">未配置</span>
+                )}
+              </label>
+              <input
+                name="dashscopeApiKey"
+                placeholder={process.env.DASHSCOPE_API_KEY ? "已通过环境变量配置" : "sk-…"}
+                disabled
+                className="w-full px-4 py-3 rounded-xl bg-[var(--background)] border border-card-border text-sm font-mono text-muted-foreground focus:outline-none cursor-not-allowed"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1.5">
+                在项目根目录 .env 文件中添加：DASHSCOPE_API_KEY=你的Key
+                &nbsp;|&nbsp;
+                从阿里云 DashScope 控制台获取 →{" "}
+                <a href="https://dashscope.console.aliyun.com" target="_blank" rel="noopener noreferrer" className="text-[var(--cyan)] underline">
+                  dashscope.console.aliyun.com
+                </a>
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-[var(--accent)] border border-card-border">
+              <p className="text-xs text-muted-foreground">
+                <span className="text-[var(--nebula)] font-medium">通义万相计费：</span>
+                按生成次数计费，生成一段 5 秒视频约 ¥0.3-1.0（以阿里云实际定价为准）。
+                如果不使用 AI 生成视频素材，可直接导出脚本到剪映手动制作，
+                无需配置此 Key。
               </p>
             </div>
           </div>
