@@ -174,22 +174,26 @@ body::after {
 
 /* ===== CARDS ===== */
 .space-card {
-  background: var(--card);
-  border: 1px solid var(--card-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-liquid);
   transition: all 0.5s var(--ease-cinematic);
 }
 .space-card:hover {
-  border-color: rgba(0, 229, 255, 0.25);
-  box-shadow: var(--shadow-card-hover);
-  background: var(--card-hover);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--shadow-liquid), 0 0 40px rgba(0,229,255,0.04);
+  background: var(--glass-bg-hover);
 }
 
 /* Gradient border card */
 .gradient-border-card {
   position: relative;
-  background: var(--card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   border-radius: var(--radius-xl);
   overflow: hidden;
 }
