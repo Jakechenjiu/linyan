@@ -49,11 +49,12 @@ export function createDashscopeProvider(apiKeyOverride?: string): VideoProvider 
         apiKey,
         "/api/v1/services/aigc/video-generation/video-synthesis",
         {
-          model: "wanx2.1-t2v-turbo",
+          model: "wan2.6-t2v",
           input: { prompt: params.prompt },
           parameters: {
-            duration: Math.min(params.duration, 10),
+            duration: Math.min(params.duration, 15),
             size: params.resolution || "1080*1920",
+            prompt_extend: true,
           },
         }
       );
