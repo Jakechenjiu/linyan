@@ -108,7 +108,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     if (!response.ok) {
       const errBody = await response.text().catch(() => "");
-      console.error("LLM stream error:", response.status, errBody.slice(0, 300));
+      console.error("LLM stream error:", response.status, errBody.slice(0, 500));
       const msg = response.status === 401 || response.status === 403
         ? "API Key 无效，请检查设置中的密钥配置"
         : `AI 服务返回错误 (${response.status})，请稍后重试`;

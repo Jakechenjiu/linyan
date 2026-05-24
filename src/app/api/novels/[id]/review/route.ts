@@ -139,7 +139,12 @@ ${nextChapter ? `后一章开头 (${nextChapter.title}): ${nextChapter.body.slic
     }
 
     const data = await response.json();
-    const content = data.content?.[0]?.text || "";
+    let content = "";
+    if (data.content?.[0]?.text) {
+      content = data.content[0].text;
+    } else if (data.choices?.[0]?.message?.content) {
+      content = data.choices[0].message.content;
+    }
 
     // Try parsing JSON from response
     let review;

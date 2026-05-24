@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Send, Loader2, Sparkles, ArrowRight, Settings } from "lucide-react";
+import { Send, Loader2, Sparkles, ArrowRight } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
@@ -19,15 +19,17 @@ export default function ChatWizard() {
   const [novelId, setNovelId] = useState<string | null>(null);
   const chatRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const startedRef = useRef(false);
 
   // Auto-scroll to bottom
   useEffect(() => {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  // Start the conversation
+  // Start the conversation (once)
   useEffect(() => {
-    if (messages.length === 0) {
+    if (!startedRef.current) {
+      startedRef.current = true;
       sendMessage("你好，我想创作一部新作品");
     }
   }, []);
@@ -46,29 +48,30 @@ export default function ChatWizard() {
         body: JSON.stringify({ messages: newMessages }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const err = await res.json();
-        if (err.code === "NO_API_KEY") {
+        if (data.code === "NO_API_KEY") {
           setMessages([...newMessages, {
             role: "assistant",
-            content: "要使用 AI 创作功能，需要先配置你的 API Key。\n\n请在[设置页面](/workspace/settings)中添加你的 DeepSeek API Key（获取地址：platform.deepseek.com），然后回到这里继续创作。",
+            content: "要使用 AI 创作功能，需要先配置你的 API Key。\n\n请在设置页面中添加你的 DeepSeek API Key（获取地址：platform.deepseek.com），然后回到这里继续创作。",
           }]);
         } else {
-          setMessages([...newMessages, { role: "assistant", content: `抱歉，出了点问题：${err.error || "请重试"}` }]);
+          setMessages([...newMessages, { role: "assistant", content: `抱歉，出了点问题：${data.error || "请重试"}` }]);
         }
+        setLoading(false);
         return;
       }
 
-      const data = await res.json();
-
       if (data.finalized) {
-        setMessages([...newMessages, { role: "assistant", content: data.message }]);
+        setMessages([...newMessages, { role: "assistant", content: data.message || "设定已生成！" }]);
         setFinalized(true);
         setNovelId(data.novelId);
       } else {
-        setMessages([...newMessages, { role: "assistant", content: data.message }]);
+        const reply = data.message || "（AI 返回了空回复，请重试）";
+        setMessages([...newMessages, { role: "assistant", content: reply }]);
       }
-    } catch (e) {
+    } catch {
       setMessages([...newMessages, { role: "assistant", content: "网络异常，请检查连接后重试" }]);
     } finally {
       setLoading(false);
