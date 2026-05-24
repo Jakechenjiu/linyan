@@ -1,5 +1,4 @@
 import { auth } from "@/lib/auth";
-import Link from "next/link";
 import { Star, Zap, FlaskConical, ArrowRight, BarChart3 } from "lucide-react";
 import SpotlightCard from "@/components/shared/SpotlightCard";
 
@@ -53,7 +52,7 @@ export default async function WorkspaceDashboard() {
             <SpotlightCard href={mod.href} color={mod.color}>
               <div className="relative z-10">
                 <div
-                  className="w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 animate-pulse-slow"
+                  className="w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300"
                   style={{ background: `${mod.color}15`, color: mod.color }}
                 >
                   {mod.icon}
