@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "@/components/brand";
 import ParticleBg from "@/components/brand/ParticleBg";
+import CursorGlow from "@/components/brand/CursorGlow";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,6 +31,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center relative">
       <ParticleBg />
+      <CursorGlow />
 
       <div className="relative z-10 w-full max-w-sm space-y-8 px-6">
         {/* Card */}

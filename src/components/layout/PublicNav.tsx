@@ -22,7 +22,7 @@ export default async function PublicNav() {
           {session ? (
             <Link
               href="/workspace"
-              className="px-5 py-2 rounded-xl text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_24px_rgba(0,229,255,0.35)] transition-all duration-300"
+              className="px-5 py-2 rounded-xl text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_24px_rgba(0,229,255,0.35)] transition-all duration-300 btn-shimmer ripple"
               style={{ color: "#0a0e17" }}
             >
               进入工作台
@@ -34,7 +34,7 @@ export default async function PublicNav() {
               </Link>
               <Link
                 href="/register"
-                className="px-5 py-2 rounded-xl text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_24px_rgba(0,229,255,0.35)] transition-all duration-300"
+                className="px-5 py-2 rounded-xl text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_24px_rgba(0,229,255,0.35)] transition-all duration-300 btn-shimmer ripple"
                 style={{ color: "#0a0e17" }}
               >
                 免费注册

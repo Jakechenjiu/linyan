@@ -15,7 +15,8 @@ export default function GroupError({ error, reset }: Props) {
   }, [error]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen text-center px-4 bg-[var(--background)]">
+    <div className="flex flex-col items-center justify-center min-h-screen text-center px-4 relative">
+      <div className="absolute inset-0 bg-[var(--bg-abyss)] -z-10" />
       <AlertTriangle size={40} className="text-red-400 mb-4" />
       <h1 className="text-xl font-bold font-mono mb-2">出了点问题</h1>
       <p className="text-sm text-muted-foreground mb-6 max-w-md">
