@@ -17,31 +17,56 @@ const providerEndpoints: Record<string, string> = {
 };
 
 export default async function SettingsPage() {
-  const session = await auth();
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    return (
+      <div className="space-y-8 max-w-3xl">
+        <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20 text-sm text-red-400">
+          身份验证失败，请刷新页面重试。
+        </div>
+      </div>
+    );
+  }
   if (!session?.user) redirect("/login");
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, name: true, email: true, apiKey: true, apiProvider: true },
-  });
+  let user;
+  try {
+    user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true, name: true, email: true, apiKey: true, apiProvider: true },
+    });
+  } catch {
+    user = null;
+  }
 
   async function saveSettings(formData: FormData) {
     "use server";
-    const session = await auth();
-    if (!session?.user?.id) return;
+    let s;
+    try {
+      s = await auth();
+    } catch {
+      return;
+    }
+    if (!s?.user?.id) return;
 
     const name = formData.get("name") as string;
     const apiKey = formData.get("apiKey") as string;
     const apiProvider = formData.get("apiProvider") as string;
 
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: {
-        name: name?.trim() || null,
-        apiKey: apiKey?.trim() || null,
-        apiProvider: apiProvider || "deepseek",
-      },
-    });
+    try {
+      await prisma.user.update({
+        where: { id: s.user.id },
+        data: {
+          name: name?.trim() || null,
+          apiKey: apiKey?.trim() || null,
+          apiProvider: apiProvider || "deepseek",
+        },
+      });
+    } catch (e) {
+      console.error("Failed to save settings:", e);
+    }
     revalidatePath("/workspace/settings");
   }
 
@@ -55,6 +80,12 @@ export default async function SettingsPage() {
         <h1 className="font-mono text-3xl font-bold tracking-wide">设置</h1>
         <p className="text-sm text-muted-foreground mt-1">管理账户和 AI 接入</p>
       </div>
+
+      {!user && (
+        <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/20 text-xs text-red-400">
+          用户数据加载失败，部分设置可能无法显示。请刷新重试。
+        </div>
+      )}
 
       <form action={saveSettings} className="space-y-8">
         {/* API Configuration */}

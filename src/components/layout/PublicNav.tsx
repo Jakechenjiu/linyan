@@ -3,7 +3,13 @@ import { auth } from "@/lib/auth";
 import { Logo } from "@/components/brand";
 
 export default async function PublicNav() {
-  const session = await auth();
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    // DB down or auth error — treat as unauthenticated
+    session = null;
+  }
 
   return (
     <nav className="relative z-10 glass-card border-b border-white/[0.04] rounded-none mx-0">

@@ -13,27 +13,44 @@ const platforms = [
 ];
 
 export default async function PhotonPage() {
-  const session = await auth();
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    session = null;
+  }
   const userId = session?.user?.id;
 
-  const recentContents = userId ? await prisma.content.findMany({
-    where: { userId },
-    orderBy: { updatedAt: "desc" },
-    take: 5,
-  }) : [];
+  let recentContents: any[] = [];
+  let videoProjects: any[] = [];
+  let stats: any[] = [];
+  let fetchError: string | null = null;
 
-  const videoProjects = userId ? await prisma.videoProject.findMany({
-    where: { userId },
-    orderBy: { updatedAt: "desc" },
-    take: 5,
-    include: { _count: { select: { clips: true } } },
-  }) : [];
-
-  const stats = userId ? await prisma.content.groupBy({
-    by: ["status"],
-    where: { userId },
-    _count: true,
-  }) : [];
+  if (userId) {
+    try {
+      [recentContents, videoProjects, stats] = await Promise.all([
+        prisma.content.findMany({
+          where: { userId },
+          orderBy: { updatedAt: "desc" },
+          take: 5,
+        }),
+        prisma.videoProject.findMany({
+          where: { userId },
+          orderBy: { updatedAt: "desc" },
+          take: 5,
+          include: { _count: { select: { clips: true } } },
+        }),
+        prisma.content.groupBy({
+          by: ["status"],
+          where: { userId },
+          _count: true,
+        }),
+      ]);
+    } catch (e) {
+      console.error("Failed to fetch photon data:", e);
+      fetchError = "数据加载失败，请刷新页面重试。";
+    }
+  }
 
   const publishedCount = stats.find((s) => s.status === "published")?._count ?? 0;
   const draftCount = stats.find((s) => s.status === "draft")?._count ?? 0;
@@ -44,6 +61,12 @@ export default async function PhotonPage() {
         <h1 className="font-mono text-3xl font-bold tracking-wide">光子发布</h1>
         <p className="text-sm text-muted-foreground mt-1">自媒体爆款流水线 + AI 短视频工厂</p>
       </div>
+
+      {fetchError && (
+        <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/20 text-xs text-red-400">
+          {fetchError}
+        </div>
+      )}
 
       {/* Quick actions */}
       <div className="grid grid-cols-5 gap-3">

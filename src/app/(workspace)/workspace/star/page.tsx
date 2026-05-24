@@ -21,26 +21,50 @@ const statusLabels: Record<string, string> = {
 };
 
 export default async function StarPage() {
-  const session = await auth();
-  const novels = await prisma.novel.findMany({
-    where: { userId: session?.user?.id },
-    include: {
-      _count: { select: { chapters: true } },
-      chapters: { select: { wordCount: true } },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    session = null;
+  }
+
+  let novels: any[] = [];
+  let fetchError: string | null = null;
+
+  if (session?.user?.id) {
+    try {
+      novels = await prisma.novel.findMany({
+        where: { userId: session.user.id },
+        include: {
+          _count: { select: { chapters: true } },
+          chapters: { select: { wordCount: true } },
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+    } catch (e) {
+      console.error("Failed to fetch novels:", e);
+      fetchError = "数据加载失败，请刷新页面重试。";
+    }
+  }
 
   // Get today's writing logs for all novels
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayLogs = await prisma.writingLog.findMany({
-    where: {
-      novelId: { in: novels.map((n) => n.id) },
-      date: today,
-    },
-  });
-  const todayMap = new Map(todayLogs.map((l) => [l.novelId, l.wordCount]));
+  let todayMap = new Map<string, number>();
+  if (novels.length > 0) {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayLogs = await prisma.writingLog.findMany({
+        where: {
+          novelId: { in: novels.map((n) => n.id) },
+          date: today,
+        },
+      });
+      todayMap = new Map(todayLogs.map((l) => [l.novelId, l.wordCount]));
+    } catch (e) {
+      console.error("Failed to fetch writing logs:", e);
+      // Non-critical, continue without today's stats
+    }
+  }
 
   return (
     <div className="space-y-8 max-w-4xl">
@@ -66,7 +90,17 @@ export default async function StarPage() {
         </div>
       </div>
 
-      {novels.length === 0 ? (
+      {fetchError && (
+        <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/20 text-xs text-red-400">
+          {fetchError}
+        </div>
+      )}
+
+      {!session ? (
+        <div className="space-card rounded-2xl p-12 text-center">
+          <p className="text-muted-foreground">请先登录</p>
+        </div>
+      ) : novels.length === 0 ? (
         <div className="space-card rounded-2xl p-12 text-center">
           <BookOpen size={48} className="mx-auto mb-4 text-muted-foreground" />
           <p className="text-muted-foreground mb-2">还没有开始创作</p>
@@ -82,7 +116,7 @@ export default async function StarPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {novels.map((novel) => {
-            const totalWords = novel.chapters.reduce((sum, ch) => sum + ch.wordCount, 0);
+            const totalWords = novel.chapters.reduce((sum: number, ch: { wordCount: number }) => sum + ch.wordCount, 0);
             const genre = genrePresets.find((g) => g.id === novel.genre);
             const progress = novel.targetWordCount ? Math.min(100, Math.round((totalWords / novel.targetWordCount) * 100)) : 0;
             const todayWords = todayMap.get(novel.id) || 0;
