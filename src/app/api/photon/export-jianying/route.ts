@@ -13,7 +13,12 @@ function getJianyingDraftDir(): string {
 }
 
 export async function POST(req: Request) {
-  const session = await auth();
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    return NextResponse.json({ error: "Authentication failed" }, { status: 500 });
+  }
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -23,10 +28,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "projectId required" }, { status: 400 });
   }
 
-  const project = await prisma.videoProject.findUnique({
-    where: { id: projectId },
-    include: { clips: { orderBy: { order: "asc" } } },
-  });
+  let project;
+  try {
+    project = await prisma.videoProject.findUnique({
+      where: { id: projectId },
+      include: { clips: { orderBy: { order: "asc" } } },
+    });
+  } catch {
+    return NextResponse.json({ error: "数据库查询失败" }, { status: 500 });
+  }
 
   if (!project || project.userId !== session.user.id) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });

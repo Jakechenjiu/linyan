@@ -61,7 +61,11 @@ export const pixelleProvider: VideoProvider = {
       const res = await fetch(`${PIXELLE_BASE}/api/health`, {
         signal: AbortSignal.timeout(3000),
       });
-      return res.ok;
+      if (!res.ok) return false;
+      const ct = res.headers.get("content-type") || "";
+      if (!ct.includes("application/json")) return false;
+      const body = await res.json().catch(() => null);
+      return body?.service === "pixelle-video";
     } catch {
       return false;
     }

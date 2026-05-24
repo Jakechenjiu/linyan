@@ -6,7 +6,12 @@ import type { ProviderType } from "@/lib/photon/video-providers";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const session = await auth();
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    return NextResponse.json({ error: "Authentication failed" }, { status: 500 });
+  }
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -17,7 +22,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "projectId required" }, { status: 400 });
   }
 
-  const config = await getAiConfig(session.user.id);
+  let config;
+  try {
+    config = await getAiConfig(session.user.id);
+  } catch {
+    return NextResponse.json({ error: "读取用户配置失败" }, { status: 500 });
+  }
   if (!config.hasKey) {
     return NextResponse.json({
       error: "请先在设置中配置您的 AI API Key",
@@ -55,10 +65,15 @@ export async function POST(req: Request) {
     }, { status: 400 });
   }
 
-  const project = await prisma.videoProject.findUnique({
-    where: { id: projectId },
-    include: { clips: { orderBy: { order: "asc" } } },
-  });
+  let project;
+  try {
+    project = await prisma.videoProject.findUnique({
+      where: { id: projectId },
+      include: { clips: { orderBy: { order: "asc" } } },
+    });
+  } catch {
+    return NextResponse.json({ error: "数据库查询失败" }, { status: 500 });
+  }
 
   if (!project || project.userId !== session.user.id) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
@@ -73,15 +88,19 @@ export async function POST(req: Request) {
   }
 
   // Mark clips as generating
-  await prisma.videoClip.updateMany({
-    where: { id: { in: clipsToProcess.map((c) => c.id) } },
-    data: { status: "generating" },
-  });
+  try {
+    await prisma.videoClip.updateMany({
+      where: { id: { in: clipsToProcess.map((c) => c.id) } },
+      data: { status: "generating" },
+    });
 
-  await prisma.videoProject.update({
-    where: { id: projectId },
-    data: { status: "generating" },
-  });
+    await prisma.videoProject.update({
+      where: { id: projectId },
+      data: { status: "generating" },
+    });
+  } catch {
+    return NextResponse.json({ error: "数据库更新失败" }, { status: 500 });
+  }
 
   const results: { clipId: string; videoUrl?: string; voiceUrl?: string; error?: string }[] = [];
 
@@ -134,10 +153,14 @@ export async function POST(req: Request) {
   }
 
   const allDone = results.every((r) => !r.error);
-  await prisma.videoProject.update({
-    where: { id: projectId },
-    data: { status: allDone ? "ready" : "partial" },
-  });
+  try {
+    await prisma.videoProject.update({
+      where: { id: projectId },
+      data: { status: allDone ? "ready" : "partial" },
+    });
+  } catch {
+    // Non-critical; results already generated
+  }
 
   return NextResponse.json({ provider: providerType, results });
 }
