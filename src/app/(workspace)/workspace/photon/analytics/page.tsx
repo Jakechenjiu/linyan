@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { redirect } from "next/navigation";
 import { BarChart3, TrendingUp, FileText, Layers } from "lucide-react";
 
 const platformMap: Record<string, string> = {
@@ -8,11 +9,25 @@ const platformMap: Record<string, string> = {
 };
 
 export default async function PhotonAnalyticsPage() {
-  const session = await auth();
-  const contents = await prisma.content.findMany({
-    where: { userId: session?.user?.id },
-    select: { platform: true, wordCount: true, status: true, createdAt: true },
-  });
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    session = null;
+  }
+  if (!session?.user?.id) redirect("/login");
+
+  let contents: any[] = [];
+  let fetchError: string | null = null;
+  try {
+    contents = await prisma.content.findMany({
+      where: { userId: session.user.id },
+      select: { platform: true, wordCount: true, status: true, createdAt: true },
+    });
+  } catch (e) {
+    console.error("Failed to fetch analytics:", e);
+    fetchError = "数据加载失败，请刷新页面重试。";
+  }
 
   const totalWords = contents.reduce((s, c) => s + c.wordCount, 0);
   const publishedCount = contents.filter((c) => c.status === "published").length;
@@ -30,6 +45,12 @@ export default async function PhotonAnalyticsPage() {
         <h1 className="font-mono text-3xl font-bold tracking-wide">数据分析</h1>
         <p className="text-sm text-muted-foreground mt-1">内容创作统计</p>
       </div>
+
+      {fetchError && (
+        <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/20 text-xs text-red-400">
+          {fetchError}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">

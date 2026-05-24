@@ -8,15 +8,25 @@ interface Props {
 }
 
 export default async function StudioPage({ params }: Props) {
-  const session = await auth();
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    redirect("/workspace/photon");
+  }
   if (!session?.user?.id) redirect("/login");
 
   const projectId = (await params).id;
 
-  const project = await prisma.videoProject.findUnique({
-    where: { id: projectId },
-    include: { clips: { orderBy: { order: "asc" } } },
-  });
+  let project;
+  try {
+    project = await prisma.videoProject.findUnique({
+      where: { id: projectId },
+      include: { clips: { orderBy: { order: "asc" } } },
+    });
+  } catch {
+    redirect("/workspace/photon?error=数据加载失败，请重试");
+  }
 
   if (!project || project.userId !== session.user.id) {
     redirect("/workspace/photon");

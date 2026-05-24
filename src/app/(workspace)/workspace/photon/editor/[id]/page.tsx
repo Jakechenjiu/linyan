@@ -8,10 +8,20 @@ export default async function ContentEditorPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await auth();
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    redirect("/workspace/photon");
+  }
   if (!session?.user?.id) redirect("/login");
 
-  const content = await prisma.content.findUnique({ where: { id: (await params).id } });
+  let content;
+  try {
+    content = await prisma.content.findUnique({ where: { id: (await params).id } });
+  } catch {
+    redirect("/workspace/photon?error=数据加载失败，请重试");
+  }
   if (!content || content.userId !== session.user.id) notFound();
 
   return (

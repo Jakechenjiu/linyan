@@ -40,7 +40,12 @@ const scriptSystemPrompt = `你是一位资深的抖音短视频编导，擅长�
 - 如果风格是"混剪"，各分镜画面应该有视觉多样性`;
 
 export async function POST(req: Request) {
-  const session = await auth();
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    return NextResponse.json({ error: "Authentication failed" }, { status: 500 });
+  }
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -51,7 +56,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "请输入视频主题" }, { status: 400 });
   }
 
-  const config = await getAiConfig(session.user.id);
+  let config;
+  try {
+    config = await getAiConfig(session.user.id);
+  } catch {
+    return NextResponse.json({ error: "读取用户配置失败" }, { status: 500 });
+  }
 
   if (!config.hasKey) {
     return NextResponse.json({
@@ -109,25 +119,33 @@ ${style === "图文" ? "注意：图文风格以文字和静态画面为主，�
   }
 
   // Save to database
-  const project = await prisma.videoProject.create({
-    data: {
-      title: script.title || topic,
-      topic: topic.trim(),
-      platform: platform || "douyin",
-      style: style || null,
-      script: JSON.stringify(script),
-      userId: session.user.id,
-      clips: {
-        create: script.clips.map((clip, i) => ({
-          order: i,
-          scriptText: clip.scriptText,
-          visualPrompt: clip.visualPrompt,
-          duration: clip.duration || 5.0,
-        })),
+  let project;
+  try {
+    project = await prisma.videoProject.create({
+      data: {
+        title: script.title || topic,
+        topic: topic.trim(),
+        platform: platform || "douyin",
+        style: style || null,
+        script: JSON.stringify(script),
+        userId: session.user.id,
+        clips: {
+          create: script.clips.map((clip, i) => ({
+            order: i,
+            scriptText: clip.scriptText,
+            visualPrompt: clip.visualPrompt,
+            duration: clip.duration || 5.0,
+          })),
+        },
       },
-    },
-    include: { clips: { orderBy: { order: "asc" } } },
-  });
+      include: { clips: { orderBy: { order: "asc" } } },
+    });
+  } catch (e) {
+    return NextResponse.json({
+      error: "数据库写入失败，请确认数据库已运行且表已创建",
+      script,
+    }, { status: 500 });
+  }
 
   return NextResponse.json({ projectId: project.id, script });
 }

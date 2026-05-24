@@ -105,6 +105,27 @@ export default function StudioShell({ project: initialProject }: Props) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "生成失败");
+
+      // Sync local clips state with results
+      if (data.results) {
+        setClips((prev) =>
+          prev.map((c) => {
+            const result = data.results.find((r: any) => r.clipId === c.id);
+            if (result && !result.error) {
+              return {
+                ...c,
+                status: "done",
+                clipUrl: result.videoUrl || c.clipUrl,
+                voiceUrl: result.voiceUrl || c.voiceUrl,
+              };
+            }
+            if (result && result.error) {
+              return { ...c, status: "failed" };
+            }
+            return c;
+          })
+        );
+      }
       router.refresh();
     } catch (e: any) {
       setError(e.message);

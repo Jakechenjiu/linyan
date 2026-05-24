@@ -2,37 +2,57 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { Calendar as CalendarIcon, Plus, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Calendar as CalendarIcon, Plus } from "lucide-react";
 
 export default async function CalendarPage() {
-  const session = await auth();
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    session = null;
+  }
   if (!session?.user?.id) redirect("/login");
 
-  const entries = await prisma.content.findMany({
-    where: { userId: session.user.id, status: "scheduled" },
-    orderBy: { updatedAt: "asc" },
-  });
+  let entries: any[] = [];
+  let fetchError: string | null = null;
+  try {
+    entries = await prisma.content.findMany({
+      where: { userId: session.user.id, status: "scheduled" },
+      orderBy: { updatedAt: "asc" },
+    });
+  } catch (e) {
+    console.error("Failed to fetch calendar entries:", e);
+    fetchError = "数据加载失败，请刷新页面重试。";
+  }
 
   const scheduled = entries.filter((e) => e.status === "scheduled");
 
   async function addEntry(formData: FormData) {
     "use server";
-    const session = await auth();
-    if (!session?.user?.id) return;
+    let s;
+    try {
+      s = await auth();
+    } catch {
+      return;
+    }
+    if (!s?.user?.id) return;
     const title = formData.get("title") as string;
-    const date = formData.get("date") as string;
     if (!title?.trim()) return;
-    await prisma.content.create({
-      data: {
-        title: title.trim(),
-        body: "",
-        platform: "wechat",
-        contentType: "article",
-        wordCount: 0,
-        status: "scheduled",
-        userId: session.user.id,
-      },
-    });
+    try {
+      await prisma.content.create({
+        data: {
+          title: title.trim(),
+          body: "",
+          platform: "wechat",
+          contentType: "article",
+          wordCount: 0,
+          status: "scheduled",
+          userId: s.user.id,
+        },
+      });
+    } catch (e) {
+      console.error("Failed to create calendar entry:", e);
+    }
     revalidatePath("/workspace/photon/calendar");
   }
 
@@ -45,6 +65,12 @@ export default async function CalendarPage() {
         </h1>
         <p className="text-sm text-muted-foreground mt-1">管理内容排期</p>
       </div>
+
+      {fetchError && (
+        <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/20 text-xs text-red-400">
+          {fetchError}
+        </div>
+      )}
 
       {/* Add entry */}
       <form
