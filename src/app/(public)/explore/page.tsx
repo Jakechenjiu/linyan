@@ -82,7 +82,7 @@ export default async function ExplorePage() {
               item.kind === "content"
                 ? `/explore/${item.id}?type=content`
                 : `/explore/${item.id}?type=story`;
-            const platform = item.kind === "content" ? platformLabels[item.platform] : null;
+            const platform = item.kind === "content" && item.platform ? platformLabels[item.platform] ?? null : null;
 
             return (
               <Link
