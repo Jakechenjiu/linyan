@@ -15,7 +15,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { projectId, clipIds: requestedClipIds, provider: providerParam } = await req.json();
+  let projectId: string, requestedClipIds: string[] | undefined, providerParam: string | undefined;
+  try {
+    const body = await req.json();
+    projectId = body.projectId;
+    requestedClipIds = body.clipIds;
+    providerParam = body.provider;
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
   if (!projectId) {
     return NextResponse.json({ error: "projectId required" }, { status: 400 });
