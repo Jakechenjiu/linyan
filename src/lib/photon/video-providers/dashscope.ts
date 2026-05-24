@@ -2,12 +2,13 @@ import type { VideoProvider, VideoGenerateParams, TaskResult, TaskStatus, VoiceR
 
 const DASHSCOPE_BASE = "https://dashscope.aliyuncs.com";
 
-function apiPost<T>(apiKey: string, path: string, body: Record<string, unknown>): Promise<T> {
+function apiPost<T>(apiKey: string, path: string, body: Record<string, unknown>, extraHeaders?: Record<string, string>): Promise<T> {
   return fetch(`${DASHSCOPE_BASE}${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
+      ...extraHeaders,
     },
     body: JSON.stringify(body),
   }).then(async (res) => {
@@ -15,7 +16,7 @@ function apiPost<T>(apiKey: string, path: string, body: Record<string, unknown>)
       const err = await res.text().catch(() => "");
       console.error(`DashScope error (${res.status}):`, err.slice(0, 500));
       if (res.status === 401 || res.status === 403) {
-        throw new Error("DashScope API Key 无效，请在设置中配置");
+        throw new Error(`DashScope API Key 无效 (${res.status}): ${err.slice(0, 200)}`);
       }
       throw new Error(`DashScope (${res.status}): ${err.slice(0, 300)}`);
     }
@@ -56,7 +57,8 @@ export function createDashscopeProvider(apiKeyOverride?: string): VideoProvider 
             size: params.resolution || "1080*1920",
             prompt_extend: true,
           },
-        }
+        },
+        { "X-DashScope-Async": "enable" }
       );
       if (data.code && data.code !== "OK") {
         throw new Error(data.message || "DashScope video generation failed");
