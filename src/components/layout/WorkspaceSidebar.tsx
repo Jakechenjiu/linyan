@@ -52,13 +52,13 @@ export default function WorkspaceSidebar({ user }: { user?: { name?: string | nu
   };
 
   return (
-    <aside className="w-56 shrink-0 h-screen sticky top-0 flex flex-col border-r border-card-border bg-[var(--background)]">
+    <aside className="w-56 shrink-0 h-screen sticky top-0 flex flex-col border-r border-white/[0.04] bg-[var(--bg-elevated)]/80 backdrop-blur-xl">
       {/* Logo */}
-      <div className="px-4 py-5 border-b border-card-border">
-        <Link href="/workspace" className="font-mono font-bold text-lg tracking-wider glow-text hover:scale-105 inline-block transition-transform">
+      <div className="px-4 py-5 border-b border-white/[0.04]">
+        <Link href="/workspace" className="font-mono font-bold text-lg tracking-widest text-gradient-cyan glow-text hover:tracking-[0.15em] inline-block transition-all duration-300">
           灵砚
         </Link>
-        <p className="text-[10px] text-muted-foreground mt-0.5">创作工作台</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5 tracking-wide">创作工作台</p>
       </div>
 
       {/* Nav */}
@@ -66,65 +66,67 @@ export default function WorkspaceSidebar({ user }: { user?: { name?: string | nu
         {/* Dashboard */}
         <Link
           href="/workspace"
-          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all hover:translate-x-0.5 ${
+          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
             pathname === "/workspace"
-              ? "bg-[var(--cyan-soft)] text-[var(--cyan)] font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-[var(--accent)]"
+              ? "bg-[var(--cyan-soft)] text-[var(--cyan)] font-medium shadow-[inset_0_0_0_1px_rgba(0,229,255,0.08)]"
+              : "text-muted-foreground hover:text-foreground hover:bg-white/[0.03]"
           }`}
         >
           <LayoutDashboard size={16} />
           仪表盘
         </Link>
 
-        <div className="my-3 border-t border-card-border" />
+        <div className="my-3 border-t border-white/[0.04]" />
 
         {/* Module Sections */}
         {modules.map((mod) => (
-          <div key={mod.id}>
+          <div key={mod.id} className="space-y-0.5">
             <button
               onClick={() => toggle(mod.id)}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-[var(--accent)] hover:translate-x-0.5"
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-white/[0.03]"
               style={{ color: mod.color }}
             >
               {mod.icon}
               <span className="flex-1 text-left">{mod.label}</span>
               <ChevronDown
                 size={12}
-                className={`transition-transform ${expanded.has(mod.id) ? "rotate-0" : "-rotate-90"}`}
+                className={`transition-transform duration-300 ${expanded.has(mod.id) ? "rotate-0" : "-rotate-90"}`}
               />
             </button>
-            {expanded.has(mod.id) && (
-              <div className="ml-2 mt-0.5 space-y-0.5">
-                {mod.items.map((item) => (
-                  <Link
-                    key={item.href + item.label}
-                    href={item.href}
-                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-all hover:translate-x-0.5 ${
-                      pathname === item.href
-                        ? "bg-[var(--cyan-soft)] text-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-[var(--accent)]"
-                    }`}
-                  >
-                    {item.icon}
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            )}
+            <div
+              className={`ml-2 space-y-0.5 overflow-hidden transition-all duration-300 ${
+                expanded.has(mod.id) ? "max-h-60 opacity-100" : "max-h-0 opacity-0"
+              }`}
+            >
+              {mod.items.map((item) => (
+                <Link
+                  key={item.href + item.label}
+                  href={item.href}
+                  className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-200 ${
+                    pathname === item.href
+                      ? "bg-[var(--cyan-soft)] text-foreground shadow-[inset_0_0_0_1px_rgba(0,229,255,0.06)]"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/[0.03]"
+                  }`}
+                >
+                  {item.icon}
+                  {item.label}
+                </Link>
+              ))}
+            </div>
           </div>
         ))}
       </nav>
 
       {/* Bottom */}
-      <div className="border-t border-card-border px-3 py-3 space-y-1">
+      <div className="border-t border-white/[0.04] px-3 py-3 space-y-1">
         <Link
           href="/workspace/settings"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-[var(--accent)] transition-all"
+          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-white/[0.03] transition-all duration-200"
         >
           <Settings size={14} />设置
         </Link>
         <div className="flex items-center gap-3 px-3 py-2">
-          <div className="w-6 h-6 rounded-full bg-[var(--cyan)] flex items-center justify-center text-[10px] font-bold" style={{ color: "#0a0e17" }}>
+          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[var(--cyan)] to-[var(--nebula)] flex items-center justify-center text-[10px] font-bold text-white shadow-[0_0_12px_rgba(0,229,255,0.2)]">
             {(user?.name ?? user?.email ?? "U")[0].toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
@@ -133,7 +135,7 @@ export default function WorkspaceSidebar({ user }: { user?: { name?: string | nu
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="p-1 rounded hover:bg-[var(--accent)] text-muted-foreground hover:text-foreground transition-colors"
+            className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-foreground transition-all duration-200"
           >
             <LogOut size={13} />
           </button>

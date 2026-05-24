@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 interface SpotlightCardProps {
   href: string;
@@ -12,20 +12,32 @@ interface SpotlightCardProps {
 
 export default function SpotlightCard({ href, children, color = "var(--cyan)", className = "" }: SpotlightCardProps) {
   const cardRef = useRef<HTMLAnchorElement>(null);
-  const glowRef = useRef<HTMLDivElement>(null);
+  const [rotateX, setRotateX] = useState(0);
+  const [rotateY, setRotateY] = useState(0);
+  const [glowPos, setGlowPos] = useState({ x: 0.5, y: 0.5 });
+  const [isHovered, setIsHovered] = useState(false);
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!glowRef.current) return;
-    const rect = e.currentTarget.getBoundingClientRect();
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    glowRef.current.style.background = `radial-gradient(circle 280px at ${x}px ${y}px, ${color}12, transparent 70%)`;
-    glowRef.current.style.opacity = "1";
+
+    // Spotlight position
+    setGlowPos({ x: x / rect.width, y: y / rect.height });
+
+    // Magnetic tilt (subtle 3D effect)
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    setRotateY(((x - centerX) / centerX) * 3);
+    setRotateX(((centerY - y) / centerY) * 3);
   };
 
   const handleMouseLeave = () => {
-    if (!glowRef.current) return;
-    glowRef.current.style.opacity = "0";
+    setRotateX(0);
+    setRotateY(0);
+    setGlowPos({ x: 0.5, y: 0.5 });
+    setIsHovered(false);
   };
 
   return (
@@ -33,15 +45,24 @@ export default function SpotlightCard({ href, children, color = "var(--cyan)", c
       ref={cardRef}
       href={href}
       onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={handleMouseLeave}
-      className={`space-card group rounded-2xl p-6 relative overflow-hidden hover-lift spotlight-card ${className}`}
-      style={{ borderColor: `${color}20` }}
+      className={`gradient-border-card group block relative overflow-hidden transition-all duration-500 ${className}`}
+      style={{
+        transform: isHovered
+          ? `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`
+          : "perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0)",
+        transition: "transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
+      }}
     >
+      {/* Spotlight glow */}
       <div
-        ref={glowRef}
-        className="absolute inset-0 opacity-0 transition-opacity duration-300 pointer-events-none"
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none z-10"
+        style={{
+          background: `radial-gradient(circle 320px at ${glowPos.x * 100}% ${glowPos.y * 100}%, ${color}14, transparent 60%)`,
+        }}
       />
-      {children}
+      <div className="relative z-20 p-6">{children}</div>
     </Link>
   );
 }
