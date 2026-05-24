@@ -1,14 +1,18 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
-import type { NoteLink } from "./BacklinksPanel";
+import { useState, useRef, useCallback } from "react";
+import type { Backlink } from "@/lib/notes";
+import AiToolbar from "./AiToolbar";
+import OutgoingLinks from "./OutgoingLinks";
+
+export type { Backlink };
 
 interface Props {
   id?: string;
   initialTitle?: string;
   initialBody?: string;
   initialTags?: string[];
-  backlinks?: { id: string; fromId: string; fromNote: { id: string; title: string } }[];
+  backlinks?: Backlink[];
   onSave: (data: { title: string; body: string; tags: string[] }) => void;
   onDelete?: () => void;
 }
@@ -29,9 +33,9 @@ export default function NoteEditor({
   const [suggestions, setSuggestions] = useState<{ id: string; title: string }[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
+  const [expandedBacklink, setExpandedBacklink] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Search notes for autocomplete when [[ is typed
   const searchNotes = useCallback(
     async (q: string) => {
       if (q.length < 1) { setSuggestions([]); return; }
@@ -67,7 +71,6 @@ export default function NoteEditor({
     const value = e.target.value;
     setBody(value);
 
-    // Check for [[ trigger
     const cursorPos = e.target.selectionStart;
     const beforeCursor = value.slice(0, cursorPos);
     const match = beforeCursor.match(/\[\[([^\]|]*)$/);
@@ -111,6 +114,23 @@ export default function NoteEditor({
     if (!title.trim()) return;
     onSave({ title: title.trim(), body, tags });
   };
+
+  // AI toolbar callbacks
+  const handleAppendText = useCallback((text: string) => {
+    setBody((prev) => prev + text);
+  }, []);
+
+  const handleReplaceText = useCallback((text: string) => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    setBody((prev) => prev.slice(0, start) + text + prev.slice(end));
+  }, []);
+
+  const handleAddAiTag = useCallback((tag: string) => {
+    setTags((prev) => (prev.includes(tag) ? prev : [...prev, tag]));
+  }, []);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -171,6 +191,17 @@ export default function NoteEditor({
         )}
       </div>
 
+      {/* AI Toolbar */}
+      <AiToolbar
+        noteId={id}
+        body={body}
+        tags={tags}
+        textareaRef={textareaRef}
+        onAppendText={handleAppendText}
+        onReplaceText={handleReplaceText}
+        onAddTag={handleAddAiTag}
+      />
+
       {/* Actions */}
       <div className="flex items-center justify-between pt-3 border-t border-card-border">
         <div className="flex gap-2">
@@ -196,7 +227,10 @@ export default function NoteEditor({
         </span>
       </div>
 
-      {/* Backlinks */}
+      {/* Outgoing Links */}
+      {id && <OutgoingLinks body={body} currentTitle={title} />}
+
+      {/* Backlinks with context */}
       {backlinks.length > 0 && (
         <div className="mt-4 pt-4 border-t border-card-border">
           <h4 className="text-xs font-medium text-muted-foreground mb-2">
@@ -204,13 +238,20 @@ export default function NoteEditor({
           </h4>
           <div className="space-y-1">
             {backlinks.map((bl) => (
-              <a
-                key={bl.id}
-                href={`/workspace/notes/${bl.fromNote.id}`}
-                className="block text-xs text-[var(--cyan)] hover:underline"
-              >
-                {bl.fromNote.title}
-              </a>
+              <div key={bl.id}>
+                <button
+                  type="button"
+                  onClick={() => setExpandedBacklink(expandedBacklink === bl.id ? null : bl.id)}
+                  className="flex items-center gap-1 text-xs text-[var(--cyan)] hover:underline"
+                >
+                  {expandedBacklink === bl.id ? "▾" : "▸"} {bl.fromNote.title}
+                </button>
+                {expandedBacklink === bl.id && bl.context && (
+                  <div className="mt-1 ml-4 p-2 rounded bg-[var(--bg-elevated)] border border-card-border text-[11px] text-muted-foreground leading-relaxed">
+                    {bl.context}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>
@@ -218,6 +259,3 @@ export default function NoteEditor({
     </form>
   );
 }
-
-// Re-export the type
-export type { NoteLink };

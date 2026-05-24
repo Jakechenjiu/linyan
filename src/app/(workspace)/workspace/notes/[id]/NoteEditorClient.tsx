@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import NoteEditor from "@/components/notes/NoteEditor";
-import type { NoteLink } from "@/components/notes/BacklinksPanel";
+import type { Backlink } from "@/lib/notes";
 import Link from "next/link";
 import { Network } from "lucide-react";
 
@@ -11,7 +11,7 @@ interface Props {
   initialTitle?: string;
   initialBody?: string;
   initialTags?: string[];
-  initialBacklinks?: { id: string; fromId: string; fromNote: { id: string; title: string } }[];
+  initialBacklinks?: Backlink[];
 }
 
 export default function NoteEditorClient({

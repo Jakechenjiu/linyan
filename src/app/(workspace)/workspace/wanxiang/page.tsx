@@ -1,10 +1,36 @@
 "use client";
 
-import { useState } from "react";
-import { Network, Loader2, ArrowRight, Users, RefreshCw, FileText, ExternalLink, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Network, Loader2, ArrowRight, Users, RefreshCw, FileText, ExternalLink, ChevronDown, ChevronUp, Sparkles, Settings2, Plus, Trash2, Clock } from "lucide-react";
 import Link from "next/link";
 import WanxiangResult from "@/components/shared/WanxiangResult";
 import ImportButton from "@/components/shared/ImportButton";
+
+const rolePresets = [
+  { name: "分析师", role: "冷静客观的数据分析师，擅长从数据和事实中提炼洞察" },
+  { name: "反对者", role: "持怀疑态度，善于发现逻辑漏洞和潜在风险" },
+  { name: "乐观派", role: "对未来持积极态度，关注机遇和可能性" },
+  { name: "悲观派", role: "对事物持谨慎态度，关注最坏情况和脆弱环节" },
+  { name: "领域专家", role: "在相关领域有深厚专业知识的技术权威" },
+  { name: "随大流", role: "代表普通大众的观点和判断，容易从众" },
+  { name: "创新者", role: "善于提出颠覆性想法和非传统解决方案" },
+  { name: "保守派", role: "倾向于维持现状，强调稳定和渐进式变革" },
+];
+
+interface AgentConfig {
+  name: string;
+  role: string;
+}
+
+interface HistoryItem {
+  id: string;
+  topic: string;
+  agentCount: number;
+  rounds: number;
+  status: string;
+  result: string | null;
+  createdAt: string;
+}
 
 export default function WanxiangPage() {
   const [topic, setTopic] = useState("");
@@ -15,6 +41,80 @@ export default function WanxiangPage() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
   const [showMirofish, setShowMirofish] = useState(false);
+  const [showAgentConfig, setShowAgentConfig] = useState(false);
+  const [agents, setAgents] = useState<AgentConfig[]>([]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
+
+  // Generate default agents when count changes
+  const generateAgents = useCallback((count: number) => {
+    const result: AgentConfig[] = [];
+    for (let i = 0; i < count; i++) {
+      const preset = rolePresets[i % rolePresets.length];
+      result.push({
+        name: `${preset.name}${Math.floor(i / rolePresets.length) > 0 ? Math.floor(i / rolePresets.length) + 1 : ""}`,
+        role: preset.role,
+      });
+    }
+    setAgents(result.slice(0, count));
+  }, []);
+
+  useEffect(() => {
+    if (agents.length === 0 && agentCount > 0) {
+      generateAgents(agentCount);
+    }
+  }, [agentCount, agents.length, generateAgents]);
+
+  useEffect(() => {
+    if (agents.length < agentCount) {
+      const toAdd = agentCount - agents.length;
+      const newAgents: AgentConfig[] = [];
+      const startIdx = agents.length;
+      for (let i = 0; i < toAdd; i++) {
+        const preset = rolePresets[(startIdx + i) % rolePresets.length];
+        newAgents.push({
+          name: `${preset.name}${Math.floor((startIdx + i) / rolePresets.length) > 0 ? Math.floor((startIdx + i) / rolePresets.length) + 1 : ""}`,
+          role: preset.role,
+        });
+      }
+      setAgents((prev) => [...prev, ...newAgents]);
+    } else if (agents.length > agentCount) {
+      setAgents((prev) => prev.slice(0, agentCount));
+    }
+  }, [agentCount]);
+
+  // Load history
+  useEffect(() => {
+    setHistoryLoading(true);
+    fetch("/api/wanxiang/history")
+      .then((res) => res.json())
+      .then((data) => setHistory(data.simulations || []))
+      .catch(() => {})
+      .finally(() => setHistoryLoading(false));
+  }, [result]);
+
+  const updateAgent = (i: number, field: keyof AgentConfig, value: string) => {
+    setAgents((prev) => {
+      const next = [...prev];
+      next[i] = { ...next[i], [field]: value };
+      return next;
+    });
+  };
+
+  const removeAgent = (i: number) => {
+    setAgents((prev) => prev.filter((_, idx) => idx !== i));
+    setAgentCount((prev) => Math.max(3, prev - 1));
+  };
+
+  const addAgent = () => {
+    const preset = rolePresets[agents.length % rolePresets.length];
+    setAgents((prev) => [...prev, {
+      name: `${preset.name}${Math.floor(agents.length / rolePresets.length) > 0 ? Math.floor(agents.length / rolePresets.length) + 1 : ""}`,
+      role: preset.role,
+    }]);
+    setAgentCount((prev) => Math.min(50, prev + 1));
+  };
 
   const handleSimulate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +132,7 @@ export default function WanxiangPage() {
           seedMaterial: seedMaterial.trim(),
           agentCount,
           rounds,
+          agents: showAgentConfig ? agents : undefined,
         }),
       });
       const data = await res.json();
@@ -45,6 +146,11 @@ export default function WanxiangPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeleteHistory = async (id: string) => {
+    await fetch(`/api/wanxiang/history?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    setHistory((prev) => prev.filter((h) => h.id !== id));
   };
 
   return (
@@ -117,6 +223,54 @@ export default function WanxiangPage() {
               </div>
             </div>
 
+            {/* Agent Configuration */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowAgentConfig(!showAgentConfig)}
+                className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Settings2 size={14} className="text-[var(--nebula)]" />
+                智能体配置
+                {showAgentConfig ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+              {showAgentConfig && (
+                <div className="mt-3 space-y-2 max-h-60 overflow-y-auto p-3 rounded-xl bg-[var(--bg-elevated)] border border-card-border">
+                  {agents.map((agent, i) => (
+                    <div key={i} className="flex items-center gap-2 group">
+                      <span className="text-[10px] text-muted-foreground w-5 shrink-0">#{i + 1}</span>
+                      <input
+                        value={agent.name}
+                        onChange={(e) => updateAgent(i, "name", e.target.value)}
+                        className="flex-1 px-2 py-1 rounded bg-[var(--background)] border border-card-border text-xs font-mono focus:outline-none focus:border-[var(--nebula)] transition-colors"
+                        placeholder="名称"
+                      />
+                      <input
+                        value={agent.role}
+                        onChange={(e) => updateAgent(i, "role", e.target.value)}
+                        className="flex-[2] px-2 py-1 rounded bg-[var(--background)] border border-card-border text-xs focus:outline-none focus:border-[var(--nebula)] transition-colors"
+                        placeholder="角色描述"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeAgent(i)}
+                        className="p-1 text-muted-foreground hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={addAgent}
+                    className="flex items-center gap-1 text-[10px] text-[var(--nebula)] hover:text-[var(--cyan)] transition-colors"
+                  >
+                    <Plus size={11} /> 添加智能体
+                  </button>
+                </div>
+              )}
+            </div>
+
             <button
               type="submit"
               disabled={loading || !topic.trim()}
@@ -158,11 +312,15 @@ export default function WanxiangPage() {
               </li>
               <li className="flex gap-2">
                 <span className="text-[var(--nebula)] shrink-0">3.</span>
-                智能体数量越多、轮次越多，结果越丰富，但耗时也更长
+                展开「智能体配置」自定义角色和立场
               </li>
               <li className="flex gap-2">
                 <span className="text-[var(--nebula)] shrink-0">4.</span>
-                推演完成后可保存到灵思笔记
+                智能体数量越多、轮次越多，结果越丰富，但耗时也更长
+              </li>
+              <li className="flex gap-2">
+                <span className="text-[var(--nebula)] shrink-0">5.</span>
+                推演完成后可 AI 深度分析或导出 Markdown
               </li>
             </ul>
           </div>
@@ -190,6 +348,70 @@ export default function WanxiangPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* History */}
+      <div className="space-card rounded-2xl p-6">
+        <h3 className="font-mono text-lg font-bold mb-4 flex items-center gap-2">
+          <Clock size={18} className="text-[var(--star)]" />
+          历史推演
+        </h3>
+        {historyLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 size={16} className="animate-spin text-muted-foreground" />
+          </div>
+        ) : history.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-8">
+            还没有推演记录，完成一次推演后自动保存
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {history.map((h) => (
+              <div key={h.id} className="border border-card-border rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between p-3 hover:bg-white/[0.01] transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedHistory(expandedHistory === h.id ? null : h.id)}
+                    className="flex-1 text-left min-w-0"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium truncate">{h.topic}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                        h.status === "completed" ? "bg-green-500/10 text-green-400" :
+                        h.status === "running" ? "bg-[var(--star)]/10 text-[var(--star)]" :
+                        "bg-red-500/10 text-red-400"
+                      }`}>
+                        {h.status === "completed" ? "已完成" : h.status === "running" ? "进行中" : "失败"}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {h.agentCount} 智能体 · {h.rounds} 轮 · {new Date(h.createdAt).toLocaleDateString("zh-CN")}
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteHistory(h.id)}
+                    className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+                {expandedHistory === h.id && h.result && (
+                  <div className="border-t border-card-border p-3">
+                    {(() => {
+                      try {
+                        const data = JSON.parse(h.result);
+                        return <WanxiangResult data={data} />;
+                      } catch {
+                        return <p className="text-xs text-muted-foreground">无法解析结果</p>;
+                      }
+                    })()}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* MiroFish 原生前端 */}

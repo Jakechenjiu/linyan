@@ -33,12 +33,50 @@ export async function syncLinks(fromId: string, body: string) {
 }
 
 export async function getBacklinks(noteId: string) {
-  return prisma.noteLink.findMany({
+  const note = await prisma.note.findUnique({
+    where: { id: noteId },
+    select: { title: true },
+  });
+  const noteTitle = note?.title || "";
+
+  const links = await prisma.noteLink.findMany({
     where: { toId: noteId },
-    include: { fromNote: { select: { id: true, title: true } } },
+    include: { fromNote: { select: { id: true, title: true, body: true } } },
     orderBy: { fromNote: { updatedAt: "desc" } },
   });
+
+  // Extract context snippets around the wikilink
+  return links.map((link) => {
+    const body = link.fromNote.body;
+    let context: string | null = null;
+    if (body && noteTitle) {
+      const patterns = [
+        `[[${noteTitle}]]`,
+        `[[${noteTitle}|`,
+      ];
+      for (const pat of patterns) {
+        const idx = body.indexOf(pat);
+        if (idx !== -1) {
+          const start = Math.max(0, idx - 30);
+          const end = Math.min(body.length, idx + pat.length + 30);
+          let snippet = body.slice(start, end);
+          if (start > 0) snippet = "…" + snippet;
+          if (end < body.length) snippet = snippet + "…";
+          context = snippet;
+          break;
+        }
+      }
+    }
+    return {
+      id: link.id,
+      fromId: link.fromId,
+      fromNote: { id: link.fromNote.id, title: link.fromNote.title },
+      context,
+    };
+  });
 }
+
+export type Backlink = Awaited<ReturnType<typeof getBacklinks>>[number];
 
 export async function getGraphData(userId: string) {
   const notes = await prisma.note.findMany({

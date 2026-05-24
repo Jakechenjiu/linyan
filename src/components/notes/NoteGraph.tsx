@@ -19,21 +19,35 @@ interface GraphData {
   edges: Edge[];
 }
 
-export default function NoteGraph({ data }: { data: GraphData }) {
+export default function NoteGraph({ data, focusId }: { data: GraphData; focusId?: string }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; title: string; tags: string[] } | null>(null);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const panning = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
+  const gRef = useRef<SVGGElement | null>(null);
 
   const W = 800;
   const H = 500;
-  const gRef = useRef<SVGGElement | null>(null);
+
+  // Filter for focus mode
+  let displayNodes = data.nodes;
+  let displayEdges = data.edges;
+  if (focusId) {
+    const neighborIds = new Set<string>();
+    neighborIds.add(focusId);
+    for (const edge of data.edges) {
+      if (edge.source === focusId) neighborIds.add(edge.target);
+      if (edge.target === focusId) neighborIds.add(edge.source);
+    }
+    displayNodes = data.nodes.filter((n) => neighborIds.has(n.id));
+    displayEdges = data.edges.filter((e) => neighborIds.has(e.source) && neighborIds.has(e.target));
+  }
 
   // Rebuild graph when data changes
   useEffect(() => {
-    if (!svgRef.current || data.nodes.length === 0) return;
+    if (!svgRef.current || displayNodes.length === 0) return;
 
     const svg = svgRef.current;
     const positions = new Map<string, { x: number; y: number; vx: number; vy: number }>();
@@ -41,8 +55,8 @@ export default function NoteGraph({ data }: { data: GraphData }) {
     const cx = W / 2;
     const cy = H / 2;
     const radius = Math.min(W, H) * 0.35;
-    data.nodes.forEach((node, i) => {
-      const angle = (2 * Math.PI * i) / data.nodes.length - Math.PI / 2;
+    displayNodes.forEach((node, i) => {
+      const angle = (2 * Math.PI * i) / displayNodes.length - Math.PI / 2;
       positions.set(node.id, {
         x: cx + radius * Math.cos(angle),
         y: cy + radius * Math.sin(angle),
@@ -54,10 +68,10 @@ export default function NoteGraph({ data }: { data: GraphData }) {
     const iterations = 50;
     for (let iter = 0; iter < iterations; iter++) {
       const alpha = 1 - iter / iterations;
-      for (let i = 0; i < data.nodes.length; i++) {
-        for (let j = i + 1; j < data.nodes.length; j++) {
-          const a = positions.get(data.nodes[i].id)!;
-          const b = positions.get(data.nodes[j].id)!;
+      for (let i = 0; i < displayNodes.length; i++) {
+        for (let j = i + 1; j < displayNodes.length; j++) {
+          const a = positions.get(displayNodes[i].id)!;
+          const b = positions.get(displayNodes[j].id)!;
           let dx = b.x - a.x;
           let dy = b.y - a.y;
           const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
@@ -70,7 +84,7 @@ export default function NoteGraph({ data }: { data: GraphData }) {
           b.vy += dy;
         }
       }
-      for (const edge of data.edges) {
+      for (const edge of displayEdges) {
         const a = positions.get(edge.source);
         const b = positions.get(edge.target);
         if (!a || !b) continue;
@@ -122,7 +136,7 @@ export default function NoteGraph({ data }: { data: GraphData }) {
     defs.appendChild(filter);
     g.appendChild(defs);
 
-    for (const node of data.nodes) {
+    for (const node of displayNodes) {
       const pos = positions.get(node.id)!;
       const r = Math.max(4, Math.min(12, 4 + node.degree * 2));
 
@@ -184,7 +198,7 @@ export default function NoteGraph({ data }: { data: GraphData }) {
     svg.appendChild(g);
     setScale(1);
     setOffset({ x: 0, y: 0 });
-  }, [data]);
+  }, [data, focusId]);
 
   // Zoom & Pan handlers
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -220,7 +234,7 @@ export default function NoteGraph({ data }: { data: GraphData }) {
     panning.current = false;
   }, []);
 
-  if (data.nodes.length === 0) {
+  if (displayNodes.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
         还没有笔记，创建一些笔记并添加 [[链接]] 来生成图谱
@@ -256,8 +270,19 @@ export default function NoteGraph({ data }: { data: GraphData }) {
           )}
         </div>
       )}
-      <div className="absolute bottom-2 right-2 text-[10px] text-muted-foreground/50 bg-[var(--bg-elevated)]/80 px-2 py-0.5 rounded">
-        滚轮缩放 · 拖拽平移
+      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-[10px] text-muted-foreground/50">
+        <div className="flex items-center gap-3 bg-[var(--bg-elevated)]/80 px-2 py-0.5 rounded">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full inline-block" style={{ background: "rgba(0,229,255,0.35)" }} /> 有链接
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full inline-block" style={{ background: "rgba(255,255,255,0.08)" }} /> 无链接
+          </span>
+          {focusId && (
+            <span className="text-[var(--cyan)]">聚焦模式 ({displayNodes.length - 1} 个关联)</span>
+          )}
+        </div>
+        <span className="bg-[var(--bg-elevated)]/80 px-2 py-0.5 rounded">滚轮缩放 · 拖拽平移</span>
       </div>
     </div>
   );

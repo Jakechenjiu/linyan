@@ -23,6 +23,7 @@ model User {
   novels        Novel[]
   videoProjects VideoProject[]
   notes        Note[]
+  simulations  Simulation[]
 }
 
 model Novel {
@@ -212,4 +213,18 @@ model NoteLink {
   fromNote Note @relation("From", fields: [fromId], references: [id], onDelete: Cascade)
   toNote   Note @relation("To", fields: [toId], references: [id], onDelete: Cascade)
   @@unique([fromId, toId])
+}
+
+model Simulation {
+  id           String   @id @default(cuid())
+  topic        String
+  seedMaterial String?  @default("")
+  agentCount   Int      @default(10)
+  rounds       Int      @default(5)
+  result       String?  // JSON blob — { summary, report, rounds, agents }
+  status       String   @default("running")  // running|completed|failed
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
