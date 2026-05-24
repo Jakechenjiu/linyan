@@ -7,7 +7,7 @@ import { useState } from "react";
 import {
   LayoutDashboard, Star, Zap, FlaskConical, ChevronDown,
   FileText, Plus, BarChart3, Layers, Calendar, TrendingUp,
-  GitBranch, Sparkles, Settings, LogOut, BookOpen,
+  GitBranch, Sparkles, Settings, LogOut, BookOpen, Brain, GitGraph,
 } from "lucide-react";
 
 const modules = [
@@ -30,6 +30,14 @@ const modules = [
     ],
   },
   {
+    id: "notes", label: "灵思笔记", icon: <Brain size={16} />, color: "var(--cyan)",
+    items: [
+      { href: "/workspace/notes", label: "所有笔记", icon: <FileText size={14} /> },
+      { href: "/workspace/notes/new", label: "新建笔记", icon: <Plus size={14} /> },
+      { href: "/workspace/notes/graph", label: "知识图谱", icon: <GitGraph size={14} /> },
+    ],
+  },
+  {
     id: "lab", label: "灵感实验室", icon: <FlaskConical size={16} />, color: "var(--star)",
     items: [
       { href: "/workspace/lab", label: "灵感面板", icon: <FlaskConical size={14} /> },
@@ -41,7 +49,7 @@ const modules = [
 
 export default function WorkspaceSidebar({ user }: { user?: { name?: string | null; email?: string | null } }) {
   const pathname = usePathname();
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(["star", "photon", "lab"]));
+  const [expanded, setExpanded] = useState<Set<string>>(new Set(["notes", "star", "photon", "lab"]));
 
   const toggle = (id: string) => {
     setExpanded((prev) => {

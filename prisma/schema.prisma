@@ -22,6 +22,7 @@ model User {
   stories    Story[]
   novels        Novel[]
   videoProjects VideoProject[]
+  notes        Note[]
 }
 
 model Novel {
@@ -189,4 +190,26 @@ model VideoClip {
   voiceUrl     String?
   status       String       @default("pending")
   createdAt    DateTime     @default(now())
+}
+
+model Note {
+  id        String     @id @default(cuid())
+  title     String
+  body      String     @default("")
+  tags      String     @default("[]")
+  links     NoteLink[] @relation("From")
+  backlinks NoteLink[] @relation("To")
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model NoteLink {
+  id     String @id @default(cuid())
+  fromId String
+  toId   String
+  fromNote Note @relation("From", fields: [fromId], references: [id], onDelete: Cascade)
+  toNote   Note @relation("To", fields: [toId], references: [id], onDelete: Cascade)
+  @@unique([fromId, toId])
 }

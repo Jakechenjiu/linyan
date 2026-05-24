@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { Star, Zap, FlaskConical, ArrowRight, BarChart3 } from "lucide-react";
+import { Star, Zap, FlaskConical, ArrowRight, BarChart3, Brain } from "lucide-react";
 import SpotlightCard from "@/components/shared/SpotlightCard";
 
 const modules = [
@@ -20,6 +20,15 @@ const modules = [
     desc: "自媒体爆款流水线 — 模板驱动、多平台一键生成",
     color: "var(--nebula)",
     features: ["模板工坊", "批量生成", "内容日历"],
+  },
+  {
+    href: "/workspace/notes",
+    icon: <Brain size={28} />,
+    title: "灵思笔记",
+    subtitle: "LingSi Notes",
+    desc: "知识中枢 — Obsidian 风格双向链接、知识图谱可视化",
+    color: "var(--cyan)",
+    features: ["双向链接", "知识图谱", "标签系统"],
   },
   {
     href: "/workspace/lab",
@@ -46,7 +55,7 @@ export default async function WorkspaceDashboard() {
       </div>
 
       {/* Module Cards */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2">
         {modules.map((mod, i) => (
           <div key={mod.href} className="animate-slide-up" style={{ animationDelay: `${i * 0.1}s` }}>
             <SpotlightCard href={mod.href} color={mod.color}>
