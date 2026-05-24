@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Network, Loader2, ArrowRight, Users, RefreshCw, FileText, ExternalLink, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import Link from "next/link";
 import WanxiangResult from "@/components/shared/WanxiangResult";
+import ImportButton from "@/components/shared/ImportButton";
 
 export default function WanxiangPage() {
   const [topic, setTopic] = useState("");
@@ -74,6 +75,7 @@ export default function WanxiangPage() {
             <div>
               <label className="block text-sm font-medium mb-2">
                 种子材料（可选，Markdown / 文本）
+                <ImportButton type="seed" accept=".txt,.md,.json" variant="text" label="从文件导入" onSeedContent={(content) => setSeedMaterial(content)} />
               </label>
               <textarea
                 value={seedMaterial}

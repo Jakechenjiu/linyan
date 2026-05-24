@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { Plus, BookOpen, BarChart3, Trash2, Clock, Edit3, Target } from "lucide-react";
+import ImportButton from "@/components/shared/ImportButton";
 import { revalidatePath } from "next/cache";
 import { genrePresets } from "@/data/genre-presets";
 
@@ -80,6 +81,7 @@ export default async function StarPage() {
           >
             <BarChart3 size={16} /> 写作分析
           </Link>
+          <ImportButton type="novel" accept=".txt,.epub" />
           <Link
             href="/workspace/star/create"
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_20px_rgba(0,229,255,0.3)] transition-all"

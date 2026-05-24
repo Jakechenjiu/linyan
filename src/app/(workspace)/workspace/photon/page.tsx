@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { FileText, Sparkles, Layers, Calendar, TrendingUp, Plus, Video, Play } from "lucide-react";
+import ImportButton from "@/components/shared/ImportButton";
 
 const platforms = [
   { id: "wechat", label: "公众号", icon: "📱", color: "#07c160" },
@@ -57,9 +58,12 @@ export default async function PhotonPage() {
 
   return (
     <div className="space-y-8 max-w-5xl">
-      <div>
-        <h1 className="font-mono text-3xl font-bold tracking-wide">光子发布</h1>
-        <p className="text-sm text-muted-foreground mt-1">自媒体爆款流水线 + AI 短视频工厂</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-mono text-3xl font-bold tracking-wide">光子发布</h1>
+          <p className="text-sm text-muted-foreground mt-1">自媒体爆款流水线 + AI 短视频工厂</p>
+        </div>
+        <ImportButton type="content" accept=".txt,.md,.json" multiple />
       </div>
 
       {fetchError && (

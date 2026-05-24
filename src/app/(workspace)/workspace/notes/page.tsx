@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { Plus, Search, Tag, FileText, GitGraph } from "lucide-react";
+import ImportButton from "@/components/shared/ImportButton";
 
 export default async function NotesPage({ searchParams }: { searchParams: Promise<{ tag?: string; q?: string }> }) {
   let session;
@@ -62,6 +63,7 @@ export default async function NotesPage({ searchParams }: { searchParams: Promis
             <GitGraph size={14} />
             知识图谱
           </Link>
+          <ImportButton type="notes" accept=".md,.json" multiple />
           <Link
             href="/workspace/notes/new"
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_16px_rgba(0,229,255,0.3)] transition-all"
