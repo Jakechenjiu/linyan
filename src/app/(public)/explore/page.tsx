@@ -96,7 +96,7 @@ export default async function ExplorePage() {
                   </h3>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 mb-3">
-                  {(item.kind === "content" ? item.body : item.content)?.slice(0, 120) ?? "暂无摘要"}
+                  {(item.body || "").slice(0, 120) || "暂无摘要"}
                 </p>
                 <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                   <span className="flex items-center gap-1">
@@ -117,7 +117,7 @@ export default async function ExplorePage() {
                   )}
                   {item.kind === "content" && (
                     <span className="text-[10px] text-muted-foreground">
-                      {typeLabels[item.contentType] ?? item.contentType}
+                      {item.contentType ? (typeLabels[item.contentType] ?? item.contentType) : ""}
                     </span>
                   )}
                   {item.kind === "story" && (
