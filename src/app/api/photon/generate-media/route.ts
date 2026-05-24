@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getAiConfig } from "@/lib/ai";
 import { getVideoProvider, detectAvailableProvider } from "@/lib/photon/video-providers";
 import type { ProviderType } from "@/lib/photon/video-providers";
 import { NextResponse } from "next/server";
@@ -22,19 +21,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "projectId required" }, { status: 400 });
   }
 
-  let config;
-  try {
-    config = await getAiConfig(session.user.id);
-  } catch {
-    return NextResponse.json({ error: "读取用户配置失败" }, { status: 500 });
-  }
-  if (!config.hasKey) {
-    return NextResponse.json({
-      error: "请先在设置中配置您的 AI API Key",
-      code: "NO_API_KEY",
-    }, { status: 400 });
-  }
-
   // Read user's DashScope key from DB (supports both env and user-level config)
   let userDashscopeKey: string | undefined;
   try {
@@ -42,7 +28,7 @@ export async function POST(req: Request) {
       where: { id: session.user.id },
       select: { dashscopeApiKey: true },
     });
-    userDashscopeKey = dbUser?.dashscopeApiKey || undefined;
+    userDashscopeKey = dbUser?.dashscopeApiKey?.trim() || undefined;
   } catch {
     // Non-critical; fall back to env
   }
@@ -106,8 +92,12 @@ export async function POST(req: Request) {
 
   for (const clip of clipsToProcess) {
     try {
+      if (!clip.visualPrompt?.trim()) {
+        throw new Error("画面描述 (visualPrompt) 为空，请先在分镜编辑中填写画面描述");
+      }
+
       const videoTask = await videoProvider.generateVideo({
-        prompt: clip.visualPrompt,
+        prompt: clip.visualPrompt.trim(),
         duration: clip.duration,
         style: project.style || undefined,
       });
