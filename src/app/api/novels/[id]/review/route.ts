@@ -67,6 +67,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const chapter = novel.chapters.find((ch) => ch.id === chapterId);
   if (!chapter) return NextResponse.json({ error: "Chapter not found" }, { status: 404 });
 
+  const { apiKey, baseUrl, model, hasKey } = await getAiConfig(session.user.id);
+
+  if (!hasKey) {
+    return NextResponse.json({
+      error: "请先在设置中配置您的 AI API Key",
+      code: "NO_API_KEY",
+    }, { status: 400 });
+  }
+
   // Build context
   const context: string[] = [];
   context.push(`小说: ${novel.title}`);
@@ -104,8 +113,6 @@ ${nextChapter ? `后一章开头 (${nextChapter.title}): ${nextChapter.body.slic
 请审查以上章节。`;
 
   try {
-    const { apiKey, baseUrl, model } = await getAiConfig(session.user.id);
-
     const response = await fetch(`${baseUrl}/v1/messages`, {
       method: "POST",
       headers: {
@@ -123,7 +130,12 @@ ${nextChapter ? `后一章开头 (${nextChapter.title}): ${nextChapter.body.slic
     });
 
     if (!response.ok) {
-      return NextResponse.json({ error: `LLM error: ${response.status}` }, { status: 502 });
+      const errBody = await response.text().catch(() => "");
+      console.error("LLM review error:", response.status, errBody.slice(0, 300));
+      const msg = response.status === 401 || response.status === 403
+        ? "API Key 无效，请检查设置中的密钥配置"
+        : `AI 服务返回错误 (${response.status})，请稍后重试`;
+      return NextResponse.json({ error: msg }, { status: 502 });
     }
 
     const data = await response.json();
@@ -132,7 +144,6 @@ ${nextChapter ? `后一章开头 (${nextChapter.title}): ${nextChapter.body.slic
     // Try parsing JSON from response
     let review;
     try {
-      // Strip markdown code blocks if present
       const jsonStr = content.replace(/```json\s?|\```/g, "").trim();
       review = JSON.parse(jsonStr);
     } catch {

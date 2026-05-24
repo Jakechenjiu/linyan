@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Loader2, Sparkles, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { Send, Loader2, Sparkles, ArrowRight, Settings } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
@@ -47,7 +48,14 @@ export default function ChatWizard() {
 
       if (!res.ok) {
         const err = await res.json();
-        setMessages([...newMessages, { role: "assistant", content: `抱歉，出了点问题：${err.error || "请重试"}` }]);
+        if (err.code === "NO_API_KEY") {
+          setMessages([...newMessages, {
+            role: "assistant",
+            content: "要使用 AI 创作功能，需要先配置你的 API Key。\n\n请在[设置页面](/workspace/settings)中添加你的 DeepSeek API Key（获取地址：platform.deepseek.com），然后回到这里继续创作。",
+          }]);
+        } else {
+          setMessages([...newMessages, { role: "assistant", content: `抱歉，出了点问题：${err.error || "请重试"}` }]);
+        }
         return;
       }
 

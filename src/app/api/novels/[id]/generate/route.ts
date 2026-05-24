@@ -22,6 +22,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const { apiKey, baseUrl, model, hasKey } = await getAiConfig(session.user.id);
+
+  if (!hasKey) {
+    return NextResponse.json({
+      error: "请先在设置中配置您的 AI API Key",
+      code: "NO_API_KEY",
+    }, { status: 400 });
+  }
+
   // Build context
   const parts: string[] = [];
 
@@ -81,8 +90,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const userMessage = `${parts.join("\n")}\n\n${direction ? `续写方向：${direction}` : "请续写下一段内容"}`;
 
   try {
-    const { apiKey, baseUrl, model } = await getAiConfig(session.user.id);
-
     const response = await fetch(`${baseUrl}/v1/messages`, {
       method: "POST",
       headers: {
@@ -100,8 +107,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     });
 
     if (!response.ok) {
-      const err = await response.text();
-      return NextResponse.json({ error: `LLM error: ${err}` }, { status: 502 });
+      const errBody = await response.text().catch(() => "");
+      console.error("LLM stream error:", response.status, errBody.slice(0, 300));
+      const msg = response.status === 401 || response.status === 403
+        ? "API Key 无效，请检查设置中的密钥配置"
+        : `AI 服务返回错误 (${response.status})，请稍后重试`;
+      return NextResponse.json({ error: msg }, { status: 502 });
     }
 
     const encoder = new TextEncoder();

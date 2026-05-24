@@ -19,10 +19,13 @@ export async function getAiConfig(userId: string) {
   const provider = user?.apiProvider || "deepseek";
   const defaults = providerDefaults[provider] || providerDefaults.deepseek;
 
+  const apiKey = user?.apiKey || DEFAULT_API_KEY;
+
   return {
-    apiKey: user?.apiKey || DEFAULT_API_KEY,
+    apiKey,
     baseUrl: defaults.baseUrl,
     model: defaults.model,
+    hasKey: !!apiKey,
   };
 }
 

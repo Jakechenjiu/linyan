@@ -64,9 +64,16 @@ export async function POST(req: Request) {
 
   if (!messages?.length) return NextResponse.json({ error: "Messages required" }, { status: 400 });
 
-  try {
-    const { apiKey, baseUrl, model } = await getAiConfig(session.user.id);
+  const { apiKey, baseUrl, model, hasKey } = await getAiConfig(session.user.id);
 
+  if (!hasKey) {
+    return NextResponse.json({
+      error: "请先在设置中配置您的 AI API Key",
+      code: "NO_API_KEY",
+    }, { status: 400 });
+  }
+
+  try {
     const response = await fetch(`${baseUrl}/v1/messages`, {
       method: "POST",
       headers: {
@@ -84,9 +91,12 @@ export async function POST(req: Request) {
     });
 
     if (!response.ok) {
-      const err = await response.text();
-      console.error("LLM error:", err);
-      return NextResponse.json({ error: "AI 响应失败，请重试" }, { status: 502 });
+      const errBody = await response.text().catch(() => "");
+      console.error("LLM error:", response.status, errBody.slice(0, 300));
+      const msg = response.status === 401 || response.status === 403
+        ? "API Key 无效，请检查设置中的密钥配置"
+        : `AI 服务返回错误 (${response.status})，请稍后重试`;
+      return NextResponse.json({ error: msg }, { status: 502 });
     }
 
     const data = await response.json();
@@ -169,7 +179,6 @@ export async function POST(req: Request) {
           });
         }
 
-        // Return the clean assistant message (without FINALIZE block) + created novel ID
         const cleanContent = content.replace(/```FINALIZE[\s\S]*?```/, "").trim();
         return NextResponse.json({
           message: cleanContent || "设定已生成！正在跳转到你的新书工作室…",
@@ -178,7 +187,6 @@ export async function POST(req: Request) {
         });
       } catch (parseError) {
         console.error("JSON parse error:", parseError);
-        // JSON is malformed, return the message and let user continue
         return NextResponse.json({ message: content, finalized: false });
       }
     }

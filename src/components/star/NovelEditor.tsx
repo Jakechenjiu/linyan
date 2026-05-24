@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Link from "next/link";
 import { Save, Sparkles, Loader2, Eye } from "lucide-react";
 import { saveChapter } from "./actions";
 
@@ -179,7 +180,14 @@ export default function NovelEditor({ novelId, chapter }: Props) {
           </button>
         </div>
       </div>
-      {error && <p className="text-[10px] text-red-400 mt-2">{error}</p>}
+      {error && (
+        <div className="text-[10px] text-red-400 mt-2">
+          {error}
+          {error.includes("API Key") && (
+            <Link href="/workspace/settings" className="ml-2 underline text-[var(--cyan)]">前往设置</Link>
+          )}
+        </div>
+      )}
 
       {/* Review results */}
       {review && (
