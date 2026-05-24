@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import NoteEditor from "@/components/notes/NoteEditor";
 import type { NoteLink } from "@/components/notes/BacklinksPanel";
+import Link from "next/link";
+import { Network } from "lucide-react";
 
 interface Props {
   initialId?: string;
@@ -74,6 +76,21 @@ export default function NoteEditorClient({
           onSave={handleSave}
           onDelete={initialId ? handleDelete : undefined}
         />
+
+        {initialId && (
+          <div className="mt-6 pt-4 border-t border-card-border">
+            <Link
+              href={`/workspace/wanxiang?from=${initialId}`}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--accent)] text-[var(--nebula)] hover:bg-[var(--nebula)]/10 border border-transparent hover:border-[var(--nebula)]/20 transition-all"
+            >
+              <Network size={14} />
+              万象推演
+            </Link>
+            <span className="ml-3 text-[10px] text-muted-foreground">
+              将此笔记作为种子材料进行多智能体推演
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

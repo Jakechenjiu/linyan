@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { Star, Zap, FlaskConical, ArrowRight, BarChart3, Brain } from "lucide-react";
+import { Star, Zap, Network, ArrowRight, BarChart3, Brain } from "lucide-react";
 import SpotlightCard from "@/components/shared/SpotlightCard";
 
 const modules = [
@@ -31,13 +31,13 @@ const modules = [
     features: ["双向链接", "知识图谱", "标签系统"],
   },
   {
-    href: "/workspace/lab",
-    icon: <FlaskConical size={28} />,
-    title: "灵感实验室",
-    subtitle: "Inspiration Lab",
-    desc: "脑图规划与短篇验证 — 快速探索创意可能性",
-    color: "var(--star)",
-    features: ["思维脑图", "短篇生成", "Prompt库"],
+    href: "/workspace/wanxiang",
+    icon: <Network size={28} />,
+    title: "万象推演",
+    subtitle: "Wanxiang Sandbox",
+    desc: "多智能体推演引擎 — 构建平行数字世界，预测未来走向",
+    color: "var(--nebula)",
+    features: ["智能体模拟", "推演报告", "知识图谱"],
   },
 ];
 

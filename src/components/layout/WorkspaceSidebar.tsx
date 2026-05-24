@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useState } from "react";
 import {
-  LayoutDashboard, Star, Zap, FlaskConical, ChevronDown,
+  LayoutDashboard, Star, Zap, ChevronDown,
   FileText, Plus, BarChart3, Layers, Calendar, TrendingUp,
-  GitBranch, Sparkles, Settings, LogOut, BookOpen, Brain, GitGraph,
+  Settings, LogOut, BookOpen, Brain, GitGraph, Network, Sparkles,
 } from "lucide-react";
 
 const modules = [
@@ -38,18 +38,18 @@ const modules = [
     ],
   },
   {
-    id: "lab", label: "灵感实验室", icon: <FlaskConical size={16} />, color: "var(--star)",
+    id: "wanxiang", label: "万象推演", icon: <Network size={16} />, color: "var(--nebula)",
     items: [
-      { href: "/workspace/lab", label: "灵感面板", icon: <FlaskConical size={14} /> },
-      { href: "/workspace/lab", label: "思维脑图", icon: <GitBranch size={14} /> },
-      { href: "/workspace/lab/story/create", label: "短篇生成", icon: <Sparkles size={14} /> },
+      { href: "/workspace/wanxiang", label: "推演面板", icon: <Network size={14} /> },
+      { href: "/workspace/wanxiang", label: "历史推演", icon: <FileText size={14} /> },
+      { href: "/workspace/notes", label: "从笔记推演", icon: <Brain size={14} /> },
     ],
   },
 ];
 
 export default function WorkspaceSidebar({ user }: { user?: { name?: string | null; email?: string | null } }) {
   const pathname = usePathname();
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(["notes", "star", "photon", "lab"]));
+  const [expanded, setExpanded] = useState<Set<string>>(new Set(["notes", "star", "photon", "wanxiang"]));
 
   const toggle = (id: string) => {
     setExpanded((prev) => {
