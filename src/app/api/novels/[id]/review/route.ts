@@ -1,10 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getAiConfig } from "@/lib/ai";
 import { NextResponse } from "next/server";
-
-const LLM_BASE_URL = process.env.ANTHROPIC_BASE_URL || "https://api.deepseek.com/anthropic";
-const LLM_API_KEY = process.env.ANTHROPIC_AUTH_TOKEN || "";
-const LLM_MODEL = process.env.ANTHROPIC_MODEL || "deepseek-v4-pro";
 
 const reviewSystemPrompt = `你是一位专业的网文编辑，负责审查章节质量。请以严格的JSON格式返回审查结果。
 
@@ -107,15 +104,17 @@ ${nextChapter ? `后一章开头 (${nextChapter.title}): ${nextChapter.body.slic
 请审查以上章节。`;
 
   try {
-    const response = await fetch(`${LLM_BASE_URL}/v1/messages`, {
+    const { apiKey, baseUrl, model } = await getAiConfig(session.user.id);
+
+    const response = await fetch(`${baseUrl}/v1/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": LLM_API_KEY,
+        "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: LLM_MODEL,
+        model,
         max_tokens: 2048,
         temperature: 0.2,
         system: reviewSystemPrompt,

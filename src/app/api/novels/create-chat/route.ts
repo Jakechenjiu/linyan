@@ -1,10 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getAiConfig } from "@/lib/ai";
 import { NextResponse } from "next/server";
-
-const LLM_BASE_URL = process.env.ANTHROPIC_BASE_URL || "https://api.deepseek.com/anthropic";
-const LLM_API_KEY = process.env.ANTHROPIC_AUTH_TOKEN || "";
-const LLM_MODEL = process.env.ANTHROPIC_MODEL || "deepseek-v4-pro";
 
 const systemPrompt = `你是一位资深的网络文学编辑兼创作导师——"灵砚助手"。你的任务是通过对话引导作者完成一部新书的设定创建。
 
@@ -68,15 +65,17 @@ export async function POST(req: Request) {
   if (!messages?.length) return NextResponse.json({ error: "Messages required" }, { status: 400 });
 
   try {
-    const response = await fetch(`${LLM_BASE_URL}/v1/messages`, {
+    const { apiKey, baseUrl, model } = await getAiConfig(session.user.id);
+
+    const response = await fetch(`${baseUrl}/v1/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": LLM_API_KEY,
+        "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: LLM_MODEL,
+        model,
         max_tokens: 4096,
         temperature: 0.8,
         system: systemPrompt,

@@ -1,10 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getAiConfig } from "@/lib/ai";
 import { NextResponse } from "next/server";
-
-const LLM_BASE_URL = process.env.ANTHROPIC_BASE_URL || "https://api.deepseek.com/anthropic";
-const LLM_API_KEY = process.env.ANTHROPIC_AUTH_TOKEN || "";
-const LLM_MODEL = process.env.ANTHROPIC_MODEL || "deepseek-v4-pro";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -84,15 +81,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const userMessage = `${parts.join("\n")}\n\n${direction ? `续写方向：${direction}` : "请续写下一段内容"}`;
 
   try {
-    const response = await fetch(`${LLM_BASE_URL}/v1/messages`, {
+    const { apiKey, baseUrl, model } = await getAiConfig(session.user.id);
+
+    const response = await fetch(`${baseUrl}/v1/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": LLM_API_KEY,
+        "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: LLM_MODEL,
+        model,
         max_tokens: 4096,
         stream: true,
         system: systemPrompt,
