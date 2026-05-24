@@ -1,12 +1,16 @@
 "use client";
 
 import WorkspaceAtmosphere from "@/components/brand/WorkspaceAtmosphere";
+import CursorGlow from "@/components/brand/CursorGlow";
 
 export default function WorkspaceLayoutClient({ children }: { children: React.ReactNode }) {
   return (
     <>
       {/* 3D 星空背景 */}
       <WorkspaceAtmosphere />
+
+      {/* 鼠标聚光 */}
+      <CursorGlow />
 
       {/* CSS 环境光球 */}
       <div className="particle-layer" aria-hidden="true">

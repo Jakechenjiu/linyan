@@ -47,6 +47,12 @@ const modules = [
   },
 ];
 
+function isActive(pathname: string, href: string, items?: { href: string }[]) {
+  if (pathname === href) return true;
+  if (items?.some((child) => pathname.startsWith(child.href + "/"))) return true;
+  return false;
+}
+
 export default function WorkspaceSidebar({ user }: { user?: { name?: string | null; email?: string | null } }) {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState<Set<string>>(new Set(["notes", "star", "photon", "wanxiang"]));
@@ -60,10 +66,13 @@ export default function WorkspaceSidebar({ user }: { user?: { name?: string | nu
   };
 
   return (
-    <aside className="w-56 shrink-0 h-screen sticky top-0 flex flex-col border-r border-white/[0.04] bg-[var(--bg-elevated)]/80 backdrop-blur-xl">
+    <aside className="w-56 shrink-0 h-screen sticky top-0 flex flex-col liquid-glass !rounded-none !border-t-0 !border-l-0 !border-b-0">
       {/* Logo */}
       <div className="px-4 py-5 border-b border-white/[0.04]">
-        <Link href="/workspace" className="font-mono font-bold text-lg tracking-widest text-gradient-cyan glow-text hover:tracking-[0.15em] inline-block transition-all duration-300">
+        <Link
+          href="/workspace"
+          className="font-mono font-bold text-lg tracking-widest text-gradient-cyan glow-text hover:tracking-[0.15em] inline-block transition-all duration-300"
+        >
           灵砚
         </Link>
         <p className="text-[10px] text-muted-foreground mt-0.5 tracking-wide">创作工作台</p>
@@ -74,64 +83,83 @@ export default function WorkspaceSidebar({ user }: { user?: { name?: string | nu
         {/* Dashboard */}
         <Link
           href="/workspace"
-          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-300 ${
             pathname === "/workspace"
-              ? "bg-[var(--cyan-soft)] text-[var(--cyan)] font-medium shadow-[inset_0_0_0_1px_rgba(0,229,255,0.08)]"
+              ? "bg-[var(--cyan-soft)] text-[var(--cyan)] font-medium shadow-[inset_0_0_0_1px_rgba(0,229,255,0.12)]"
               : "text-muted-foreground hover:text-foreground hover:bg-white/[0.03]"
           }`}
         >
           <LayoutDashboard size={16} />
           仪表盘
+          {pathname === "/workspace" && (
+            <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[var(--cyan)] shadow-[0_0_8px_rgba(0,229,255,0.6)]" />
+          )}
         </Link>
 
         <div className="my-3 border-t border-white/[0.04]" />
 
         {/* Module Sections */}
-        {modules.map((mod) => (
-          <div key={mod.id} className="space-y-0.5">
-            <button
-              onClick={() => toggle(mod.id)}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-white/[0.03]"
-              style={{ color: mod.color }}
-            >
-              {mod.icon}
-              <span className="flex-1 text-left">{mod.label}</span>
-              <ChevronDown
-                size={12}
-                className={`transition-transform duration-300 ${expanded.has(mod.id) ? "rotate-0" : "-rotate-90"}`}
-              />
-            </button>
-            <div
-              className={`ml-2 space-y-0.5 overflow-hidden transition-all duration-300 ${
-                expanded.has(mod.id) ? "max-h-60 opacity-100" : "max-h-0 opacity-0"
-              }`}
-            >
-              {mod.items.map((item) => (
-                <Link
-                  key={item.href + item.label}
-                  href={item.href}
-                  className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-200 ${
-                    pathname === item.href
-                      ? "bg-[var(--cyan-soft)] text-foreground shadow-[inset_0_0_0_1px_rgba(0,229,255,0.06)]"
-                      : "text-muted-foreground hover:text-foreground hover:bg-white/[0.03]"
-                  }`}
-                >
-                  {item.icon}
-                  {item.label}
-                </Link>
-              ))}
+        {modules.map((mod) => {
+          const modActive = isActive(pathname, "/workspace/" + mod.id, mod.items);
+          return (
+            <div key={mod.id} className="space-y-0.5">
+              <button
+                onClick={() => toggle(mod.id)}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-white/[0.04]"
+                style={{ color: mod.color }}
+              >
+                {mod.icon}
+                <span className="flex-1 text-left">{mod.label}</span>
+                {modActive && (
+                  <span className="w-1.5 h-1.5 rounded-full shadow-[0_0_8px_rgba(0,229,255,0.6)]" style={{ background: mod.color }} />
+                )}
+                <ChevronDown
+                  size={12}
+                  className={`transition-transform duration-300 ${expanded.has(mod.id) ? "rotate-0" : "-rotate-90"}`}
+                />
+              </button>
+              <div
+                className={`ml-2 space-y-0.5 overflow-hidden transition-all duration-300 ${
+                  expanded.has(mod.id) ? "max-h-60 opacity-100" : "max-h-0 opacity-0"
+                }`}
+              >
+                {mod.items.map((item) => (
+                  <Link
+                    key={item.href + item.label}
+                    href={item.href}
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-300 ${
+                      pathname === item.href
+                        ? "bg-[var(--cyan-soft)] text-foreground shadow-[inset_0_0_0_1px_rgba(0,229,255,0.10)]"
+                        : "text-muted-foreground hover:text-foreground hover:bg-white/[0.03]"
+                    }`}
+                  >
+                    {item.icon}
+                    {item.label}
+                    {pathname === item.href && (
+                      <span className="ml-auto w-1 h-1 rounded-full bg-[var(--cyan)] shadow-[0_0_6px_rgba(0,229,255,0.5)]" />
+                    )}
+                  </Link>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* Bottom */}
       <div className="border-t border-white/[0.04] px-3 py-3 space-y-1">
         <Link
           href="/workspace/settings"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-white/[0.03] transition-all duration-200"
+          className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-200 ${
+            pathname === "/workspace/settings"
+              ? "bg-[var(--cyan-soft)] text-foreground shadow-[inset_0_0_0_1px_rgba(0,229,255,0.10)]"
+              : "text-muted-foreground hover:text-foreground hover:bg-white/[0.03]"
+          }`}
         >
           <Settings size={14} />设置
+          {pathname === "/workspace/settings" && (
+            <span className="ml-auto w-1 h-1 rounded-full bg-[var(--cyan)] shadow-[0_0_6px_rgba(0,229,255,0.5)]" />
+          )}
         </Link>
         <div className="flex items-center gap-3 px-3 py-2">
           <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[var(--cyan)] to-[var(--nebula)] flex items-center justify-center text-[10px] font-bold text-white shadow-[0_0_12px_rgba(0,229,255,0.2)]">

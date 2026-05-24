@@ -23,14 +23,12 @@ export default function SpotlightCard({ href, children, color = "var(--cyan)", c
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Spotlight position
     setGlowPos({ x: x / rect.width, y: y / rect.height });
 
-    // Magnetic tilt (subtle 3D effect)
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-    setRotateY(((x - centerX) / centerX) * 3);
-    setRotateX(((centerY - y) / centerY) * 3);
+    setRotateY(((x - centerX) / centerX) * 5);
+    setRotateX(((centerY - y) / centerY) * 5);
   };
 
   const handleMouseLeave = () => {
@@ -50,16 +48,18 @@ export default function SpotlightCard({ href, children, color = "var(--cyan)", c
       className={`gradient-border-card group block relative overflow-hidden transition-all duration-500 ${className}`}
       style={{
         transform: isHovered
-          ? `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`
-          : "perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0)",
+          ? `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-6px) scale(1.015)`
+          : "perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0) scale(1)",
+        boxShadow: isHovered
+          ? `0 8px 40px rgba(0,0,0,0.5), 0 0 30px ${color}18, 0 0 60px ${color}08`
+          : "0 2px 8px rgba(0,0,0,0.3)",
         transition: "transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
       }}
     >
-      {/* Spotlight glow */}
       <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none z-10"
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-10"
         style={{
-          background: `radial-gradient(circle 320px at ${glowPos.x * 100}% ${glowPos.y * 100}%, ${color}14, transparent 60%)`,
+          background: `radial-gradient(circle 400px at ${glowPos.x * 100}% ${glowPos.y * 100}%, ${color}18, transparent 55%)`,
         }}
       />
       <div className="relative z-20 p-6">{children}</div>

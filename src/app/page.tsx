@@ -1,19 +1,139 @@
-import Link from "next/link";
-import { auth } from "@/lib/auth";
-import { Logo } from "@/components/brand";
-import ParticleBg from "@/components/brand/ParticleBg";
-import ModuleCard from "@/components/shared/ModuleCard";
-import { Star, Zap, Network, Brain, ArrowRight, ChevronDown } from "lucide-react";
+"use client";
 
-export default async function Home() {
-  const session = await auth();
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
+import ParticleBg from "@/components/brand/ParticleBg";
+import CursorGlow from "@/components/brand/CursorGlow";
+import ModuleCard from "@/components/shared/ModuleCard";
+import { Logo } from "@/components/brand";
+import { Star, Zap, Network, Brain, ArrowRight } from "lucide-react";
+
+function CinematicHero({ hasSession }: { hasSession: boolean }) {
+  const headline = "让AI成为";
+  const headline2 = "你的创作引擎";
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    setVisible(true);
+  }, []);
+
+  return (
+    <section className="relative z-10 flex flex-col items-center text-center px-6 pt-32 pb-12 max-w-5xl mx-auto">
+      {/* Badge */}
+      <div
+        className="mb-10 transition-all duration-1000"
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(16px)",
+        }}
+      >
+        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-medium tracking-wider border border-white/[0.06] bg-white/[0.02] text-muted-foreground">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--cyan)] animate-pulse-slow" />
+          AI 创作平台 · 灵砚 LingYan
+        </span>
+      </div>
+
+      {/* Logo mark */}
+      <div
+        className="mb-10 animate-float"
+        style={{ opacity: visible ? 1 : 0, transition: "opacity 0.8s ease 0.2s" }}
+      >
+        <Logo size="lg" />
+      </div>
+
+      {/* Headline — cinematic staggered */}
+      <h1 className="font-mono text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-tight">
+        <span className="block">
+          {headline.split("").map((char, i) => (
+            <span
+              key={i}
+              className="char-reveal text-[var(--text-primary)]"
+              style={{ animationDelay: `${0.4 + i * 0.05}s` }}
+            >
+              {char === " " ? " " : char}
+            </span>
+          ))}
+        </span>
+        <span className="block mt-2">
+          {headline2.split("").map((char, i) => (
+            <span
+              key={i}
+              className="char-reveal text-gradient-cyan glow-text-strong"
+              style={{ animationDelay: `${0.7 + i * 0.05}s` }}
+            >
+              {char === " " ? " " : char}
+            </span>
+          ))}
+        </span>
+      </h1>
+
+      <p
+        className="text-base md:text-lg text-muted-foreground max-w-xl mb-12 leading-relaxed"
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(20px)",
+          transition: "all 0.8s var(--ease-cinematic) 1.4s",
+        }}
+      >
+        灵思笔记 · 星图写作 · 光子发布 · 万象推演<br />
+        知识管理、长篇创作、内容分发、AI推演，一个平台全覆盖
+      </p>
+
+      {/* CTAs */}
+      <div
+        className="flex items-center gap-4"
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(16px)",
+          transition: "all 0.7s var(--ease-cinematic) 1.6s",
+        }}
+      >
+        <Link
+          href={hasSession ? "/workspace" : "/register"}
+          className="px-8 py-4 rounded-xl text-base font-bold bg-[var(--cyan)] hover:shadow-[0_0_32px_rgba(0,229,255,0.4)] transition-all duration-500 flex items-center gap-2 btn-shimmer hover-lift ripple"
+          style={{ color: "#0a0e17" }}
+        >
+          {hasSession ? "进入工作台" : "开始创作"} <ArrowRight size={18} />
+        </Link>
+        <Link
+          href="/explore"
+          className="px-8 py-4 rounded-xl text-base font-medium text-muted-foreground hover:text-foreground border border-white/[0.06] hover:border-white/[0.15] transition-all duration-500 liquid-glass"
+        >
+          探索内容
+        </Link>
+      </div>
+
+      {/* Scroll hint — animated line instead of arrow */}
+      <div
+        className="mt-20 flex flex-col items-center gap-2"
+        style={{
+          opacity: visible ? 0.5 : 0,
+          transition: "opacity 0.8s ease 2s",
+        }}
+      >
+        <div
+          className="w-px h-10 bg-gradient-to-b from-[var(--cyan)]/20 to-transparent"
+          style={{ animation: "scroll-line 2s ease-in-out infinite alternate" }}
+        />
+        <span className="text-[10px] text-muted-foreground/30 tracking-widest uppercase">
+          向下滚动
+        </span>
+      </div>
+    </section>
+  );
+}
+
+export default function Home() {
+  const { data: session } = useSession();
 
   return (
     <div className="flex flex-col min-h-screen relative overflow-hidden">
       <ParticleBg />
+      <CursorGlow />
 
       {/* —— Nav —— */}
-      <header className="relative z-10 glass-card border-b border-white/[0.04] rounded-none mx-0">
+      <header className="relative z-10 liquid-glass border-b border-white/[0.04] rounded-none mx-0">
         <div className="flex items-center justify-between px-6 py-3.5 max-w-7xl mx-auto w-full">
           <Logo size="md" />
           <div className="flex items-center gap-5">
@@ -23,7 +143,7 @@ export default async function Home() {
             {session ? (
               <Link
                 href="/workspace"
-                className="px-5 py-2 rounded-xl text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_24px_rgba(0,229,255,0.35)] transition-all duration-300 btn-shimmer"
+                className="px-5 py-2 rounded-xl text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_24px_rgba(0,229,255,0.35)] transition-all duration-300 btn-shimmer ripple"
                 style={{ color: "#0a0e17" }}
               >
                 进入工作台
@@ -35,7 +155,7 @@ export default async function Home() {
                 </Link>
                 <Link
                   href="/register"
-                  className="px-5 py-2 rounded-xl text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_24px_rgba(0,229,255,0.35)] transition-all duration-300 btn-shimmer"
+                  className="px-5 py-2 rounded-xl text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_24px_rgba(0,229,255,0.35)] transition-all duration-300 btn-shimmer ripple"
                   style={{ color: "#0a0e17" }}
                 >
                   免费注册
@@ -47,56 +167,11 @@ export default async function Home() {
       </header>
 
       {/* —— Hero —— */}
-      <section className="relative z-10 flex flex-col items-center text-center px-6 pt-28 pb-10 max-w-4xl mx-auto">
-        {/* Badge */}
-        <div className="animate-fade-in mb-8">
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-medium tracking-wide border border-white/[0.06] bg-white/[0.02] text-muted-foreground">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--cyan)] animate-pulse-slow" />
-            AI 创作平台 · 灵砚 LingYan
-          </span>
-        </div>
-
-        {/* Logo mark */}
-        <div className="mb-8 animate-float">
-          <Logo size="lg" />
-        </div>
-
-        {/* Headline */}
-        <h1 className="font-mono text-4xl md:text-6xl font-bold tracking-tight mb-5 animate-slide-up">
-          <span className="glow-text-strong">让AI成为</span>
-          <br />
-          <span className="text-gradient-cyan">你的创作引擎</span>
-        </h1>
-
-        <p className="text-base md:text-lg text-muted-foreground max-w-xl mb-10 leading-relaxed animate-slide-up" style={{ animationDelay: "0.08s" }}>
-          灵思笔记 · 星图写作 · 光子发布 · 万象推演 —— 知识管理、长篇创作、内容分发、AI推演，一个平台全覆盖
-        </p>
-
-        <div className="flex items-center gap-4 animate-slide-up" style={{ animationDelay: "0.15s" }}>
-          <Link
-            href={session ? "/workspace" : "/register"}
-            className="px-7 py-3.5 rounded-xl text-base font-bold bg-[var(--cyan)] hover:shadow-[0_0_28px_rgba(0,229,255,0.35)] transition-all duration-300 flex items-center gap-2 btn-shimmer hover-lift"
-            style={{ color: "#0a0e17" }}
-          >
-            {session ? "进入工作台" : "开始创作"} <ArrowRight size={18} />
-          </Link>
-          <Link
-            href="/explore"
-            className="px-7 py-3.5 rounded-xl text-base font-medium text-muted-foreground hover:text-foreground border border-white/[0.06] hover:border-white/[0.12] transition-all duration-300"
-          >
-            探索内容
-          </Link>
-        </div>
-
-        {/* Scroll hint */}
-        <div className="mt-16 animate-fade-in" style={{ animationDelay: "0.6s" }}>
-          <ChevronDown size={20} className="text-muted-foreground/40 animate-float" style={{ animationDuration: "3s" }} />
-        </div>
-      </section>
+      <CinematicHero hasSession={!!session} />
 
       {/* —— Module Cards —— */}
       <section className="relative z-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto px-6 pb-24">
-        <div className="animate-slide-up" style={{ animationDelay: "0.2s" }}>
+        <div className="animate-slide-up" style={{ animationDelay: "0.3s" }}>
           <ModuleCard
             href={session ? "/workspace/star" : "/register"}
             icon={<Star size={24} />}
@@ -107,7 +182,7 @@ export default async function Home() {
             features={["长篇创作", "AI续写", "章节管理", "写作统计"]}
           />
         </div>
-        <div className="animate-slide-up" style={{ animationDelay: "0.3s" }}>
+        <div className="animate-slide-up" style={{ animationDelay: "0.4s" }}>
           <ModuleCard
             href={session ? "/workspace/photon" : "/register"}
             icon={<Zap size={24} />}
@@ -118,7 +193,7 @@ export default async function Home() {
             features={["多平台", "模板生成", "批量产出", "内容日历"]}
           />
         </div>
-        <div className="animate-slide-up" style={{ animationDelay: "0.35s" }}>
+        <div className="animate-slide-up" style={{ animationDelay: "0.5s" }}>
           <ModuleCard
             href={session ? "/workspace/notes" : "/register"}
             icon={<Brain size={24} />}
@@ -129,7 +204,7 @@ export default async function Home() {
             features={["双向链接", "知识图谱", "标签系统", "自动补全"]}
           />
         </div>
-        <div className="animate-slide-up" style={{ animationDelay: "0.45s" }}>
+        <div className="animate-slide-up" style={{ animationDelay: "0.6s" }}>
           <ModuleCard
             href={session ? "/workspace/wanxiang" : "/register"}
             icon={<Network size={24} />}
