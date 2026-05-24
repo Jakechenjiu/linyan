@@ -1,8 +1,9 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
-import { Plus, BookOpen, BarChart3, Trash2 } from "lucide-react";
+import { Plus, BookOpen, BarChart3, Trash2, Clock, Edit3 } from "lucide-react";
 import { revalidatePath } from "next/cache";
+import { genrePresets } from "@/data/genre-presets";
 
 async function deleteNovel(id: string) {
   "use server";
@@ -11,6 +12,13 @@ async function deleteNovel(id: string) {
   await prisma.novel.deleteMany({ where: { id, userId: session.user.id } });
   revalidatePath("/workspace/star");
 }
+
+const statusLabels: Record<string, string> = {
+  planning: "规划中",
+  writing: "连载中",
+  completed: "已完结",
+  paused: "暂停",
+};
 
 export default async function StarPage() {
   const session = await auth();
@@ -27,31 +35,53 @@ export default async function StarPage() {
           <h1 className="font-mono text-3xl font-bold tracking-wide">星图写作</h1>
           <p className="text-sm text-muted-foreground mt-1">长篇智能创作引擎</p>
         </div>
-        <Link
-          href="/workspace/star/analytics"
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm border border-card-border hover:border-[var(--cyan)] transition-colors"
-        >
-          <BarChart3 size={16} /> 写作分析
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/workspace/star/analytics"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm border border-card-border hover:border-[var(--cyan)] transition-colors"
+          >
+            <BarChart3 size={16} /> 写作分析
+          </Link>
+          <Link
+            href="/workspace/star/create"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_20px_rgba(0,229,255,0.3)] transition-all"
+            style={{ color: "#0a0e17" }}
+          >
+            <Plus size={16} /> 新建小说
+          </Link>
+        </div>
       </div>
 
       {novels.length === 0 ? (
         <div className="space-card rounded-2xl p-12 text-center">
           <BookOpen size={48} className="mx-auto mb-4 text-muted-foreground" />
           <p className="text-muted-foreground mb-2">还没有开始创作</p>
-          <p className="text-sm text-muted-foreground mb-6">创建你的第一部长篇小说</p>
+          <p className="text-sm text-muted-foreground mb-6">点击「新建小说」开启引导式创书之旅</p>
+          <Link
+            href="/workspace/star/create"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_20px_rgba(0,229,255,0.3)] transition-all"
+            style={{ color: "#0a0e17" }}
+          >
+            <Plus size={16} /> 创建第一本书
+          </Link>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {novels.map((novel) => {
             const totalWords = novel.chapters.reduce((sum, ch) => sum + ch.wordCount, 0);
+            const genre = genrePresets.find((g) => g.id === novel.genre);
+            const progress = novel.targetWordCount ? Math.min(100, Math.round((totalWords / novel.targetWordCount) * 100)) : 0;
+
             return (
-              <div key={novel.id} className="space-card group rounded-xl p-5">
+              <div key={novel.id} className="space-card group rounded-xl p-5 hover:border-[var(--cyan)] transition-all">
                 <div className="flex items-start justify-between mb-3">
-                  <Link href={`/workspace/star/${novel.id}`} className="flex-1">
-                    <h3 className="font-mono font-bold text-lg group-hover:text-[var(--cyan)] transition-colors">
+                  <Link href={`/workspace/star/${novel.id}`} className="flex-1 min-w-0">
+                    <h3 className="font-mono font-bold text-lg group-hover:text-[var(--cyan)] transition-colors truncate">
                       {novel.title}
                     </h3>
+                    {novel.synopsis && (
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{novel.synopsis}</p>
+                    )}
                   </Link>
                   <form action={deleteNovel.bind(null, novel.id)}>
                     <button className="p-1 rounded text-muted-foreground hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
@@ -59,57 +89,53 @@ export default async function StarPage() {
                     </button>
                   </form>
                 </div>
+
+                {/* Tags */}
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  {genre && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: `${genre.coverColor}15`, color: genre.coverColor }}>
+                      {genre.label}
+                    </span>
+                  )}
+                  <span className="text-[10px] px-2 py-0.5 rounded-full text-muted-foreground bg-[var(--accent)]">
+                    {statusLabels[novel.status] || novel.status}
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                {novel.targetWordCount && totalWords > 0 && (
+                  <div className="mb-3">
+                    <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                      <span>进度</span>
+                      <span>{progress}%</span>
+                    </div>
+                    <div className="h-1 rounded-full bg-[var(--accent)] overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${Math.max(2, progress)}%`, background: "var(--cyan)" }}
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span>{novel._count.chapters} 章</span>
                   <span>{totalWords.toLocaleString()} 字</span>
-                  <span>更新于 {novel.updatedAt.toLocaleDateString("zh-CN")}</span>
+                  <span className="flex items-center gap-1"><Clock size={10} /> {novel.updatedAt.toLocaleDateString("zh-CN")}</span>
                 </div>
+
                 <Link
                   href={`/workspace/star/${novel.id}`}
-                  className="inline-block mt-3 text-xs font-medium text-[var(--cyan)] hover:underline"
+                  className="inline-flex items-center gap-1 mt-3 text-xs font-medium text-[var(--cyan)] hover:underline"
                 >
-                  继续写作 →
+                  {novel.chapters.length > 0 ? <Edit3 size={12} /> : <Plus size={12} />}
+                  {novel.chapters.length > 0 ? "继续写作 →" : "开始写作 →"}
                 </Link>
               </div>
             );
           })}
         </div>
       )}
-
-      {/* Create novel form */}
-      <form
-        action={async (formData: FormData) => {
-          "use server";
-          const session = await auth();
-          if (!session?.user?.id) return;
-          const title = formData.get("title") as string;
-          if (!title?.trim()) return;
-          await prisma.novel.create({
-            data: { title: title.trim(), userId: session.user.id },
-          });
-          revalidatePath("/workspace/star");
-        }}
-        className="space-card rounded-2xl p-6"
-      >
-        <h2 className="font-mono text-lg font-bold mb-4 flex items-center gap-2">
-          <Plus size={20} className="text-[var(--cyan)]" />
-          新建小说
-        </h2>
-        <div className="flex gap-3">
-          <input
-            name="title"
-            placeholder="输入小说标题…"
-            className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--background)] border border-card-border text-sm focus:outline-none focus:border-[var(--cyan)] transition-colors"
-          />
-          <button
-            type="submit"
-            className="px-6 py-2.5 rounded-xl text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_20px_rgba(0,229,255,0.3)] transition-all"
-            style={{ color: "#0a0e17" }}
-          >
-            创建
-          </button>
-        </div>
-      </form>
     </div>
   );
 }

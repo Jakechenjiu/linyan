@@ -15,7 +15,7 @@ const modules = [
     id: "star", label: "星图写作", icon: <Star size={16} />, color: "var(--cyan)",
     items: [
       { href: "/workspace/star", label: "我的长篇", icon: <BookOpen size={14} /> },
-      { href: "/workspace/star", label: "新建章节", icon: <Plus size={14} /> },
+      { href: "/workspace/star/create", label: "创建新书", icon: <Plus size={14} /> },
       { href: "/workspace/star/analytics", label: "写作分析", icon: <BarChart3 size={14} /> },
     ],
   },

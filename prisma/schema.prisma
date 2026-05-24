@@ -21,11 +21,72 @@ model User {
 }
 
 model Novel {
+  id              String    @id @default(cuid())
+  title           String
+  genre           String?   // xuanhuan/xianxia/urban/scifi/romance/mystery/history/game
+  synopsis        String?   // 一句话简介
+  description     String?   // 详细描述
+  targetWordCount Int?      // 目标总字数
+  status          String    @default("planning")  // planning|writing|completed|paused
+  coverColor      String?   // 封面主题色
+  chapters        Chapter[]
+  worldSetting    WorldSetting?
+  characters      Character[]
+  outlines        Outline[]
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model WorldSetting {
+  id          String   @id @default(cuid())
+  novelId     String   @unique
+  novel       Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  worldType   String?  // cultivation/cyberpunk/cthulhu/wasteland/modern/other
+  scale       String?  // single_city/multi_region/continent/multi_realm
+  powerSystem String?  // 力量体系描述（markdown）
+  geography   String?  // 地理架构
+  factions    String?  // 势力格局
+  rules       String?  // 世界规则/铁律
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Character {
+  id            String   @id @default(cuid())
+  novelId       String
+  novel         Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  name          String
+  role          String   @default("supporting")  // protagonist|antagonist|supporting|love_interest|mentor
+  tagline       String?  // 称号/外号
+  appearance    String?  // 外貌
+  personality   String?  // 性格（显性+隐性）
+  desire        String?  // 欲望/外目标
+  flaw          String?  // 缺陷
+  wound         String?  // 创伤
+  need          String?  // 内在需求
+  change        String?  // 成长弧线
+  goldenFinger  String?  // 金手指
+  relationships String?  // 人际关系（JSON）
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Outline {
   id        String    @id @default(cuid())
-  title     String
-  chapters  Chapter[]
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  novelId   String
+  novel     Novel     @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  title     String    // 卷/篇章标题
+  type      String    @default("volume")  // volume|chapter
+  parentId  String?   // 父节点
+  parent    Outline?  @relation("OutlineTree", fields: [parentId], references: [id])
+  children  Outline[] @relation("OutlineTree")
+  nodes     String?   // CBN/CPNs/CEN JSON
+  summary   String?   // 本章摘要
+  wordTarget Int?     // 目标字数
+  sortOrder Int       @default(0)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
