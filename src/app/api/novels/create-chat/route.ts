@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getAiConfig } from "@/lib/ai";
+import { getAiConfig, callAi } from "@/lib/ai";
 import { NextResponse } from "next/server";
 
 const systemPrompt = `你是一位资深的网络文学编辑兼创作导师——"灵砚助手"。你的任务是通过对话引导作者完成一部新书的设定创建。
@@ -59,151 +59,119 @@ export async function POST(req: Request) {
 
   if (!messages?.length) return NextResponse.json({ error: "Messages required" }, { status: 400 });
 
-  const { apiKey, baseUrl, model, hasKey } = await getAiConfig(session.user.id);
+  const config = await getAiConfig(session.user.id);
 
-  if (!hasKey) {
+  if (!config.hasKey) {
     return NextResponse.json({
       error: "请先在设置中配置您的 AI API Key",
       code: "NO_API_KEY",
     }, { status: 400 });
   }
 
+  let content: string;
   try {
-    const response = await fetch(`${baseUrl}/v1/messages`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 4096,
-        temperature: 0.8,
-        system: systemPrompt,
-        messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      }),
+    content = await callAi({
+      ...config,
+      system: systemPrompt,
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      max_tokens: 4096,
+      temperature: 0.8,
     });
+  } catch (e) {
+    return NextResponse.json({
+      message: e instanceof Error ? e.message : "AI 调用失败，请重试",
+      finalized: false,
+    });
+  }
 
-    if (!response.ok) {
-      const errBody = await response.text().catch(() => "");
-      console.error("LLM error:", response.status, errBody.slice(0, 500));
-      const msg = response.status === 401 || response.status === 403
-        ? "API Key 无效，请检查设置中的密钥配置"
-        : `AI 服务返回错误 (${response.status})，请稍后重试`;
-      return NextResponse.json({ error: msg }, { status: 502 });
-    }
+  // Check for FINALIZE block — lenient matching
+  const finalizeMatch = content.match(/```FINALIZE\s*([\s\S]*?)```/i);
+  if (finalizeMatch) {
+    try {
+      const jsonStr = finalizeMatch[1].trim();
+      const settings = JSON.parse(jsonStr);
 
-    const data = await response.json();
-
-    // Handle both Anthropic format and OpenAI format
-    let content = "";
-    if (data.content?.[0]?.text) {
-      content = data.content[0].text;
-    } else if (data.choices?.[0]?.message?.content) {
-      content = data.choices[0].message.content;
-    }
-
-    if (!content) {
-      console.error("Empty LLM response, raw data keys:", Object.keys(data));
-      return NextResponse.json({
-        message: "抱歉，AI 返回了空内容，请重试。如果持续出现，请检查 API 配置。",
-        finalized: false,
-      });
-    }
-
-    // Check for FINALIZE block — lenient matching
-    const finalizeMatch = content.match(/```FINALIZE\s*([\s\S]*?)```/i);
-    if (finalizeMatch) {
-      try {
-        const jsonStr = finalizeMatch[1].trim();
-        const settings = JSON.parse(jsonStr);
-
-        const novel = await prisma.novel.create({
-          data: {
-            title: settings.title || "未命名作品",
-            genre: settings.genre || null,
-            synopsis: settings.synopsis || null,
-            targetWordCount: settings.targetWordCount || null,
-            status: "planning",
-            userId: session.user.id,
-            worldSetting: (settings.worldType || settings.powerSystem || settings.factions || settings.rules)
-              ? {
-                  create: {
-                    worldType: settings.worldType || null,
-                    scale: settings.scale || null,
-                    powerSystem: settings.powerSystem || null,
-                    factions: settings.factions || null,
-                    rules: settings.rules || null,
+      const novel = await prisma.novel.create({
+        data: {
+          title: settings.title || "未命名作品",
+          genre: settings.genre || null,
+          synopsis: settings.synopsis || null,
+          targetWordCount: settings.targetWordCount || null,
+          status: "planning",
+          userId: session.user.id,
+          worldSetting: (settings.worldType || settings.powerSystem || settings.factions || settings.rules)
+            ? {
+                create: {
+                  worldType: settings.worldType || null,
+                  scale: settings.scale || null,
+                  powerSystem: settings.powerSystem || null,
+                  factions: settings.factions || null,
+                  rules: settings.rules || null,
+                },
+              }
+            : undefined,
+          characters: settings.protagonist?.name
+            ? {
+                create: [
+                  {
+                    name: settings.protagonist.name,
+                    role: "protagonist",
+                    tagline: settings.protagonist.tagline || null,
+                    desire: settings.protagonist.desire || null,
+                    flaw: settings.protagonist.flaw || null,
+                    goldenFinger: settings.protagonist.goldenFinger || null,
+                    sortOrder: 0,
                   },
-                }
-              : undefined,
-            characters: settings.protagonist?.name
-              ? {
-                  create: [
-                    {
-                      name: settings.protagonist.name,
-                      role: "protagonist",
-                      tagline: settings.protagonist.tagline || null,
-                      desire: settings.protagonist.desire || null,
-                      flaw: settings.protagonist.flaw || null,
-                      goldenFinger: settings.protagonist.goldenFinger || null,
-                      sortOrder: 0,
-                    },
-                    ...(settings.antagonist?.name
-                      ? [{
-                          name: settings.antagonist.name,
-                          role: "antagonist",
-                          tagline: settings.antagonist.tagline || null,
-                          relationships: settings.antagonist.conflict
-                            ? JSON.stringify({ conflict: settings.antagonist.conflict, type: settings.antagonist.role || "interest" })
-                            : null,
-                          sortOrder: 1,
-                        }]
-                      : []),
-                  ],
-                }
-              : undefined,
-            outlines: settings.volumes?.length
-              ? {
-                  create: settings.volumes.map((v: { title: string; chapterCount: number; summary: string }, i: number) => ({
-                    title: v.title || `第${i + 1}卷`,
-                    type: "volume",
-                    summary: v.summary || null,
-                    sortOrder: i,
-                  })),
-                }
-              : undefined,
+                  ...(settings.antagonist?.name
+                    ? [{
+                        name: settings.antagonist.name,
+                        role: "antagonist",
+                        tagline: settings.antagonist.tagline || null,
+                        relationships: settings.antagonist.conflict
+                          ? JSON.stringify({ conflict: settings.antagonist.conflict, type: settings.antagonist.role || "interest" })
+                          : null,
+                        sortOrder: 1,
+                      }]
+                    : []),
+                ],
+              }
+            : undefined,
+          outlines: settings.volumes?.length
+            ? {
+                create: settings.volumes.map((v: { title: string; chapterCount: number; summary: string }, i: number) => ({
+                  title: v.title || `第${i + 1}卷`,
+                  type: "volume",
+                  summary: v.summary || null,
+                  sortOrder: i,
+                })),
+              }
+            : undefined,
+        },
+      });
+
+      if (settings.openingHook?.trim()) {
+        await prisma.chapter.create({
+          data: {
+            title: "第1章",
+            body: settings.openingHook.trim(),
+            order: 1,
+            wordCount: settings.openingHook.trim().length,
+            novelId: novel.id,
           },
         });
-
-        if (settings.openingHook?.trim()) {
-          await prisma.chapter.create({
-            data: {
-              title: "第1章",
-              body: settings.openingHook.trim(),
-              order: 1,
-              wordCount: settings.openingHook.trim().length,
-              novelId: novel.id,
-            },
-          });
-        }
-
-        const cleanContent = content.replace(/```FINALIZE[\s\S]*?```/i, "").trim();
-        return NextResponse.json({
-          message: cleanContent || "设定已生成！正在跳转到你的新书工作室…",
-          novelId: novel.id,
-          finalized: true,
-        });
-      } catch (parseError) {
-        console.error("JSON parse error:", parseError);
-        return NextResponse.json({ message: content, finalized: false });
       }
-    }
 
-    return NextResponse.json({ message: content, finalized: false });
-  } catch (e) {
-    console.error("Chat error:", e);
-    return NextResponse.json({ error: "对话失败，请重试" }, { status: 500 });
+      const cleanContent = content.replace(/```FINALIZE[\s\S]*?```/i, "").trim();
+      return NextResponse.json({
+        message: cleanContent || "设定已生成！正在跳转到你的新书工作室…",
+        novelId: novel.id,
+        finalized: true,
+      });
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
+      return NextResponse.json({ message: content, finalized: false });
+    }
   }
+
+  return NextResponse.json({ message: content, finalized: false });
 }

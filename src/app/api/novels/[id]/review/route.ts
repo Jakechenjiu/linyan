@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getAiConfig } from "@/lib/ai";
+import { getAiConfig, callAi } from "@/lib/ai";
 import { NextResponse } from "next/server";
 
 const reviewSystemPrompt = `你是一位专业的网文编辑，负责审查章节质量。请以严格的JSON格式返回审查结果。
@@ -67,9 +67,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const chapter = novel.chapters.find((ch) => ch.id === chapterId);
   if (!chapter) return NextResponse.json({ error: "Chapter not found" }, { status: 404 });
 
-  const { apiKey, baseUrl, model, hasKey } = await getAiConfig(session.user.id);
+  const config = await getAiConfig(session.user.id);
 
-  if (!hasKey) {
+  if (!config.hasKey) {
     return NextResponse.json({
       error: "请先在设置中配置您的 AI API Key",
       code: "NO_API_KEY",
@@ -112,57 +112,38 @@ ${nextChapter ? `后一章开头 (${nextChapter.title}): ${nextChapter.body.slic
 
 请审查以上章节。`;
 
+  let content: string;
   try {
-    const response = await fetch(`${baseUrl}/v1/messages`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 2048,
-        temperature: 0.2,
-        system: reviewSystemPrompt,
-        messages: [{ role: "user", content: userMessage }],
-      }),
+    content = await callAi({
+      ...config,
+      system: reviewSystemPrompt,
+      messages: [{ role: "user", content: userMessage }],
+      max_tokens: 2048,
+      temperature: 0.2,
     });
-
-    if (!response.ok) {
-      const errBody = await response.text().catch(() => "");
-      console.error("LLM review error:", response.status, errBody.slice(0, 300));
-      const msg = response.status === 401 || response.status === 403
-        ? "API Key 无效，请检查设置中的密钥配置"
-        : `AI 服务返回错误 (${response.status})，请稍后重试`;
-      return NextResponse.json({ error: msg }, { status: 502 });
-    }
-
-    const data = await response.json();
-    let content = "";
-    if (data.content?.[0]?.text) {
-      content = data.content[0].text;
-    } else if (data.choices?.[0]?.message?.content) {
-      content = data.choices[0].message.content;
-    }
-
-    // Try parsing JSON from response
-    let review;
-    try {
-      const jsonStr = content.replace(/```json\s?|\```/g, "").trim();
-      review = JSON.parse(jsonStr);
-    } catch {
-      review = {
-        overall: "warning",
-        summary: "审查结果解析失败，请重试",
-        issues: [{ severity: "medium", category: "ai_flavor", location: "全文", description: "无法自动审查，请人工检查", fixHint: "" }],
-        strengths: [],
-      };
-    }
-
-    return NextResponse.json(review);
   } catch (e) {
-    console.error("Review error:", e);
-    return NextResponse.json({ error: "Review failed" }, { status: 500 });
+    console.error("Review AI error:", e);
+    return NextResponse.json({
+      overall: "fail",
+      summary: e instanceof Error ? e.message : "AI 调用失败",
+      issues: [],
+      strengths: [],
+    });
   }
+
+  // Try parsing JSON from response
+  let review;
+  try {
+    const jsonStr = content.replace(/```json\s?|\```/g, "").trim();
+    review = JSON.parse(jsonStr);
+  } catch {
+    review = {
+      overall: "warning",
+      summary: "审查结果解析失败，请重试",
+      issues: [{ severity: "medium", category: "ai_flavor", location: "全文", description: "无法自动审查，请人工检查", fixHint: "" }],
+      strengths: [],
+    };
+  }
+
+  return NextResponse.json(review);
 }

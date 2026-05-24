@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getAiConfig } from "@/lib/ai";
+import { getAiConfig, callAiStream } from "@/lib/ai";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -22,9 +22,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const { apiKey, baseUrl, model, hasKey } = await getAiConfig(session.user.id);
+  const config = await getAiConfig(session.user.id);
 
-  if (!hasKey) {
+  if (!config.hasKey) {
     return NextResponse.json({
       error: "请先在设置中配置您的 AI API Key",
       code: "NO_API_KEY",
@@ -89,84 +89,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const userMessage = `${parts.join("\n")}\n\n${direction ? `续写方向：${direction}` : "请续写下一段内容"}`;
 
-  try {
-    const response = await fetch(`${baseUrl}/v1/messages`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 4096,
-        stream: true,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userMessage }],
-      }),
-    });
+  const stream = callAiStream({
+    ...config,
+    system: systemPrompt,
+    messages: [{ role: "user", content: userMessage }],
+    max_tokens: 4096,
+  });
 
-    if (!response.ok) {
-      const errBody = await response.text().catch(() => "");
-      console.error("LLM stream error:", response.status, errBody.slice(0, 500));
-      const msg = response.status === 401 || response.status === 403
-        ? "API Key 无效，请检查设置中的密钥配置"
-        : `AI 服务返回错误 (${response.status})，请稍后重试`;
-      return NextResponse.json({ error: msg }, { status: 502 });
-    }
-
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      async start(controller) {
-        const reader = response.body?.getReader();
-        if (!reader) { controller.close(); return; }
-
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
-
-            // Parse SSE events
-            const lines = buffer.split("\n");
-            buffer = lines.pop() || "";
-
-            for (const line of lines) {
-              if (line.startsWith("data: ")) {
-                const data = line.slice(6).trim();
-                if (data === "[DONE]") continue;
-                try {
-                  const parsed = JSON.parse(data);
-                  // Anthropic SSE format
-                  if (parsed.type === "content_block_delta" && parsed.delta?.text) {
-                    controller.enqueue(encoder.encode(parsed.delta.text));
-                  }
-                } catch {
-                  // Skip non-JSON lines
-                }
-              }
-            }
-          }
-        } catch (e) {
-          console.error("Stream error:", e);
-        }
-        controller.close();
-      },
-    });
-
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-        "X-Content-Type-Options": "nosniff",
-      },
-    });
-  } catch (e) {
-    console.error("Generate error:", e);
-    return NextResponse.json({ error: "Generation failed" }, { status: 500 });
-  }
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
 }
