@@ -16,8 +16,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       worldSetting: true,
       characters: { orderBy: { sortOrder: "asc" } },
       chapters: { orderBy: { order: "desc" }, take: 3 },
+      outlines: true,
     },
   });
+
+  // If chapter has an associated outline, use it for context
+  let outlineSummary: string | null = null;
+  if (chapterId) {
+    const chapter = await prisma.chapter.findUnique({
+      where: { id: chapterId },
+      select: { outlineId: true },
+    });
+    if (chapter?.outlineId) {
+      const outline = novel!.outlines.find((o) => o.id === chapter.outlineId);
+      if (outline?.summary) outlineSummary = outline.summary;
+    }
+  }
+
   if (!novel || novel.userId !== session.user.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -72,20 +87,28 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
   }
 
+  // Add outline context if available
+  if (outlineSummary) {
+    parts.push(`\n## 本章大纲摘要\n${outlineSummary}`);
+  }
+
   const systemPrompt = `你是一位专业的网络小说作家。根据以下设定和已有内容，续写小说。要求：
 
 1. 严格遵循角色设定（性格、欲望、缺陷、金手指）
 2. 遵守世界观规则，不打破已设定的铁律
 3. 保持与已有内容一致的叙事风格和节奏
-4. 避免AI味表达：
-   - 禁止使用"缓缓/淡淡/微微/轻轻"等万用副词
-   - 禁止段落结尾的总结反思句（如"他知道，…"、"这一刻，…"）
+4. 如果有大纲摘要，严格围绕大纲展开
+5. 避免AI味表达：
+   - 禁止使用"缓缓/淡淡/微微/轻轻/蓦然/倏忽/仿若/似是/不知为何/莫名"等万用副词
+   - 禁止段落结尾的总结反思句（如"他知道，…"、"这一刻，…"、"从此以后…"）
    - 禁止"起因→经过→结果→感悟"四段式闭合结构
    - 用生理反应+微动作替代"他感到X"
    - 对话要有潜台词和意图冲突，允许打断、沉默、回避
+   - 禁止连续3句以上相同句式
    - 章节结尾不要平稳落地，留下未解决的问题
-5. 如果提供了方向，按方向续写；否则自然推进剧情
-6. 续写字数控制在500-1500字`;
+6. 如果提供了方向，按方向续写；否则自然推进剧情
+7. 续写字数控制在500-1500字
+8. 直接从正文开始，禁止"好的，以下是…"等开场白`;
 
   const userMessage = `${parts.join("\n")}\n\n${direction ? `续写方向：${direction}` : "请续写下一段内容"}`;
 

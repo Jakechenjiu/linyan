@@ -23,7 +23,7 @@ export default async function NovelEditorPage({ params }: { params: Promise<{ id
   const novelId = (await params).id;
   const novel = await prisma.novel.findUnique({
     where: { id: novelId },
-    include: { chapters: { orderBy: { order: "asc" } } },
+    include: { chapters: { orderBy: { order: "asc" }, include: { outline: { select: { id: true, summary: true } } } } },
   });
   if (!novel || novel.userId !== session.user.id) notFound();
 

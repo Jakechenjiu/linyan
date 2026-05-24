@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import { Save, Sparkles, Loader2, Eye } from "lucide-react";
+import { Save, Sparkles, Loader2, Eye, Stars } from "lucide-react";
 import { saveChapter } from "./actions";
 
 interface ReviewResult {
@@ -35,6 +35,7 @@ interface Props {
     body: string;
     wordCount: number;
     order: number;
+    outline?: { id: string; summary: string | null } | null;
   };
 }
 
@@ -117,6 +118,77 @@ export default function NovelEditor({ novelId, chapter }: Props) {
     setStreaming(false);
   };
 
+  const handleRewriteByOutline = async () => {
+    const outlineId = chapter.outline?.id;
+    if (!outlineId) return;
+
+    setStreaming(true);
+    setError(null);
+    const controller = new AbortController();
+    controllerRef.current = controller;
+
+    try {
+      const res = await fetch(`/api/novels/${novelId}/auto-generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ outlineId }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "生成失败");
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("No response stream");
+
+      const decoder = new TextDecoder();
+      let newBody = "";
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const raw = line.slice(6).trim();
+          if (!raw) continue;
+
+          try {
+            const data = JSON.parse(raw);
+            if (data.type === "text") {
+              newBody += data.content;
+              setBody(newBody);
+            } else if (data.type === "error") {
+              setError(data.message);
+              setStreaming(false);
+              return;
+            }
+          } catch {}
+        }
+      }
+
+      if (textareaRef.current) {
+        textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
+      }
+
+      await saveChapter(chapter.id, title, newBody);
+    } catch (e: any) {
+      if (e.name !== "AbortError") {
+        setError(e.message || "生成失败");
+      }
+    } finally {
+      setStreaming(false);
+      controllerRef.current = null;
+    }
+  };
+
   const handleReview = async () => {
     setReviewing(true);
     setReview(null);
@@ -173,6 +245,12 @@ export default function NovelEditor({ novelId, chapter }: Props) {
             <button type="button" onClick={handleAiGenerate}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-card-border hover:border-[var(--nebula)] text-[var(--nebula)] transition-colors">
               <Sparkles size={12} /> AI 续写
+            </button>
+          )}
+          {chapter.outline && !streaming && (
+            <button type="button" onClick={handleRewriteByOutline}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-card-border hover:border-[var(--star)] text-[var(--star)] transition-colors">
+              <Stars size={12} /> 按大纲重写
             </button>
           )}
           <button type="button" onClick={handleReview} disabled={reviewing}

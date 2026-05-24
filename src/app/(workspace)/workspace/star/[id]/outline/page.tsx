@@ -2,8 +2,10 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { ArrowLeft, Plus, Trash2, Save, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save } from "lucide-react";
 import Link from "next/link";
+import GenerateButton from "@/components/star/GenerateButton";
+import BatchGenerateButton from "@/components/star/BatchGenerateButton";
 
 export default async function NovelOutlinePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -15,7 +17,7 @@ export default async function NovelOutlinePage({ params }: { params: Promise<{ i
     include: {
       outlines: {
         orderBy: { sortOrder: "asc" },
-        include: { children: { orderBy: { sortOrder: "asc" } } },
+        include: { children: { orderBy: { sortOrder: "asc" }, include: { chapters: true } }, chapters: true },
       },
     },
   });
@@ -79,6 +81,12 @@ export default async function NovelOutlinePage({ params }: { params: Promise<{ i
           <h1 className="font-mono text-2xl font-bold tracking-wide">大纲规划</h1>
           <p className="text-sm text-muted-foreground mt-1">{novel.title}</p>
         </div>
+        <BatchGenerateButton
+          novelId={novel.id}
+          outlines={novel.outlines
+            .filter((o) => o.type === "chapter" && o.chapters.length === 0)
+            .map((o) => ({ id: o.id, title: o.title }))}
+        />
       </div>
 
       {/* Add volume */}
@@ -140,6 +148,12 @@ export default async function NovelOutlinePage({ params }: { params: Promise<{ i
                         </form>
                         <button type="button" onClick={async () => { "use server"; deleteNode(ch.id); }}
                           className="text-xs text-muted-foreground hover:text-red-400"><Trash2 size={10} /></button>
+                        <GenerateButton
+                          novelId={novel.id}
+                          outlineId={ch.id}
+                          hasChapter={ch.chapters.length > 0}
+                          chapterId={ch.chapters[0]?.id}
+                        />
                       </div>
                     ))}
                   </div>
