@@ -23,8 +23,8 @@ const modules = [
     id: "photon", label: "光子发布", icon: <Zap size={16} />, color: "var(--nebula)",
     items: [
       { href: "/workspace/photon", label: "光子面板", icon: <Layers size={14} /> },
+      { href: "/workspace/photon/batch", label: "AI视频工厂", icon: <Sparkles size={14} /> },
       { href: "/workspace/photon/templates", label: "模板工坊", icon: <FileText size={14} /> },
-      { href: "/workspace/photon/batch", label: "批量生成", icon: <Sparkles size={14} /> },
       { href: "/workspace/photon/calendar", label: "内容日历", icon: <Calendar size={14} /> },
       { href: "/workspace/photon/analytics", label: "数据分析", icon: <TrendingUp size={14} /> },
     ],

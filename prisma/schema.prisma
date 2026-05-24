@@ -19,7 +19,8 @@ model User {
   contents   Content[]
   mindmaps   MindMap[]
   stories    Story[]
-  novels     Novel[]
+  novels        Novel[]
+  videoProjects VideoProject[]
 }
 
 model Novel {
@@ -156,4 +157,35 @@ model Story {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model VideoProject {
+  id        String     @id @default(cuid())
+  title     String
+  topic     String
+  platform  String     @default("douyin")
+  style     String?
+  script    String?
+  status    String     @default("draft")
+  bgmPath   String?
+  outputUrl String?
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clips     VideoClip[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model VideoClip {
+  id           String       @id @default(cuid())
+  projectId    String
+  project      VideoProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  order        Int
+  scriptText   String
+  visualPrompt String
+  duration     Float        @default(5.0)
+  clipUrl      String?
+  voiceUrl     String?
+  status       String       @default("pending")
+  createdAt    DateTime     @default(now())
 }
