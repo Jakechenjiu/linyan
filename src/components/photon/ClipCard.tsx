@@ -11,6 +11,7 @@ interface ClipData {
   clipUrl?: string | null;
   voiceUrl?: string | null;
   status: string;
+  error?: string | null;
 }
 
 const statusConfig: Record<string, { icon: typeof CheckCircle2; label: string; className: string }> = {
@@ -74,6 +75,9 @@ export default function ClipCard({ clip, isSelected, onSelect, onEdit, dragHandl
 
         <p className="text-xs leading-relaxed line-clamp-2">{clip.scriptText}</p>
         <p className="text-[10px] text-muted-foreground line-clamp-1">{clip.visualPrompt}</p>
+        {clip.error && (
+          <p className="text-[10px] text-red-400/80 line-clamp-2 mt-1">{clip.error}</p>
+        )}
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ interface ClipData {
   clipUrl?: string | null;
   voiceUrl?: string | null;
   status: string;
+  error?: string | null;
 }
 
 interface Props {

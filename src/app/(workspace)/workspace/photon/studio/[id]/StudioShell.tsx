@@ -17,6 +17,7 @@ interface ClipData {
   clipUrl?: string | null;
   voiceUrl?: string | null;
   status: string;
+  error?: string | null;
 }
 
 interface ProjectData {
@@ -108,23 +109,27 @@ export default function StudioShell({ project: initialProject }: Props) {
 
       // Sync local clips state with results
       if (data.results) {
+        const errors: string[] = [];
         setClips((prev) =>
           prev.map((c) => {
             const result = data.results.find((r: any) => r.clipId === c.id);
             if (result && !result.error) {
               return {
                 ...c,
-                status: "done",
+                status: "done" as const,
                 clipUrl: result.videoUrl || c.clipUrl,
                 voiceUrl: result.voiceUrl || c.voiceUrl,
+                error: null,
               };
             }
             if (result && result.error) {
-              return { ...c, status: "failed" };
+              errors.push(`#${c.order + 1}: ${result.error}`);
+              return { ...c, status: "failed" as const, error: result.error };
             }
             return c;
           })
         );
+        if (errors.length > 0) setError(errors.join("\n"));
       }
       router.refresh();
     } catch (e: any) {
