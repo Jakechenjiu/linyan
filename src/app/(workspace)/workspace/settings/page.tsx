@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { User, Settings, Shield, Key, Zap, Eye, EyeOff, Film } from "lucide-react";
+import { User, Film, Network, ExternalLink, CheckCircle2, AlertCircle, Brain, ArrowRight } from "lucide-react";
 
 const providerOptions = [
   { value: "deepseek", label: "DeepSeek", desc: "性价比最高，推荐" },
@@ -14,6 +14,12 @@ const providerEndpoints: Record<string, string> = {
   deepseek: "https://api.deepseek.com/v1",
   openai: "https://api.openai.com/v1",
   anthropic: "https://api.anthropic.com",
+};
+
+const providerKeyLinks: Record<string, string> = {
+  deepseek: "https://platform.deepseek.com/api_keys",
+  openai: "https://platform.openai.com/api-keys",
+  anthropic: "https://console.anthropic.com/settings/keys",
 };
 
 export default async function SettingsPage() {
@@ -72,15 +78,45 @@ export default async function SettingsPage() {
     revalidatePath("/workspace/settings");
   }
 
-  const maskedKey = user?.apiKey
+  const hasTextKey = !!user?.apiKey;
+  const hasDashscopeKey = !!(user?.dashscopeApiKey || process.env.DASHSCOPE_API_KEY);
+  const hasWanxiang = !!process.env.WANXIANG_URL;
+  const maskedTextKey = user?.apiKey
     ? user.apiKey.slice(0, 8) + "•••" + user.apiKey.slice(-4)
     : null;
+
+  const apiOverview = [
+    {
+      label: "AI 文本生成",
+      icon: <Brain size={18} />,
+      color: "var(--cyan)",
+      configured: hasTextKey,
+      modules: ["星图写作 · AI 续写", "光子发布 · 脚本生成"],
+      href: "#ai-text",
+    },
+    {
+      label: "通义万相",
+      icon: <Film size={18} />,
+      color: "var(--nebula)",
+      configured: hasDashscopeKey,
+      modules: ["光子发布 · AI 视频生成", "光子发布 · TTS 配音"],
+      href: "#dashscope",
+    },
+    {
+      label: "万象推演引擎",
+      icon: <Network size={18} />,
+      color: "var(--star)",
+      configured: hasWanxiang,
+      modules: ["万象推演 · 多智能体预测"],
+      href: "#wanxiang",
+    },
+  ];
 
   return (
     <div className="space-y-8 max-w-3xl">
       <div>
         <h1 className="font-mono text-3xl font-bold tracking-wide">设置</h1>
-        <p className="text-sm text-muted-foreground mt-1">管理账户和 AI 接入</p>
+        <p className="text-sm text-muted-foreground mt-1">管理账户与 API 接入</p>
       </div>
 
       {!user && (
@@ -89,14 +125,62 @@ export default async function SettingsPage() {
         </div>
       )}
 
+      {/* ===== API 接入总览 ===== */}
+      <div className="space-card rounded-2xl p-6">
+        <h2 className="font-mono text-lg font-bold mb-1">API 接入总览</h2>
+        <p className="text-xs text-muted-foreground mb-5">
+          灵砚依赖以下 API 服务。每个 API 独立配置，按需启用。
+        </p>
+        <div className="grid gap-3">
+          {apiOverview.map((api) => (
+            <a
+              key={api.label}
+              href={api.href}
+              className="flex items-center gap-4 p-4 rounded-xl border border-card-border bg-[var(--bg-elevated)]/50 hover:border-[var(--cyan)]/30 transition-all group"
+            >
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                style={{ background: `${api.color}15`, color: api.color }}
+              >
+                {api.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold">{api.label}</span>
+                  {api.configured ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] text-green-400">
+                      <CheckCircle2 size={10} /> 已配置
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <AlertCircle size={10} /> 未配置
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {api.modules.join("  ·  ")}
+                </p>
+              </div>
+              <ArrowRight size={14} className="text-muted-foreground group-hover:text-[var(--cyan)] transition-colors shrink-0" />
+            </a>
+          ))}
+        </div>
+      </div>
+
       <form action={saveSettings} className="space-y-8">
-        {/* API Configuration */}
-        <div className="space-card rounded-2xl p-6">
+        {/* ===== AI 文本 API ===== */}
+        <div id="ai-text" className="space-card rounded-2xl p-6 scroll-mt-24">
           <h2 className="font-mono text-lg font-bold mb-1 flex items-center gap-2">
-            <Key size={20} className="text-[var(--star)]" />
-            AI API 配置
+            <Brain size={20} className="text-[var(--cyan)]" />
+            AI 文本生成
           </h2>
-          <p className="text-xs text-muted-foreground mb-6">配置你自己的 AI API Key，AI 续写和审查功能将使用你的额度</p>
+          <p className="text-xs text-muted-foreground mb-2">
+            提供 AI 续写、内容审查、脚本生成等文本能力
+          </p>
+          <div className="flex items-center gap-2 mb-5 text-[11px]">
+            <span className="px-2 py-0.5 rounded bg-[var(--cyan-soft)] text-[var(--cyan)]">星图写作</span>
+            <span className="px-2 py-0.5 rounded bg-[var(--cyan-soft)] text-[var(--cyan)]">光子发布</span>
+          </div>
 
           <div className="space-y-4">
             {/* Provider */}
@@ -119,7 +203,6 @@ export default async function SettingsPage() {
                       defaultChecked={(user?.apiProvider || "deepseek") === p.value}
                       className="hidden"
                     />
-                    <Zap size={14} className="mx-auto mb-1 text-[var(--cyan)]" />
                     <div className="text-xs font-medium">{p.label}</div>
                     <div className="text-[10px] text-muted-foreground">{p.desc}</div>
                   </label>
@@ -131,54 +214,84 @@ export default async function SettingsPage() {
             <div>
               <label className="text-sm font-medium mb-2 block">
                 API Key
-                {maskedKey && (
+                {maskedTextKey && (
                   <span className="text-xs text-muted-foreground ml-2">
-                    当前: <span className="text-[var(--cyan)] font-mono">{maskedKey}</span>
+                    当前: <span className="text-[var(--cyan)] font-mono">{maskedTextKey}</span>
                   </span>
                 )}
               </label>
               <input
                 name="apiKey"
-                placeholder={maskedKey ? "输入新 Key 替换…" : "sk-…"}
+                placeholder={maskedTextKey ? "输入新 Key 替换…" : "sk-…"}
                 className="w-full px-4 py-3 rounded-xl bg-[var(--background)] border border-card-border text-sm font-mono focus:outline-none focus:border-[var(--cyan)] transition-colors"
               />
               <p className="text-[10px] text-muted-foreground mt-1.5">
-                端点：{providerEndpoints[user?.apiProvider || "deepseek"]} &nbsp;|&nbsp;
-                {user?.apiProvider === "deepseek"
-                  ? "从 DeepSeek 控制台获取 → platform.deepseek.com"
-                  : user?.apiProvider === "openai"
-                    ? "从 OpenAI 控制台获取 → platform.openai.com"
-                    : "从 Anthropic 控制台获取 → console.anthropic.com"}
+                端点：{providerEndpoints[user?.apiProvider || "deepseek"]}
               </p>
+              <a
+                href={providerKeyLinks[user?.apiProvider || "deepseek"]}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[10px] text-[var(--cyan)] hover:underline mt-0.5"
+              >
+                获取 API Key <ExternalLink size={10} />
+              </a>
             </div>
 
             {/* Cost note */}
             <div className="p-3 rounded-xl bg-[var(--accent)] border border-card-border">
               <p className="text-xs text-muted-foreground">
-                <span className="text-[var(--star)] font-medium">费用说明：</span>
-                API 调用由你选择的 AI 提供商直接计费。
-                DeepSeek 约 ¥1/百万 token，一篇 3000 字章节续写约 ¥0.01-0.03。
-                不填 Key 时将使用系统默认 Key（限流）。
+                <span className="text-[var(--star)] font-medium">计费：</span>
+                由所选 AI 提供商直接收取。DeepSeek 约 ¥1/百万 token，一篇 3000 字续写约 ¥0.01-0.03。
+                不填 Key 时使用系统默认 Key（限流，响应较慢）。
               </p>
             </div>
           </div>
         </div>
 
-        {/* DashScope Video API */}
-        <div className="space-card rounded-2xl p-6">
+        {/* ===== 通义万相视频 API ===== */}
+        <div id="dashscope" className="space-card rounded-2xl p-6 scroll-mt-24">
           <h2 className="font-mono text-lg font-bold mb-1 flex items-center gap-2">
             <Film size={20} className="text-[var(--nebula)]" />
-            通义万相（视频生成）
+            通义万相（视频 + 语音）
           </h2>
-          <p className="text-xs text-muted-foreground mb-4">
-            AI 短视频工厂使用阿里云 DashScope 通义万相 API 生成视频素材。配置后即可使用 AI 视频生成功能。
+          <p className="text-xs text-muted-foreground mb-2">
+            阿里云 DashScope 提供 AI 视频生成与 TTS 语音合成能力
           </p>
+          <div className="flex items-center gap-2 mb-5 text-[11px]">
+            <span className="px-2 py-0.5 rounded bg-[var(--nebula)]/10 text-[var(--nebula)]">光子发布 · 视频生成</span>
+            <span className="px-2 py-0.5 rounded bg-[var(--nebula)]/10 text-[var(--nebula)]">光子发布 · TTS 配音</span>
+          </div>
 
           <div className="space-y-4">
+            {/* Model info card */}
+            <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-card-border">
+              <h3 className="text-sm font-bold mb-2">当前使用模型</h3>
+              <div className="grid gap-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">视频生成</span>
+                  <span className="font-mono text-[var(--nebula)]">wan2.6-t2v</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">支持分辨率</span>
+                  <span className="font-mono">1080×1920（竖屏），720×1280</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">视频时长</span>
+                  <span>2-15 秒</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">语音合成</span>
+                  <span className="font-mono text-[var(--nebula)]">qwen-tts（支持多音色）</span>
+                </div>
+              </div>
+            </div>
+
+            {/* API Key */}
             <div>
               <label className="text-sm font-medium mb-2 block">
                 DashScope API Key
-                {(user?.dashscopeApiKey || process.env.DASHSCOPE_API_KEY) ? (
+                {hasDashscopeKey ? (
                   <span className="text-xs text-green-400 ml-2">已配置</span>
                 ) : (
                   <span className="text-xs text-muted-foreground ml-2">未配置</span>
@@ -194,29 +307,141 @@ export default async function SettingsPage() {
                 disabled={!!process.env.DASHSCOPE_API_KEY}
                 className="w-full px-4 py-3 rounded-xl bg-[var(--background)] border border-card-border text-sm font-mono focus:outline-none focus:border-[var(--cyan)] transition-colors disabled:text-muted-foreground disabled:cursor-not-allowed"
               />
-              <p className="text-[10px] text-muted-foreground mt-1.5">
-                从阿里云 DashScope 控制台获取 →{" "}
-                <a href="https://dashscope.console.aliyun.com" target="_blank" rel="noopener noreferrer" className="text-[var(--cyan)] underline">
-                  dashscope.console.aliyun.com
+              <div className="flex items-center gap-3 mt-1.5">
+                <a
+                  href="https://dashscope.console.aliyun.com/apiKey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] text-[var(--cyan)] hover:underline"
+                >
+                  获取 DashScope API Key <ExternalLink size={10} />
                 </a>
-                {process.env.DASHSCOPE_API_KEY && (
-                  <span className="ml-2 text-[var(--star)]">（已通过环境变量全局配置，无需在此填写）</span>
-                )}
-              </p>
+                <span className="text-[10px] text-muted-foreground">|</span>
+                <a
+                  href="https://help.aliyun.com/zh/model-studio/wanxiang-video-generation"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] text-[var(--cyan)] hover:underline"
+                >
+                  模型文档 <ExternalLink size={10} />
+                </a>
+              </div>
+              {process.env.DASHSCOPE_API_KEY && (
+                <p className="text-[10px] text-[var(--star)] mt-1">
+                  已通过环境变量 DASHSCOPE_API_KEY 全局配置，无需在此填写
+                </p>
+              )}
             </div>
 
+            {/* Cost note */}
             <div className="p-3 rounded-xl bg-[var(--accent)] border border-card-border">
               <p className="text-xs text-muted-foreground">
-                <span className="text-[var(--nebula)] font-medium">通义万相计费：</span>
-                按生成次数计费，生成一段 5 秒视频约 ¥0.3-1.0（以阿里云实际定价为准）。
-                如果不使用 AI 生成视频素材，可直接导出脚本到剪映手动制作，
-                无需配置此 Key。
+                <span className="text-[var(--nebula)] font-medium">计费：</span>
+                视频生成按次计费，5 秒竖屏视频约 ¥0.3-1.0/次（以阿里云实际定价为准）。
+                TTS 语音合成约 ¥0.002/千字符。
+                如果不用 AI 视频生成，可直接导出脚本到剪映手动剪辑，无需配置此 Key。
               </p>
             </div>
           </div>
         </div>
 
-        {/* Profile */}
+        {/* ===== 万象推演引擎 ===== */}
+        <div id="wanxiang" className="space-card rounded-2xl p-6 scroll-mt-24">
+          <h2 className="font-mono text-lg font-bold mb-1 flex items-center gap-2">
+            <Network size={20} className="text-[var(--star)]" />
+            万象推演引擎
+          </h2>
+          <p className="text-xs text-muted-foreground mb-2">
+            基于 MiroFish 多智能体框架，运行在 Docker 容器中
+          </p>
+          <div className="flex items-center gap-2 mb-5 text-[11px]">
+            <span className="px-2 py-0.5 rounded bg-[var(--star)]/10 text-[var(--star)]">万象推演 · 多智能体预测</span>
+          </div>
+
+          <div className="space-y-4">
+            {/* Status */}
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-[var(--bg-elevated)] border border-card-border">
+              <div className={`w-2.5 h-2.5 rounded-full ${hasWanxiang ? "bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.4)]" : "bg-muted-foreground/40"}`} />
+              <div>
+                <p className="text-sm font-medium">
+                  {hasWanxiang ? "服务已连接" : "服务未启动"}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {hasWanxiang
+                    ? `后端地址：${process.env.WANXIANG_URL}`
+                    : "需要启动 MiroFish Docker 容器"}
+                </p>
+              </div>
+            </div>
+
+            {/* Setup instructions */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold">部署步骤</h3>
+              <div className="space-y-3 text-xs">
+                <div className="p-3 rounded-lg bg-[var(--bg-elevated)] border border-card-border">
+                  <p className="text-muted-foreground mb-1.5">
+                    <span className="text-[var(--star)] font-medium">1. 拉取并启动容器</span>
+                  </p>
+                  <code className="block p-2 rounded bg-black/30 font-mono text-[11px] text-[var(--cyan)] overflow-x-auto whitespace-pre">
+{`docker run -d --name mirofish \\
+  -p 5001:5001 -p 3000:3000 \\
+  -e LLM_API_KEY=你的Key \\
+  -e LLM_BASE_URL=你的端点 \\
+  -e LLM_MODEL_NAME=deepseek-chat \\
+  ghcr.io/666ghj/mirofish:latest`}
+                  </code>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[var(--bg-elevated)] border border-card-border">
+                  <p className="text-muted-foreground mb-1.5">
+                    <span className="text-[var(--star)] font-medium">2. 配置环境变量</span>
+                  </p>
+                  <p className="text-muted-foreground text-[11px] mb-1.5">
+                    在项目 <code className="px-1 py-0.5 rounded bg-black/30 font-mono text-[10px]">.env</code> 中添加万象推演后端地址：
+                  </p>
+                  <code className="block p-2 rounded bg-black/30 font-mono text-[11px] text-[var(--cyan)] overflow-x-auto">
+{`WANXIANG_URL=http://localhost:5001`}
+                  </code>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[var(--bg-elevated)] border border-card-border">
+                  <p className="text-muted-foreground mb-1.5">
+                    <span className="text-[var(--star)] font-medium">3. MiroFish 所需环境变量</span>
+                  </p>
+                  <div className="space-y-1.5 text-[11px]">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground font-mono">LLM_API_KEY</span>
+                      <span className="text-muted-foreground">AI API Key（必填）</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground font-mono">LLM_BASE_URL</span>
+                      <span className="text-muted-foreground">AI API 端点（必填）</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground font-mono">LLM_MODEL_NAME</span>
+                      <span className="text-muted-foreground">模型名，如 deepseek-chat</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground font-mono">ZEP_API_KEY</span>
+                      <span className="text-muted-foreground">Zep 记忆层 Key（可选）</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-[var(--accent)] border border-card-border">
+              <p className="text-xs text-muted-foreground">
+                <span className="text-[var(--star)] font-medium">说明：</span>
+                万象推演为可选模块，不影响其他功能。
+                MiroFish 引擎自动使用你配置的 AI Key 驱动多智能体对话。
+                首次启动约需 1-2 分钟冷启动。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ===== Profile ===== */}
         <div className="space-card rounded-2xl p-6">
           <h2 className="font-mono text-lg font-bold mb-4 flex items-center gap-2">
             <User size={20} className="text-[var(--cyan)]" />
