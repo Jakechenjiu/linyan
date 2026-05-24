@@ -1,15 +1,5 @@
 import { prisma } from "@/lib/db";
-
-const WIKILINK_RE = /\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g;
-
-export function parseWikilinks(body: string): string[] {
-  const titles: string[] = [];
-  for (const match of body.matchAll(WIKILINK_RE)) {
-    const title = match[1].trim();
-    if (title && !titles.includes(title)) titles.push(title);
-  }
-  return titles;
-}
+import { parseWikilinks } from "@/lib/wikilinks";
 
 export async function syncLinks(fromId: string, body: string) {
   const refs = parseWikilinks(body);

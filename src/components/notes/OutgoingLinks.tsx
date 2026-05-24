@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { parseWikilinks } from "@/lib/notes";
+import { parseWikilinks } from "@/lib/wikilinks";
 
 interface OutgoingLink {
   id: string;
