@@ -55,7 +55,7 @@ export default function WorkspaceSidebar({ user }: { user?: { name?: string | nu
     <aside className="w-56 shrink-0 h-screen sticky top-0 flex flex-col border-r border-card-border bg-[var(--background)]">
       {/* Logo */}
       <div className="px-4 py-5 border-b border-card-border">
-        <Link href="/workspace" className="font-mono font-bold text-lg tracking-wider glow-text">
+        <Link href="/workspace" className="font-mono font-bold text-lg tracking-wider glow-text hover:scale-105 inline-block transition-transform">
           灵砚
         </Link>
         <p className="text-[10px] text-muted-foreground mt-0.5">创作工作台</p>
@@ -66,7 +66,7 @@ export default function WorkspaceSidebar({ user }: { user?: { name?: string | nu
         {/* Dashboard */}
         <Link
           href="/workspace"
-          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all hover:translate-x-0.5 ${
             pathname === "/workspace"
               ? "bg-[var(--cyan-soft)] text-[var(--cyan)] font-medium"
               : "text-muted-foreground hover:text-foreground hover:bg-[var(--accent)]"
@@ -83,7 +83,7 @@ export default function WorkspaceSidebar({ user }: { user?: { name?: string | nu
           <div key={mod.id}>
             <button
               onClick={() => toggle(mod.id)}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-[var(--accent)]"
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-[var(--accent)] hover:translate-x-0.5"
               style={{ color: mod.color }}
             >
               {mod.icon}
@@ -99,7 +99,7 @@ export default function WorkspaceSidebar({ user }: { user?: { name?: string | nu
                   <Link
                     key={item.href + item.label}
                     href={item.href}
-                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-all hover:translate-x-0.5 ${
                       pathname === item.href
                         ? "bg-[var(--cyan-soft)] text-foreground"
                         : "text-muted-foreground hover:text-foreground hover:bg-[var(--accent)]"
