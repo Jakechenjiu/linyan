@@ -105,24 +105,30 @@ ${style === "image" ? "注意：图文风格以文字和静态画面为主，画
     redirect(`/workspace/photon/batch?error=${encodeURIComponent("未生成有效分镜，请尝试更具体的主题")}`);
   }
 
-  const project = await prisma.videoProject.create({
-    data: {
-      title: script.title || topic,
-      topic,
-      platform,
-      style: styleLabel,
-      script: JSON.stringify(script),
-      userId: session.user.id,
-      clips: {
-        create: script.clips.map((clip, i) => ({
-          order: i,
-          scriptText: clip.scriptText,
-          visualPrompt: clip.visualPrompt,
-          duration: clip.duration || 5.0,
-        })),
+  let project;
+  try {
+    project = await prisma.videoProject.create({
+      data: {
+        title: script.title || topic,
+        topic,
+        platform,
+        style: styleLabel,
+        script: JSON.stringify(script),
+        userId: session.user.id,
+        clips: {
+          create: script.clips.map((clip, i) => ({
+            order: i,
+            scriptText: clip.scriptText,
+            visualPrompt: clip.visualPrompt,
+            duration: clip.duration || 5.0,
+          })),
+        },
       },
-    },
-  });
+    });
+  } catch (e) {
+    console.error("Failed to create video project:", e);
+    redirect(`/workspace/photon/batch?error=${encodeURIComponent("数据库写入失败，请确认数据库已运行且表已创建")}`);
+  }
 
   redirect(`/workspace/photon/studio/${project.id}`);
 }
