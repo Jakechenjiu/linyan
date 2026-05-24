@@ -25,20 +25,32 @@ export async function POST(req: Request) {
     }, { status: 400 });
   }
 
+  // Read user's DashScope key from DB (supports both env and user-level config)
+  let userDashscopeKey: string | undefined;
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { dashscopeApiKey: true },
+    });
+    userDashscopeKey = dbUser?.dashscopeApiKey || undefined;
+  } catch {
+    // Non-critical; fall back to env
+  }
+
   // Determine provider: explicit param > auto-detect > dashscope default
   let providerType: ProviderType = "dashscope";
   if (providerParam === "pixelle" || providerParam === "dashscope") {
     providerType = providerParam;
   } else {
-    providerType = await detectAvailableProvider();
+    providerType = await detectAvailableProvider({ apiKey: userDashscopeKey });
   }
 
-  const videoProvider = getVideoProvider(providerType);
+  const videoProvider = getVideoProvider(providerType, { apiKey: userDashscopeKey });
   const available = await videoProvider.isAvailable();
   if (!available) {
     return NextResponse.json({
       error: providerType === "dashscope"
-        ? "DashScope API Key 未配置。请在 .env 中设置 DASHSCOPE_API_KEY，或通过阿里云 DashScope 控制台获取"
+        ? "DashScope API Key 未配置。请在设置页面「通义万相」中配置您的 API Key，或前往 dashscope.console.aliyun.com 获取"
         : "Pixelle-Video 服务未启动。请确认服务运行在 http://localhost:8501",
     }, { status: 400 });
   }

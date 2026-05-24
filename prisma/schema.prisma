@@ -13,8 +13,9 @@ model User {
   password   String?
   avatar     String?
   bio        String?
-  apiKey     String?   // 用户自己的 AI API Key
-  apiProvider String?  @default("deepseek")  // deepseek|openai|anthropic
+  apiKey           String?   // 用户自己的 AI API Key
+  apiProvider       String?  @default("deepseek")  // deepseek|openai|anthropic
+  dashscopeApiKey   String?   // 用户自己的 DashScope 通义万相 API Key
   createdAt  DateTime  @default(now())
   contents   Content[]
   mindmaps   MindMap[]

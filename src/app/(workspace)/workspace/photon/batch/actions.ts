@@ -37,7 +37,12 @@ const scriptSystemPrompt = `你是一位资深的抖音短视频编导，擅长�
 }`;
 
 export async function generateScript(formData: FormData) {
-  const session = await auth();
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    redirect("/workspace/photon/batch?error=身份验证失败，请刷新页面重试");
+  }
   if (!session?.user?.id) redirect("/login");
 
   const topic = (formData.get("topic") as string)?.trim();
@@ -47,7 +52,12 @@ export async function generateScript(formData: FormData) {
   const platform = (formData.get("platform") as string) || "douyin";
   const templateId = (formData.get("templateId") as string) || null;
 
-  const config = await getAiConfig(session.user.id);
+  let config;
+  try {
+    config = await getAiConfig(session.user.id);
+  } catch {
+    redirect("/workspace/photon/batch?error=读取用户配置失败，请刷新页面重试");
+  }
   if (!config.hasKey) {
     redirect("/workspace/photon/batch?error=请先在设置中配置您的+AI+API+Key");
   }

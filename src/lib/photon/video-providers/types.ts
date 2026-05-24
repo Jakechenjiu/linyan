@@ -26,3 +26,7 @@ export interface VideoProvider {
   generateVoice(text: string, options?: { voice?: string; rate?: number }): Promise<VoiceResult>;
   isAvailable(): Promise<boolean>;
 }
+
+export interface VideoProviderOptions {
+  apiKey?: string;
+}

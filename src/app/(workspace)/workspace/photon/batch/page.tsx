@@ -24,7 +24,12 @@ export default async function BatchPage({
 }: {
   searchParams: Promise<{ template?: string; error?: string }>;
 }) {
-  const session = await auth();
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    session = null;
+  }
   if (!session?.user?.id) redirect("/login");
 
   const { template: templateId, error } = await searchParams;

@@ -35,7 +35,7 @@ export default async function SettingsPage() {
   try {
     user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { id: true, name: true, email: true, apiKey: true, apiProvider: true },
+      select: { id: true, name: true, email: true, apiKey: true, apiProvider: true, dashscopeApiKey: true },
     });
   } catch {
     user = null;
@@ -54,6 +54,7 @@ export default async function SettingsPage() {
     const name = formData.get("name") as string;
     const apiKey = formData.get("apiKey") as string;
     const apiProvider = formData.get("apiProvider") as string;
+    const dashscopeApiKey = formData.get("dashscopeApiKey") as string;
 
     try {
       await prisma.user.update({
@@ -62,6 +63,7 @@ export default async function SettingsPage() {
           name: name?.trim() || null,
           apiKey: apiKey?.trim() || null,
           apiProvider: apiProvider || "deepseek",
+          dashscopeApiKey: dashscopeApiKey?.trim() || null,
         },
       });
     } catch (e) {
@@ -169,14 +171,14 @@ export default async function SettingsPage() {
             通义万相（视频生成）
           </h2>
           <p className="text-xs text-muted-foreground mb-4">
-            AI 短视频工厂使用阿里云 DashScope 通义万相 API 生成视频素材。在 .env 中配置后即可使用。
+            AI 短视频工厂使用阿里云 DashScope 通义万相 API 生成视频素材。配置后即可使用 AI 视频生成功能。
           </p>
 
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium mb-2 block">
-                DASHSCOPE_API_KEY
-                {process.env.DASHSCOPE_API_KEY ? (
+                DashScope API Key
+                {(user?.dashscopeApiKey || process.env.DASHSCOPE_API_KEY) ? (
                   <span className="text-xs text-green-400 ml-2">已配置</span>
                 ) : (
                   <span className="text-xs text-muted-foreground ml-2">未配置</span>
@@ -184,17 +186,22 @@ export default async function SettingsPage() {
               </label>
               <input
                 name="dashscopeApiKey"
-                placeholder={process.env.DASHSCOPE_API_KEY ? "已通过环境变量配置" : "sk-…"}
-                disabled
-                className="w-full px-4 py-3 rounded-xl bg-[var(--background)] border border-card-border text-sm font-mono text-muted-foreground focus:outline-none cursor-not-allowed"
+                placeholder={user?.dashscopeApiKey
+                  ? `当前: ${user.dashscopeApiKey.slice(0, 8)}•••${user.dashscopeApiKey.slice(-4)} — 输入新 Key 替换`
+                  : process.env.DASHSCOPE_API_KEY
+                    ? "已通过环境变量配置"
+                    : "sk-…"}
+                disabled={!!process.env.DASHSCOPE_API_KEY}
+                className="w-full px-4 py-3 rounded-xl bg-[var(--background)] border border-card-border text-sm font-mono focus:outline-none focus:border-[var(--cyan)] transition-colors disabled:text-muted-foreground disabled:cursor-not-allowed"
               />
               <p className="text-[10px] text-muted-foreground mt-1.5">
-                在项目根目录 .env 文件中添加：DASHSCOPE_API_KEY=你的Key
-                &nbsp;|&nbsp;
                 从阿里云 DashScope 控制台获取 →{" "}
                 <a href="https://dashscope.console.aliyun.com" target="_blank" rel="noopener noreferrer" className="text-[var(--cyan)] underline">
                   dashscope.console.aliyun.com
                 </a>
+                {process.env.DASHSCOPE_API_KEY && (
+                  <span className="ml-2 text-[var(--star)]">（已通过环境变量全局配置，无需在此填写）</span>
+                )}
               </p>
             </div>
 

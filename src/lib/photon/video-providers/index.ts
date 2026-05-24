@@ -1,24 +1,22 @@
-import type { VideoProvider } from "./types";
+import type { VideoProvider, VideoProviderOptions } from "./types";
 import { pixelleProvider } from "./pixelle";
-import { dashscopeProvider } from "./dashscope";
+import { createDashscopeProvider, dashscopeProvider } from "./dashscope";
 
-export type { VideoProvider, VideoGenerateParams, TaskResult, TaskStatus, VoiceResult } from "./types";
+export type { VideoProvider, VideoGenerateParams, TaskResult, TaskStatus, VoiceResult, VideoProviderOptions } from "./types";
 
 export type ProviderType = "dashscope" | "pixelle";
 
-const providers: Record<ProviderType, VideoProvider> = {
-  dashscope: dashscopeProvider,
-  pixelle: pixelleProvider,
-};
-
-export function getVideoProvider(type: ProviderType = "dashscope"): VideoProvider {
-  return providers[type];
+export function getVideoProvider(type: ProviderType = "dashscope", options?: VideoProviderOptions): VideoProvider {
+  if (type === "dashscope") {
+    return createDashscopeProvider(options?.apiKey);
+  }
+  return pixelleProvider;
 }
 
-export async function detectAvailableProvider(): Promise<ProviderType> {
-  if (await dashscopeProvider.isAvailable()) return "dashscope";
+export async function detectAvailableProvider(options?: VideoProviderOptions): Promise<ProviderType> {
+  if (await getVideoProvider("dashscope", options).isAvailable()) return "dashscope";
   if (await pixelleProvider.isAvailable()) return "pixelle";
-  return "dashscope"; // default, will error meaningfully when used
+  return "dashscope";
 }
 
-export { pixelleProvider, dashscopeProvider };
+export { pixelleProvider, dashscopeProvider, createDashscopeProvider };
