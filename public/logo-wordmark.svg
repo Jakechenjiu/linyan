@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 120" fill="none">
+  <defs>
+    <radialGradient id="cyanGlow2" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#00e5ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#00e5ff"/>
+      <stop offset="100%" stop-color="#ffffff"/>
+    </linearGradient>
+    <linearGradient id="subGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00e5ff"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Logo mark (left side) -->
+  <g transform="translate(10, 10)">
+    <!-- Glow -->
+    <circle cx="50" cy="50" r="45" fill="url(#cyanGlow2)"/>
+
+    <!-- Inkstone body -->
+    <rect x="22" y="34" width="56" height="36" rx="10" ry="10"
+          fill="none" stroke="#00e5ff" stroke-width="2" opacity="0.85"/>
+
+    <!-- Inkstone inner well -->
+    <rect x="36" y="41" width="28" height="18" rx="6" ry="6"
+          fill="none" stroke="#00e5ff" stroke-width="1.2" opacity="0.45"/>
+
+    <!-- Ink pool -->
+    <rect x="40" y="44" width="20" height="12" rx="5" ry="5"
+          fill="#00e5ff" opacity="0.07"/>
+
+    <!-- Main spark -->
+    <circle cx="50" cy="18" r="4" fill="#00e5ff" opacity="0.9"/>
+    <circle cx="50" cy="18" r="10" fill="#f0e68c" opacity="0.12"/>
+
+    <!-- Accent sparks -->
+    <circle cx="36" cy="26" r="1.5" fill="#f0e68c" opacity="0.5"/>
+    <circle cx="64" cy="24" r="1.2" fill="#7c3aed" opacity="0.45"/>
+
+    <!-- Circuit lines -->
+    <line x1="44" y1="46" x2="56" y2="46" stroke="#00e5ff" stroke-width="0.4" opacity="0.2"/>
+    <line x1="44" y1="50" x2="54" y2="50" stroke="#00e5ff" stroke-width="0.4" opacity="0.15"/>
+  </g>
+
+  <!-- Wordmark "灵砚" -->
+  <text x="110" y="72" font-family="'PingFang SC','Noto Serif SC','Microsoft YaHei',serif"
+        font-size="42" font-weight="700" letter-spacing="12" fill="url(#textGrad)">
+    灵砚
+  </text>
+
+  <!-- Subtitle "LingYan AI" -->
+  <text x="110" y="96" font-family="'JetBrains Mono','Courier New',monospace"
+        font-size="13" font-weight="400" letter-spacing="4" fill="url(#subGrad)" opacity="0.6">
+    LINGYAN AI
+  </text>
+
+</svg>
