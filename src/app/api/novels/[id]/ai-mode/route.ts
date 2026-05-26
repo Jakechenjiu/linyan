@@ -9,7 +9,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const novelId = (await params).id;
-  const { chapterId, mode, selectedText, instruction } = await req.json();
+  const { chapterId, mode, selectedText, instruction, bodyText } = await req.json();
 
   if (!MODE_PROMPTS[mode]) {
     return NextResponse.json({ error: `未知模式: ${mode}` }, { status: 400 });
@@ -44,6 +44,38 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       system: `续写以下内容。直接从正文开始，禁止开场白。`,
       messages: [{ role: "user", content: context }],
       max_tokens: 4096,
+    });
+
+    return new Response(stream, {
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-cache", Connection: "keep-alive" },
+    });
+  }
+
+  // Chat mode: uses full body text
+  if (mode === "chat") {
+    const text = bodyText || selectedText;
+    if (!text) return NextResponse.json({ error: "没有正文内容" }, { status: 400 });
+
+    const parts: string[] = [];
+    parts.push(`# 小说: ${novel.title}`);
+    if (novel.genre) parts.push(`类型: ${novel.genre}`);
+    if (novel.characters.length > 0) {
+      parts.push("\n## 角色");
+      for (const c of novel.characters) {
+        parts.push(`- ${c.name}(${c.role})${c.personality ? `: ${c.personality}` : ""}`);
+      }
+    }
+    if (novel.worldSetting?.rules) parts.push(`\n## 世界铁律\n${novel.worldSetting.rules}`);
+
+    const modePromptBuilder = MODE_PROMPTS["chat"];
+    const modePrompt = modePromptBuilder({ selectedText: text, instruction });
+    const systemPrompt = `${parts.join("\n")}\n\n${modePrompt}`;
+
+    const stream = callAiStream({
+      ...config,
+      system: systemPrompt,
+      messages: [{ role: "user", content: instruction || "请修改正文" }],
+      max_tokens: 8192,
     });
 
     return new Response(stream, {

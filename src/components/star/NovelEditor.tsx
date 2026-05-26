@@ -53,6 +53,8 @@ export default function NovelEditor({ novelId, chapter }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [aiMode, setAiMode] = useState<string>("continue");
   const [showFacts, setShowFacts] = useState(false);
+  const [chatMessage, setChatMessage] = useState("");
+  const [chatHistory, setChatHistory] = useState<{ role: "user" | "ai"; text: string }[]>([]);
 
   const factData = chapter.factSnapshot ? JSON.parse(chapter.factSnapshot) as {
     newFacts?: string[];
@@ -201,6 +203,64 @@ export default function NovelEditor({ novelId, chapter }: Props) {
     } catch (e: unknown) {
       if (!(e instanceof Error && e.name === "AbortError")) {
         setError((e instanceof Error ? e.message : null) || "生成失败");
+      }
+    } finally {
+      setStreaming(false);
+      controllerRef.current = null;
+    }
+  };
+
+  const handleChat = async () => {
+    if (!chatMessage.trim() || streaming) return;
+    const msg = chatMessage.trim();
+    setChatMessage("");
+    setChatHistory((prev) => [...prev, { role: "user", text: msg }]);
+    setStreaming(true);
+    setError(null);
+
+    const controller = new AbortController();
+    controllerRef.current = controller;
+
+    try {
+      const res = await fetch(`/api/novels/${novelId}/ai-mode`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chapterId: chapter.id,
+          mode: "chat",
+          bodyText: body,
+          instruction: msg,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "生成失败");
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("No response stream");
+
+      const decoder = new TextDecoder();
+      let result = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        result += decoder.decode(value, { stream: true });
+        setBody(result);
+        if (textareaRef.current) {
+          textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
+        }
+      }
+
+      setChatHistory((prev) => [...prev, { role: "ai", text: "已修改正文" }]);
+      await saveChapter(chapter.id, title, result);
+    } catch (e: unknown) {
+      if (!(e instanceof Error && e.name === "AbortError")) {
+        setError((e instanceof Error ? e.message : null) || "对话失败");
+        setChatHistory((prev) => [...prev, { role: "ai", text: `错误: ${e instanceof Error ? e.message : "未知错误"}` }]);
       }
     } finally {
       setStreaming(false);
@@ -368,12 +428,28 @@ export default function NovelEditor({ novelId, chapter }: Props) {
         </div>
       )}
 
+      {/* Chat History */}
+      {chatHistory.length > 0 && (
+        <div className="mt-2 space-y-1.5 max-h-32 overflow-y-auto">
+          {chatHistory.map((msg, i) => (
+            <div key={i} className={`text-[11px] px-3 py-1.5 rounded-lg ${
+              msg.role === "user"
+                ? "bg-[var(--nebula)]/10 text-[var(--nebula)] ml-8"
+                : "bg-[var(--accent)] text-muted-foreground mr-8"
+            }`}>
+              <span className="font-medium">{msg.role === "user" ? "你" : "AI"}：</span>{msg.text}
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-center justify-between mt-4 pt-4 border-t border-card-border">
         <span className="text-xs text-muted-foreground">{wordCount.toLocaleString()} 字</span>
         <div className="flex items-center gap-2">
           {/* AI Mode Selector */}
           <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-[var(--accent)] border border-card-border">
             {[
+              { id: "chat", label: "对话" },
               { id: "continue", label: "续写" },
               { id: "describe", label: "描写" },
               { id: "expand", label: "扩写" },
@@ -395,23 +471,47 @@ export default function NovelEditor({ novelId, chapter }: Props) {
             ))}
           </div>
 
-          <input
-            value={direction}
-            onChange={(e) => setDirection(e.target.value)}
-            placeholder={aiMode === "brainstorm" ? "关注方向（可选）…" : "续写方向（可选）…"}
-            className="w-36 px-2 py-1 rounded-lg bg-[var(--accent)] border border-card-border text-foreground text-[10px] placeholder:text-muted-foreground focus:outline-none focus:border-[var(--cyan)] transition-colors"
-          />
-
-          {streaming ? (
-            <button type="button" onClick={handleStop}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors">
-              <Loader2 size={12} className="animate-spin" /> 停止
-            </button>
+          {aiMode !== "chat" ? (
+            <>
+              <input
+                value={direction}
+                onChange={(e) => setDirection(e.target.value)}
+                placeholder={aiMode === "brainstorm" ? "关注方向（可选）…" : "续写方向（可选）…"}
+                className="w-36 px-2 py-1 rounded-lg bg-[var(--accent)] border border-card-border text-foreground text-[10px] placeholder:text-muted-foreground focus:outline-none focus:border-[var(--cyan)] transition-colors"
+              />
+              {streaming ? (
+                <button type="button" onClick={handleStop}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors">
+                  <Loader2 size={12} className="animate-spin" /> 停止
+                </button>
+              ) : (
+                <button type="button" onClick={handleAiMode}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-card-border hover:border-[var(--nebula)] text-[var(--nebula)] transition-colors">
+                  <Sparkles size={12} /> {aiMode === "continue" ? "AI 续写" : aiMode === "describe" ? "AI 描写" : aiMode === "expand" ? "AI 扩写" : aiMode === "rewrite" ? "AI 改写" : "AI 灵感"}
+                </button>
+              )}
+            </>
           ) : (
-            <button type="button" onClick={handleAiMode}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-card-border hover:border-[var(--nebula)] text-[var(--nebula)] transition-colors">
-              <Sparkles size={12} /> {aiMode === "continue" ? "AI 续写" : aiMode === "describe" ? "AI 描写" : aiMode === "expand" ? "AI 扩写" : aiMode === "rewrite" ? "AI 改写" : "AI 灵感"}
-            </button>
+            <>
+              <input
+                value={chatMessage}
+                onChange={(e) => setChatMessage(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleChat(); } }}
+                placeholder="告诉AI怎么改，如「把对话改得更口语化」…"
+                className="flex-1 min-w-[200px] px-3 py-1.5 rounded-lg bg-[var(--accent)] border border-card-border text-foreground text-xs placeholder:text-muted-foreground focus:outline-none focus:border-[var(--cyan)] transition-colors"
+              />
+              {streaming ? (
+                <button type="button" onClick={handleStop}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors">
+                  <Loader2 size={12} className="animate-spin" /> 停止
+                </button>
+              ) : (
+                <button type="button" onClick={handleChat}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--nebula)] text-[#0a0e17] hover:opacity-90 transition-all">
+                  发送
+                </button>
+              )}
+            </>
           )}
 
           {chapter.outline && !streaming && (
