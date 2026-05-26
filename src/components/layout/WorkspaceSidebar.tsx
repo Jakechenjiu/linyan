@@ -6,7 +6,7 @@ import { signOut } from "next-auth/react";
 import { useState } from "react";
 import {
   LayoutDashboard, Star, Zap, ChevronDown,
-  FileText, Plus, BarChart3, Layers,
+  FileText, Plus, BarChart3, Layers, Crown,
   Settings, LogOut, BookOpen, Brain, GitGraph, Network, Sparkles,
 } from "lucide-react";
 
@@ -50,7 +50,10 @@ function isActive(pathname: string, href: string, items?: { href: string }[]) {
   return false;
 }
 
-export default function WorkspaceSidebar({ user }: { user?: { name?: string | null; email?: string | null } }) {
+export default function WorkspaceSidebar({ user, membership }: {
+  user?: { name?: string | null; email?: string | null };
+  membership?: { tier: string; membershipId?: string | null };
+}) {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState<Set<string>>(new Set(["notes", "star", "photon", "wanxiang"]));
 
@@ -73,6 +76,18 @@ export default function WorkspaceSidebar({ user }: { user?: { name?: string | nu
           灵砚
         </Link>
         <p className="text-[10px] text-muted-foreground mt-0.5 tracking-wide">创作工作台</p>
+        {membership?.tier === "pro" ? (
+          <div className="flex items-center gap-1 mt-2 px-2 py-1 rounded-md bg-[var(--star)]/10 w-fit">
+            <Crown size={10} className="text-[var(--star)]" />
+            <span className="text-[9px] font-bold text-[var(--star)]">PRO</span>
+            {membership.membershipId && <span className="text-[8px] text-muted-foreground ml-1">{membership.membershipId}</span>}
+          </div>
+        ) : (
+          <Link href="/workspace/settings#membership" className="flex items-center gap-1 mt-2 px-2 py-1 rounded-md bg-[var(--accent)] w-fit hover:bg-[var(--star)]/10 transition-colors">
+            <span className="text-[9px] text-muted-foreground">免费版</span>
+            <Crown size={9} className="text-muted-foreground/40" />
+          </Link>
+        )}
       </div>
 
       {/* Nav */}

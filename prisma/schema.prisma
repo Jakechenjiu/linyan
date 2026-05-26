@@ -13,6 +13,9 @@ model User {
   password   String?
   avatar     String?
   bio        String?
+  membership      String    @default("free")  // free|pro
+  membershipId    String?   @unique            // 会员号，如 PRO-20260527-001
+  membershipExpiresAt DateTime?  // 会员到期时间，null为永久
   apiKey           String?   // 用户自己的 AI API Key
   apiProvider       String?  @default("deepseek")  // deepseek|openai|anthropic
   dashscopeApiKey   String?   // 用户自己的 DashScope 通义万相 API Key
