@@ -15,9 +15,9 @@ const platforms = [
 ];
 
 const styles = [
-  { id: "mix", label: "混剪", desc: "画面多变，节奏快" },
-  { id: "talk", label: "口播", desc: "主持人出镜讲解" },
-  { id: "image", label: "图文", desc: "文字+静态画面" },
+  { id: "混剪", label: "混剪", desc: "画面多变，节奏快" },
+  { id: "口播", label: "口播", desc: "主持人出镜讲解" },
+  { id: "图文", label: "图文", desc: "文字+静态画面" },
 ];
 
 interface Props {
@@ -27,7 +27,7 @@ interface Props {
 export default function BatchForm({ initialError }: Props) {
   const router = useRouter();
   const [topic, setTopic] = useState("");
-  const [style, setStyle] = useState("mix");
+  const [style, setStyle] = useState("混剪");
   const [platform, setPlatform] = useState("douyin");
   const [templateId, setTemplateId] = useState("");
   const [error, setError] = useState(initialError || "");
