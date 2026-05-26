@@ -8,20 +8,25 @@ export default async function ContentEditorPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  let session;
-  try {
-    session = await auth();
-  } catch {
-    redirect("/workspace/photon");
-  }
+  const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  let content;
-  try {
-    content = await prisma.content.findUnique({ where: { id: (await params).id } });
-  } catch {
-    redirect("/workspace/photon?error=数据加载失败，请重试");
+  const id = (await params).id;
+
+  // Handle "new" - create a new content and redirect
+  if (id === "new") {
+    const content = await prisma.content.create({
+      data: {
+        title: "",
+        body: "",
+        platform: "wechat",
+        userId: session.user.id,
+      },
+    });
+    redirect(`/workspace/photon/editor/${content.id}`);
   }
+
+  const content = await prisma.content.findUnique({ where: { id } });
   if (!content || content.userId !== session.user.id) notFound();
 
   return (
