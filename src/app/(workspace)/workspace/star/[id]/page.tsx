@@ -3,11 +3,9 @@ import { prisma } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import { Download } from "lucide-react";
-import NovelEditor from "@/components/star/NovelEditor";
-import ChapterList from "@/components/star/ChapterList";
-import WritingDashboard from "@/components/star/WritingDashboard";
+import { Download, Plus, Trash2, GripVertical } from "lucide-react";
 import StarTabs from "@/components/star/StarTabs";
+import StarEditorLayout from "@/components/star/StarEditorLayout";
 
 export default async function NovelEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -21,6 +19,7 @@ export default async function NovelEditorPage({ params }: { params: Promise<{ id
         orderBy: { order: "asc" },
         include: { outline: { select: { id: true, summary: true } } },
       },
+      characters: { orderBy: { sortOrder: "asc" } },
       outlines: {
         orderBy: { sortOrder: "asc" },
         include: { children: { orderBy: { sortOrder: "asc" }, include: { chapters: true } } },
@@ -39,7 +38,6 @@ export default async function NovelEditorPage({ params }: { params: Promise<{ id
     const afterChapterId = formData.get("afterChapterId") as string | null;
 
     if (afterChapterId) {
-      // Insert after specific chapter
       const afterChapter = novel!.chapters.find((ch) => ch.id === afterChapterId);
       if (afterChapter) {
         await prisma.$transaction([
@@ -56,7 +54,6 @@ export default async function NovelEditorPage({ params }: { params: Promise<{ id
       }
     }
 
-    // Default: append at end
     const maxOrder = novel!.chapters.reduce((m, ch) => Math.max(m, ch.order), 0);
     await prisma.chapter.create({
       data: { title: title.trim(), body: "", order: maxOrder + 1, novelId: novel!.id },
@@ -73,7 +70,35 @@ export default async function NovelEditorPage({ params }: { params: Promise<{ id
     revalidatePath(`/workspace/star/${novel!.id}`);
   }
 
-  // Build outline tree for sidebar
+  async function saveChapter(chapterId: string, title: string, body: string) {
+    "use server";
+    const wordCount = body.replace(/\s/g, "").length;
+    await prisma.chapter.updateMany({
+      where: { id: chapterId, novel: { userId: session!.user!.id } },
+      data: { title, body, wordCount },
+    });
+    revalidatePath(`/workspace/star/${novel!.id}`);
+  }
+
+  // Serialize data for client components
+  const chaptersData = novel.chapters.map((ch) => ({
+    id: ch.id,
+    title: ch.title,
+    body: ch.body,
+    wordCount: ch.wordCount,
+    order: ch.order,
+    factSnapshot: ch.factSnapshot,
+    outline: ch.outline,
+  }));
+
+  const charactersData = novel.characters.map((c) => ({
+    id: c.id,
+    name: c.name,
+    role: c.role,
+    tagline: c.tagline,
+    personality: c.personality,
+  }));
+
   const outlineVolumes = novel.outlines
     .filter((o) => o.type === "volume" && !o.parentId)
     .map((vol) => ({
@@ -91,87 +116,37 @@ export default async function NovelEditorPage({ params }: { params: Promise<{ id
     }));
 
   return (
-    <div className="space-y-4 h-[calc(100vh-5rem)] max-w-7xl flex flex-col">
+    <div className="h-[calc(100vh-5rem)] flex flex-col">
       {/* Top bar */}
-      <div className="flex items-center justify-between shrink-0">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-card-border shrink-0">
         <div className="flex items-center gap-4">
-          <Link href="/workspace/star" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[var(--cyan)] transition-colors">
+          <Link href="/workspace/star" className="text-sm text-muted-foreground hover:text-[var(--cyan)] transition-colors">
             返回
           </Link>
-          <h2 className="font-mono text-lg font-bold">{novel.title}</h2>
+          <h2 className="font-mono text-base font-bold">{novel.title}</h2>
+          <span className="text-xs text-muted-foreground">{totalWords.toLocaleString()} 字</span>
           <StarTabs novelId={novel.id} />
         </div>
-        <a
-          href={`/api/novels/${novel.id}/export`}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-card-border text-muted-foreground hover:text-foreground hover:border-[var(--cyan)] transition-all"
-        >
-          <Download size={13} /> 导出 TXT
-        </a>
-      </div>
-
-      {/* Writing Dashboard */}
-      <WritingDashboard novelId={novel.id} />
-
-      {/* Content area */}
-      <div className="flex gap-6 flex-1 overflow-hidden">
-        {/* Chapter sidebar with drag-and-drop */}
-        <ChapterList
-          novelId={novel.id}
-          chapters={novel.chapters}
-          totalWords={totalWords}
-          addAction={addChapter}
-          deleteAction={deleteChapter}
-        />
-
-        {/* Editor area */}
-        <div className="flex-1 overflow-y-auto">
-          {novel.chapters.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-              选择或创建一个章节开始写作
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {novel.chapters.map((ch) => (
-                <div key={ch.id} id={`chapter-${ch.id}`}>
-                  <NovelEditor novelId={novel.id} chapter={ch} />
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="flex items-center gap-2">
+          <a
+            href={`/api/novels/${novel.id}/export`}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-card-border text-muted-foreground hover:text-foreground hover:border-[var(--cyan)] transition-all"
+          >
+            <Download size={12} /> 导出
+          </a>
         </div>
-
-        {/* Outline sidebar */}
-        {outlineVolumes.length > 0 && (
-          <div className="w-56 shrink-0 overflow-y-auto hidden xl:block">
-            <p className="text-xs font-medium text-muted-foreground mb-2">大纲</p>
-            <div className="space-y-2">
-              {outlineVolumes.map((vol) => (
-                <div key={vol.id} className="space-card rounded-lg p-2">
-                  <p className="text-[11px] font-bold text-[var(--cyan)] truncate">{vol.title}</p>
-                  {vol.children.length > 0 && (
-                    <div className="ml-2 mt-1 space-y-0.5">
-                      {vol.children.map((ch) => (
-                        <div key={ch.id} className="flex items-center gap-1">
-                          {ch.chapterId ? (
-                            <a
-                              href={`#chapter-${ch.chapterId}`}
-                              className="text-[10px] text-muted-foreground hover:text-[var(--cyan)] truncate transition-colors"
-                            >
-                              {ch.title}
-                            </a>
-                          ) : (
-                            <span className="text-[10px] text-muted-foreground/50 truncate">{ch.title}</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Main layout */}
+      <StarEditorLayout
+        novelId={novel.id}
+        chapters={chaptersData}
+        characters={charactersData}
+        outlineVolumes={outlineVolumes}
+        addAction={addChapter}
+        deleteAction={deleteChapter}
+        saveAction={saveChapter}
+      />
     </div>
   );
 }
