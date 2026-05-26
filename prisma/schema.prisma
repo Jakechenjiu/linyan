@@ -39,6 +39,7 @@ model Novel {
   chapters        Chapter[]
   worldSetting    WorldSetting?
   characters      Character[]
+  codexEntries    CodexEntry[]
   outlines        Outline[]
   writingLogs     WritingLog[]
   userId          String
@@ -90,6 +91,20 @@ model Character {
   sortOrder     Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model CodexEntry {
+  id          String   @id @default(cuid())
+  novelId     String
+  novel       Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  type        String   @default("custom")  // location|faction|event|item|creature|world_rule|custom
+  name        String
+  summary     String?  // Short summary for AI context injection
+  body        String?  // Detailed description (markdown)
+  keywords    String   @default("[]")  // JSON array of trigger keywords
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Outline {

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const jetbrainsMono = JetBrains_Mono({
@@ -23,6 +24,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foreground)]">
         {children}
+        <Toaster position="bottom-right" theme="dark" />
       </body>
     </html>
   );

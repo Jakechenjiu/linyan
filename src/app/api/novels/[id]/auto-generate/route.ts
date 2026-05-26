@@ -56,6 +56,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       characters: { orderBy: { sortOrder: "asc" } },
       outlines: { include: { chapters: { orderBy: { order: "desc" }, take: 1 } } },
       chapters: { orderBy: { order: "desc" }, take: 5 },
+      codexEntries: true,
     },
   });
   if (!novel || novel.userId !== session.user!.id) {
@@ -107,6 +108,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   // Prior chapter (for continuity only)
+
+  // Codex entries — keyword-matched context injection
+  if (novel.codexEntries.length > 0) {
+    const contextText = (outline.title || "") + " " + (outline.summary || "");
+    const matched = novel.codexEntries.filter((entry) => {
+      const keywords: string[] = JSON.parse(entry.keywords || "[]");
+      if (keywords.length === 0) return entry.type === "world_rule";
+      return keywords.some((kw) => contextText.includes(kw));
+    });
+    if (matched.length > 0) {
+      contextParts.push("\n## 素材参考");
+      for (const entry of matched) {
+        contextParts.push(`- [${entry.type}] ${entry.name}: ${entry.summary || entry.body?.slice(0, 200) || ""}`);
+      }
+    }
+  }
   const prevChapter = novel.chapters[0];
   if (prevChapter) {
     contextParts.push(`\n## 前一章结尾（仅作风格和连续性参考）\n${prevChapter.body.slice(-500)}`);

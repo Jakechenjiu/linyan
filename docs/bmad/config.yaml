@@ -1,0 +1,55 @@
+# BMAD Project Config — 灵砚 LingYan
+project:
+  name: 灵砚 LingYan
+  type: fullstack-web-app
+  tech_stack:
+    frontend: Next.js 16 + React 19 + Tailwind CSS v4
+    backend: Next.js API Routes + Hono
+    database: PostgreSQL + Prisma 7
+    auth: NextAuth v5
+    state: Zustand
+    3d: Three.js + React Three Fiber
+
+modules:
+  - name: 星辰 Star
+    path: src/app/(workspace)/workspace/star/
+    description: 小说创作系统（世界观/角色/大纲/章节）
+    status: complete
+
+  - name: 光子 Photon
+    path: src/app/(workspace)/workspace/photon/
+    description: 内容发布系统（编辑器/工作室/批量/日历/分析）
+    status: complete
+
+  - name: 笔记 Notes
+    path: src/app/(workspace)/workspace/notes/
+    description: 知识管理系统（双向链接/图谱）
+    status: complete
+
+  - name: 脑图 Mindmaps
+    path: src/app/(workspace)/workspace/lab/mindmap/
+    description: 思维整理工具
+    status: complete
+
+  - name: 万象 Wanxiang
+    path: src/app/(workspace)/workspace/wanxiang/
+    description: 多智能体模拟推演
+    status: complete
+
+  - name: 视频 Video
+    path: src/app/(workspace)/workspace/photon/
+    description: 短视频制作（分镜/素材/配音）
+    status: complete
+
+  - name: 实验室 Lab
+    path: src/app/(workspace)/workspace/lab/
+    description: 实验性功能
+    status: beta
+
+conventions:
+  language: TypeScript strict
+  component_naming: PascalCase
+  file_naming: kebab-case
+  api_pattern: Next.js Route Handlers
+  auth: NextAuth session required for workspace routes
+  ai_keys: user-provided, not stored on platform

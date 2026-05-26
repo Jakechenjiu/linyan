@@ -17,8 +17,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       characters: { orderBy: { sortOrder: "asc" } },
       chapters: { orderBy: { order: "desc" }, take: 3 },
       outlines: true,
+      codexEntries: true,
     },
   });
+
+  if (!novel || novel.userId !== session.user.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   // If chapter has an associated outline, use it for context
   let outlineSummary: string | null = null;
@@ -28,13 +33,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       select: { outlineId: true },
     });
     if (chapter?.outlineId) {
-      const outline = novel!.outlines.find((o) => o.id === chapter.outlineId);
+      const outline = novel.outlines.find((o) => o.id === chapter.outlineId);
       if (outline?.summary) outlineSummary = outline.summary;
     }
-  }
-
-  if (!novel || novel.userId !== session.user.id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   const config = await getAiConfig(session.user.id);
@@ -77,6 +78,25 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   // Prior chapters
+
+  // Codex entries — keyword-matched context injection
+  if (novel.codexEntries.length > 0) {
+    const chapter = chapterId ? novel.chapters.find((ch) => ch.id === chapterId) : null;
+    const contextText = (chapter?.title || "") + " " + (chapter?.body?.slice(-1000) || "");
+
+    const matched = novel.codexEntries.filter((entry) => {
+      const keywords: string[] = JSON.parse(entry.keywords || "[]");
+      if (keywords.length === 0) return entry.type === "world_rule";
+      return keywords.some((kw) => contextText.includes(kw));
+    });
+
+    if (matched.length > 0) {
+      parts.push("\n## 素材参考");
+      for (const entry of matched) {
+        parts.push(`- [${entry.type}] ${entry.name}: ${entry.summary || entry.body?.slice(0, 200) || ""}`);
+      }
+    }
+  }
   const relevantChapters = novel.chapters
     .filter((ch) => !chapterId || ch.id === chapterId)
     .reverse();

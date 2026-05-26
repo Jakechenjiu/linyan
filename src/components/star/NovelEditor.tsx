@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import { Save, Sparkles, Loader2, Eye, Stars } from "lucide-react";
+import { Save, Sparkles, Loader2, Eye, Stars, ChevronDown, ChevronRight, FileText, AlertTriangle, Zap, Users } from "lucide-react";
 import { saveChapter } from "./actions";
 
 interface ReviewResult {
@@ -35,6 +35,7 @@ interface Props {
     body: string;
     wordCount: number;
     order: number;
+    factSnapshot?: string | null;
     outline?: { id: string; summary: string | null } | null;
   };
 }
@@ -50,6 +51,15 @@ export default function NovelEditor({ novelId, chapter }: Props) {
   const [review, setReview] = useState<ReviewResult | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [aiMode, setAiMode] = useState<string>("continue");
+  const [showFacts, setShowFacts] = useState(false);
+
+  const factData = chapter.factSnapshot ? JSON.parse(chapter.factSnapshot) as {
+    newFacts?: string[];
+    stateChanges?: string[];
+    openHooks?: string[];
+    characterMoments?: Record<string, string>;
+  } : null;
 
   const handleSave = async () => {
     setSaving(true);
@@ -80,7 +90,7 @@ export default function NovelEditor({ novelId, chapter }: Props) {
       if (!reader) throw new Error("No response stream");
 
       const decoder = new TextDecoder();
-      let newBody = body;
+      const newBody = body;
       let appendText = "";
 
       while (true) {
@@ -103,9 +113,9 @@ export default function NovelEditor({ novelId, chapter }: Props) {
 
       // Auto-save after generation
       await saveChapter(chapter.id, title, newBody + appendText);
-    } catch (e: any) {
-      if (e.name !== "AbortError") {
-        setError(e.message || "生成失败");
+    } catch (e: unknown) {
+      if (!(e instanceof Error && e.name === "AbortError")) {
+        setError((e instanceof Error ? e.message : null) || "生成失败");
       }
     } finally {
       setStreaming(false);
@@ -116,6 +126,86 @@ export default function NovelEditor({ novelId, chapter }: Props) {
   const handleStop = () => {
     controllerRef.current?.abort();
     setStreaming(false);
+  };
+
+  const getSelectedText = () => {
+    if (!textareaRef.current) return "";
+    const { selectionStart, selectionEnd } = textareaRef.current;
+    if (selectionStart === selectionEnd) return "";
+    return body.substring(selectionStart, selectionEnd);
+  };
+
+  const handleAiMode = async () => {
+    setStreaming(true);
+    setError(null);
+    const controller = new AbortController();
+    controllerRef.current = controller;
+
+    const selected = getSelectedText();
+
+    try {
+      const res = await fetch(`/api/novels/${novelId}/ai-mode`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chapterId: chapter.id,
+          mode: aiMode,
+          selectedText: selected || undefined,
+          instruction: direction || undefined,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "生成失败");
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("No response stream");
+
+      const decoder = new TextDecoder();
+      let result = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        result += chunk;
+
+        if (result.startsWith("[ERROR]")) {
+          setError(result.replace("[ERROR] ", ""));
+          setStreaming(false);
+          return;
+        }
+
+        if (aiMode === "brainstorm") {
+          // Brainstorm replaces a special area, not the body
+          setBody(body + "\n\n---\n💡 灵感建议：\n" + result);
+        } else if (aiMode === "rewrite" && selected) {
+          // Replace selected text
+          const before = body.substring(0, body.indexOf(selected));
+          const after = body.substring(body.indexOf(selected) + selected.length);
+          setBody(before + result + after);
+        } else {
+          // Continue/describe/expand: append
+          setBody(body + result);
+        }
+
+        if (textareaRef.current) {
+          textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
+        }
+      }
+
+      await saveChapter(chapter.id, title, body + (aiMode === "rewrite" && selected ? "" : result));
+    } catch (e: unknown) {
+      if (!(e instanceof Error && e.name === "AbortError")) {
+        setError((e instanceof Error ? e.message : null) || "生成失败");
+      }
+    } finally {
+      setStreaming(false);
+      controllerRef.current = null;
+    }
   };
 
   const handleRewriteByOutline = async () => {
@@ -179,9 +269,9 @@ export default function NovelEditor({ novelId, chapter }: Props) {
       }
 
       await saveChapter(chapter.id, title, newBody);
-    } catch (e: any) {
-      if (e.name !== "AbortError") {
-        setError(e.message || "生成失败");
+    } catch (e: unknown) {
+      if (!(e instanceof Error && e.name === "AbortError")) {
+        setError((e instanceof Error ? e.message : null) || "生成失败");
       }
     } finally {
       setStreaming(false);
@@ -201,8 +291,8 @@ export default function NovelEditor({ novelId, chapter }: Props) {
       if (!res.ok) throw new Error("审查失败");
       const data = await res.json();
       setReview(data);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "未知错误");
     } finally {
       setReviewing(false);
     }
@@ -227,37 +317,116 @@ export default function NovelEditor({ novelId, chapter }: Props) {
         placeholder="开始写作…"
       />
 
+      {/* Fact Snapshot */}
+      {factData && (
+        <div className="mt-3 rounded-xl border border-card-border overflow-hidden">
+          <button
+            onClick={() => setShowFacts(!showFacts)}
+            className="w-full flex items-center gap-2 px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground bg-[var(--accent)] transition-colors"
+          >
+            {showFacts ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            <FileText size={12} /> 章节事实
+          </button>
+          {showFacts && (
+            <div className="p-4 space-y-3 text-xs">
+              {factData.newFacts && factData.newFacts.length > 0 && (
+                <div>
+                  <p className="flex items-center gap-1.5 font-medium text-[var(--cyan)] mb-1"><Zap size={11} /> 新事实</p>
+                  <ul className="space-y-0.5 ml-5">
+                    {factData.newFacts.map((f: string, i: number) => <li key={i} className="text-muted-foreground">• {f}</li>)}
+                  </ul>
+                </div>
+              )}
+              {factData.stateChanges && factData.stateChanges.length > 0 && (
+                <div>
+                  <p className="flex items-center gap-1.5 font-medium text-[var(--star)] mb-1"><AlertTriangle size={11} /> 状态变化</p>
+                  <ul className="space-y-0.5 ml-5">
+                    {factData.stateChanges.map((s: string, i: number) => <li key={i} className="text-muted-foreground">• {s}</li>)}
+                  </ul>
+                </div>
+              )}
+              {factData.openHooks && factData.openHooks.length > 0 && (
+                <div>
+                  <p className="flex items-center gap-1.5 font-medium text-[var(--nebula)] mb-1"><Sparkles size={11} /> 未解伏笔</p>
+                  <ul className="space-y-0.5 ml-5">
+                    {factData.openHooks.map((h: string, i: number) => <li key={i} className="text-muted-foreground">• {h}</li>)}
+                  </ul>
+                </div>
+              )}
+              {factData.characterMoments && Object.keys(factData.characterMoments).length > 0 && (
+                <div>
+                  <p className="flex items-center gap-1.5 font-medium text-pink-400 mb-1"><Users size={11} /> 角色时刻</p>
+                  <ul className="space-y-0.5 ml-5">
+                    {Object.entries(factData.characterMoments).map(([name, moment]) => (
+                      <li key={name} className="text-muted-foreground"><span className="text-foreground font-medium">{name}：</span>{moment as string}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center justify-between mt-4 pt-4 border-t border-card-border">
         <span className="text-xs text-muted-foreground">{wordCount.toLocaleString()} 字</span>
         <div className="flex items-center gap-2">
+          {/* AI Mode Selector */}
+          <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-[var(--accent)] border border-card-border">
+            {[
+              { id: "continue", label: "续写" },
+              { id: "describe", label: "描写" },
+              { id: "expand", label: "扩写" },
+              { id: "rewrite", label: "改写" },
+              { id: "brainstorm", label: "灵感" },
+            ].map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setAiMode(m.id)}
+                className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
+                  aiMode === m.id
+                    ? "bg-[var(--nebula)] text-[#0a0e17]"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+
           <input
             value={direction}
             onChange={(e) => setDirection(e.target.value)}
-            placeholder="续写方向（可选）…"
+            placeholder={aiMode === "brainstorm" ? "关注方向（可选）…" : "续写方向（可选）…"}
             className="w-36 px-2 py-1 rounded-lg bg-[var(--accent)] border border-card-border text-foreground text-[10px] placeholder:text-muted-foreground focus:outline-none focus:border-[var(--cyan)] transition-colors"
           />
+
           {streaming ? (
             <button type="button" onClick={handleStop}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors">
               <Loader2 size={12} className="animate-spin" /> 停止
             </button>
           ) : (
-            <button type="button" onClick={handleAiGenerate}
+            <button type="button" onClick={handleAiMode}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-card-border hover:border-[var(--nebula)] text-[var(--nebula)] transition-colors">
-              <Sparkles size={12} /> AI 续写
+              <Sparkles size={12} /> {aiMode === "continue" ? "AI 续写" : aiMode === "describe" ? "AI 描写" : aiMode === "expand" ? "AI 扩写" : aiMode === "rewrite" ? "AI 改写" : "AI 灵感"}
             </button>
           )}
+
           {chapter.outline && !streaming && (
             <button type="button" onClick={handleRewriteByOutline}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-card-border hover:border-[var(--star)] text-[var(--star)] transition-colors">
               <Stars size={12} /> 按大纲重写
             </button>
           )}
+
           <button type="button" onClick={handleReview} disabled={reviewing}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-card-border hover:border-[var(--star)] text-[var(--star)] transition-colors disabled:opacity-50">
             {reviewing ? <Loader2 size={12} className="animate-spin" /> : <Eye size={12} />}
             {reviewing ? "审查中…" : "审查"}
           </button>
+
           <button type="button" onClick={handleSave}
             className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--cyan-soft)] text-[var(--cyan)] hover:bg-[var(--cyan)] hover:text-[#0a0e17] transition-all">
             <Save size={12} /> {saving ? "保存中…" : "保存"}

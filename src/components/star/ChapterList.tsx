@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { GripVertical, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { GripVertical, Trash2, Plus } from "lucide-react";
+import { toast } from "sonner";
 
 interface ChapterItem {
   id: string;
@@ -20,12 +21,14 @@ export default function ChapterList({
   novelId: string;
   chapters: ChapterItem[];
   totalWords: number;
-  addAction: (formData: FormData) => Promise<void>;
+  addAction: (formData: FormData) => Promise<{ ok: boolean; error?: string; title?: string }>;
   deleteAction: (chapterId: string) => Promise<void>;
 }) {
   const [items, setItems] = useState(initialChapters);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
+  const [insertAfterId, setInsertAfterId] = useState<string | null>(null);
+  const [newTitle, setNewTitle] = useState("");
 
   const handleDragStart = (idx: number) => {
     setDragIdx(idx);
@@ -50,7 +53,6 @@ export default function ChapterList({
     setDragIdx(null);
     setOverIdx(null);
 
-    // Persist to server
     await fetch(`/api/novels/${novelId}/chapters/reorder`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -63,24 +65,71 @@ export default function ChapterList({
     setOverIdx(null);
   };
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!newTitle.trim()) return;
+
+    const formData = new FormData();
+    formData.set("title", newTitle.trim());
+    if (insertAfterId) {
+      formData.set("afterChapterId", insertAfterId);
+    }
+
+    const result = await addAction(formData);
+    if (result.ok) {
+      toast.success(`章节「${result.title}」已创建`);
+      setNewTitle("");
+      setInsertAfterId(null);
+      // Optimistic update
+      const newChapter: ChapterItem = {
+        id: crypto.randomUUID(),
+        title: result.title!,
+        order: 0,
+        wordCount: 0,
+      };
+      if (insertAfterId) {
+        const idx = items.findIndex((ch) => ch.id === insertAfterId);
+        const updated = [...items];
+        updated.splice(idx + 1, 0, newChapter);
+        setItems(updated);
+      } else {
+        setItems([...items, newChapter]);
+      }
+    } else {
+      toast.error(result.error || "创建失败");
+    }
+  };
+
   return (
     <div className="w-64 shrink-0 space-y-3 overflow-y-auto pr-2">
       <p className="text-xs text-muted-foreground">
         {items.length} 章 · {totalWords.toLocaleString()} 字
       </p>
 
-      <form action={addAction} className="space-card rounded-xl p-3">
+      <form onSubmit={handleSubmit} className="space-card rounded-xl p-3">
         <input
-          name="title"
-          placeholder="新章节标题…"
+          value={newTitle}
+          onChange={(e) => setNewTitle(e.target.value)}
+          placeholder={insertAfterId ? "在选中章节后插入…" : "新章节标题…"}
           className="w-full px-3 py-2 rounded-lg bg-[var(--background)] border border-card-border text-xs focus:outline-none focus:border-[var(--cyan)] transition-colors"
         />
-        <button
-          type="submit"
-          className="w-full mt-2 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--cyan-soft)] text-[var(--cyan)] hover:bg-[var(--cyan)] hover:text-[#0a0e17] transition-all"
-        >
-          添加章节
-        </button>
+        <div className="flex gap-1.5 mt-2">
+          <button
+            type="submit"
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--cyan-soft)] text-[var(--cyan)] hover:bg-[var(--cyan)] hover:text-[#0a0e17] transition-all"
+          >
+            {insertAfterId ? "插入章节" : "添加章节"}
+          </button>
+          {insertAfterId && (
+            <button
+              type="button"
+              onClick={() => setInsertAfterId(null)}
+              className="px-2 py-1.5 rounded-lg text-[10px] text-muted-foreground hover:text-foreground border border-card-border transition-colors"
+            >
+              取消
+            </button>
+          )}
+        </div>
       </form>
 
       <div className="space-y-1">
@@ -94,7 +143,9 @@ export default function ChapterList({
             onDragEnd={handleDragEnd}
             className={`space-card rounded-lg p-2.5 group cursor-default transition-all ${
               dragIdx === idx ? "opacity-50" : ""
-            } ${overIdx === idx && dragIdx !== idx ? "border-[var(--cyan)] border" : ""}`}
+            } ${overIdx === idx && dragIdx !== idx ? "border-[var(--cyan)] border" : ""} ${
+              insertAfterId === ch.id ? "ring-1 ring-[var(--cyan)]" : ""
+            }`}
           >
             <div className="flex items-start gap-1.5">
               <button
@@ -108,11 +159,20 @@ export default function ChapterList({
                 <p className="text-xs font-medium truncate">{ch.title}</p>
                 <span className="text-[10px] text-muted-foreground">{ch.wordCount} 字</span>
               </a>
-              <form action={deleteAction.bind(null, ch.id)}>
-                <button className="p-0.5 rounded text-muted-foreground hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
-                  <Trash2 size={12} />
+              <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={() => setInsertAfterId(ch.id)}
+                  className="p-0.5 rounded text-muted-foreground hover:text-[var(--cyan)] transition-colors"
+                  title="在此章后插入"
+                >
+                  <Plus size={12} />
                 </button>
-              </form>
+                <form action={deleteAction.bind(null, ch.id)}>
+                  <button className="p-0.5 rounded text-muted-foreground hover:text-red-400 transition-colors">
+                    <Trash2 size={12} />
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
         ))}
