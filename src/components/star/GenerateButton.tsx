@@ -11,7 +11,7 @@ interface Props {
   chapterId?: string;
 }
 
-export default function GenerateButton({ novelId, outlineId, hasChapter, chapterId }: Props) {
+export default function GenerateButton({ novelId, outlineId, hasChapter }: Props) {
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [createdChapterId, setCreatedChapterId] = useState<string | null>(null);
@@ -69,8 +69,8 @@ export default function GenerateButton({ novelId, outlineId, hasChapter, chapter
           } catch {}
         }
       }
-    } catch (e: any) {
-      setStatus(`错误: ${e.message}`);
+    } catch (e: unknown) {
+      setStatus(`错误: ${e instanceof Error ? e.message : "未知错误"}`);
     } finally {
       setGenerating(false);
     }

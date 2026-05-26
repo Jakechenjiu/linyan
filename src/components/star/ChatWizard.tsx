@@ -21,19 +21,6 @@ export default function ChatWizard() {
   const inputRef = useRef<HTMLInputElement>(null);
   const startedRef = useRef(false);
 
-  // Auto-scroll to bottom
-  useEffect(() => {
-    chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
-
-  // Start the conversation (once)
-  useEffect(() => {
-    if (!startedRef.current) {
-      startedRef.current = true;
-      sendMessage("你好，我想创作一部新作品");
-    }
-  }, []);
-
   const sendMessage = async (text: string) => {
     if (loading || finalized) return;
     const newMessages: Message[] = [...messages, { role: "user", content: text }];
@@ -77,6 +64,20 @@ export default function ChatWizard() {
       setLoading(false);
     }
   };
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages]);
+
+  // Start the conversation (once)
+  useEffect(() => {
+    if (!startedRef.current) {
+      startedRef.current = true;
+      sendMessage("你好，我想创作一部新作品");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

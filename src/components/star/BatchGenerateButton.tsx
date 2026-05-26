@@ -15,7 +15,7 @@ interface Props {
 
 export default function BatchGenerateButton({ novelId, outlines }: Props) {
   const [generating, setGenerating] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const setCurrentIndex = useState(0)[1];
   const [status, setStatus] = useState<string | null>(null);
   const [results, setResults] = useState<{ title: string; ok: boolean; chapterId?: string; error?: string }[]>([]);
 
@@ -78,8 +78,8 @@ export default function BatchGenerateButton({ novelId, outlines }: Props) {
         if (chapterId) {
           setResults((prev) => [...prev, { title: outlines[i].title, ok: true, chapterId }]);
         }
-      } catch (e: any) {
-        setResults((prev) => [...prev, { title: outlines[i].title, ok: false, error: e.message }]);
+      } catch (e: unknown) {
+        setResults((prev) => [...prev, { title: outlines[i].title, ok: false, error: e instanceof Error ? e.message : "未知错误" }]);
       }
     }
 

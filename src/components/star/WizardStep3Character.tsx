@@ -4,11 +4,6 @@ import type { WizardData } from "./CreateWizard";
 
 interface Props { data: WizardData; update: (d: Partial<WizardData>) => void }
 
-const rolePresets = [
-  { role: "protagonist", label: "主角", color: "var(--cyan)" },
-  { role: "antagonist", label: "反派", color: "#ef4444" },
-];
-
 export default function WizardStep3Character({ data, update }: Props) {
   const setProtagonist = (p: WizardData["protagonist"]) => update({ protagonist: p });
   const setAntagonist = (a: WizardData["antagonist"]) => update({ antagonist: a });
@@ -85,7 +80,7 @@ export default function WizardStep3Character({ data, update }: Props) {
       <div className="space-y-4">
         <h3 className="font-mono text-sm font-bold flex items-center gap-2" style={{ color: "#ef4444" }}>
           <span className="w-2 h-2 rounded-full" style={{ background: "#ef4444" }} />
-          反派 — 主角的镜像（"选错路的主角"）
+          反派 — 主角的镜像（&quot;选错路的主角&quot;）
         </h3>
         <div className="grid grid-cols-2 gap-3">
           <div>

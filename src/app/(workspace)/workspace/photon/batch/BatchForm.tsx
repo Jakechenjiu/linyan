@@ -55,8 +55,8 @@ export default function BatchForm({ initialError }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "生成失败");
       router.push(`/workspace/photon/studio/${data.projectId}`);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "未知错误");
     } finally {
       setLoading(false);
     }

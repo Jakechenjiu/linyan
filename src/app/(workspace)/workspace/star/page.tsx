@@ -29,6 +29,7 @@ export default async function StarPage() {
     session = null;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let novels: any[] = [];
   let fetchError: string | null = null;
 

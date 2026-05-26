@@ -78,8 +78,9 @@ export async function POST(req: Request) {
       temperature: 0.8,
     });
   } catch (e) {
+    console.error("create-chat AI error:", e);
     return NextResponse.json({
-      message: e instanceof Error ? e.message : "AI 调用失败，请重试",
+      message: "AI 调用失败，请稍后重试",
       finalized: false,
     });
   }

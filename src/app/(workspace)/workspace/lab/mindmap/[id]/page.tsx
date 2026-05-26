@@ -5,13 +5,15 @@ import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { ArrowLeft, Save, GitBranch } from "lucide-react";
 
-function parseMarkdownToTree(markdown: string) {
+interface TreeNode {
+  label: string;
+  children: TreeNode[];
+}
+
+function parseMarkdownToTree(markdown: string): TreeNode {
   const lines = markdown.split("\n").filter(Boolean);
-  const root: { label: string; children: { label: string; children: { label: string; children: never[] }[] }[] } = {
-    label: "Root",
-    children: [],
-  };
-  const stack: { level: number; node: typeof root }[] = [{ level: 0, node: root }];
+  const root: TreeNode = { label: "Root", children: [] };
+  const stack: { level: number; node: TreeNode }[] = [{ level: 0, node: root }];
 
   for (const line of lines) {
     const match = line.match(/^(#{1,6})\s+(.+)/);
@@ -19,19 +21,19 @@ function parseMarkdownToTree(markdown: string) {
     const level = match[1].length;
     const label = match[2].trim();
 
-    const newNode = { label, children: [] as typeof root.children };
+    const newNode: TreeNode = { label, children: [] };
     while (stack.length > 0 && stack[stack.length - 1].level >= level) {
       stack.pop();
     }
     if (stack.length > 0) {
-      stack[stack.length - 1].node.children.push(newNode as any);
+      stack[stack.length - 1].node.children.push(newNode);
     }
-    stack.push({ level, node: newNode as any });
+    stack.push({ level, node: newNode });
   }
   return root;
 }
 
-function RenderNode({ node, x, y, level }: { node: { label: string; children: any[] }; x: number; y: number; level: number }) {
+function RenderNode({ node, x, y, level }: { node: TreeNode; x: number; y: number; level: number }) {
   const childSpacing = 50;
   const nodeWidth = 120;
   const nodeHeight = 32;
@@ -58,7 +60,7 @@ function RenderNode({ node, x, y, level }: { node: { label: string; children: an
       >
         {node.label.length > 14 ? node.label.slice(0, 14) + "…" : node.label}
       </text>
-      {node.children.map((child: any, i: number) => {
+      {node.children.map((child, i) => {
         const childY = y + 60 + i * childSpacing;
         return (
           <g key={i}>

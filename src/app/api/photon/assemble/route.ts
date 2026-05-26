@@ -63,7 +63,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ outputUrl: result.outputUrl });
   } catch (e) {
     return NextResponse.json({
-      error: e instanceof Error ? e.message : "视频合成失败",
+      error: e instanceof Error ? e.message : "未知错误",
     }, { status: 500 });
   }
 }

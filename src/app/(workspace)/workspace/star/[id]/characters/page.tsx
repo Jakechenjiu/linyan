@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { ArrowLeft, Plus, Trash2, Save, X } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save } from "lucide-react";
 import Link from "next/link";
 
 const relTypes: Record<string, { label: string; color: string }> = {
@@ -139,6 +139,7 @@ export default async function NovelCharactersPage({ params }: { params: Promise<
                           {key === "desire" ? <span style={{ color: "var(--cyan)" }}>{label}</span> :
                            key === "flaw" ? <span style={{ color: "#ef4444" }}>{label}</span> : label}
                         </label>
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                         <input name={key} defaultValue={(char as any)[key] || ""} placeholder={placeholder}
                           className="w-full px-2 py-1 rounded-lg bg-[var(--accent)] border border-card-border text-foreground text-xs placeholder:text-muted-foreground focus:outline-none focus:border-[var(--cyan)] transition-colors"
                         />
@@ -201,6 +202,7 @@ export default async function NovelCharactersPage({ params }: { params: Promise<
                         const typeEl = document.getElementById(`rel-type-${char.id}`) as HTMLSelectElement;
                         const labelEl = document.getElementById(`rel-label-${char.id}`) as HTMLInputElement;
                         if (!targetEl?.value) return;
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         let rels: any[] = [];
                         try { rels = JSON.parse(char.relationships || "[]"); } catch {}
                         rels.push({ characterId: targetEl.value, type: typeEl.value, label: labelEl.value });

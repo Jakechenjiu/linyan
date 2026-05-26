@@ -73,7 +73,7 @@ ${body ? `内容正文（前500字）：\n${body.slice(0, 500)}` : ""}
     });
   } catch (e) {
     return NextResponse.json({
-      error: e instanceof Error ? e.message : "AI 调用失败",
+      error: e instanceof Error ? e.message : "未知错误",
     }, { status: 500 });
   }
 

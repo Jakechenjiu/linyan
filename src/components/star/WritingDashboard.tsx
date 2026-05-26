@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Target, Flame, TrendingUp, Pencil } from "lucide-react";
 
 interface WritingStats {
@@ -16,16 +16,16 @@ export default function WritingDashboard({ novelId }: { novelId: string }) {
   const [editing, setEditing] = useState(false);
   const [target, setTarget] = useState(1000);
 
-  useEffect(() => { fetchStats(); }, [novelId]);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     const res = await fetch(`/api/novels/${novelId}/writing-stats`);
     if (res.ok) {
       const data = await res.json();
       setStats(data);
       setTarget(data.dailyWordTarget);
     }
-  };
+  }, [novelId]);
+
+  useEffect(() => { fetchStats(); }, [fetchStats]);
 
   const saveTarget = async () => {
     await fetch(`/api/novels/${novelId}/writing-stats`, {

@@ -7,6 +7,37 @@ import { randomUUID } from "crypto";
 import * as path from "path";
 import * as fs from "fs/promises";
 
+function isSafeUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+    const hostname = parsed.hostname;
+    // Block private/internal IPs
+    if (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "0.0.0.0" ||
+      hostname === "::1" ||
+      hostname.startsWith("10.") ||
+      hostname.startsWith("172.16.") || hostname.startsWith("172.17.") || hostname.startsWith("172.18.") ||
+      hostname.startsWith("172.19.") || hostname.startsWith("172.20.") || hostname.startsWith("172.21.") ||
+      hostname.startsWith("172.22.") || hostname.startsWith("172.23.") || hostname.startsWith("172.24.") ||
+      hostname.startsWith("172.25.") || hostname.startsWith("172.26.") || hostname.startsWith("172.27.") ||
+      hostname.startsWith("172.28.") || hostname.startsWith("172.29.") || hostname.startsWith("172.30.") ||
+      hostname.startsWith("172.31.") ||
+      hostname.startsWith("192.168.") ||
+      hostname.startsWith("169.254.") ||
+      hostname.endsWith(".internal") ||
+      hostname.endsWith(".local")
+    ) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function getJianyingDraftDir(): string {
   const localAppData = process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || "C:/Users", "AppData", "Local");
   return path.join(localAppData, "JianyingPro", "User Data", "Projects", "com.lveditor.draft");
@@ -63,6 +94,10 @@ export async function POST(req: Request) {
 
     // Download video if remote
     if (clip.clipUrl && (clip.clipUrl.startsWith("http://") || clip.clipUrl.startsWith("https://"))) {
+      if (!isSafeUrl(clip.clipUrl)) {
+        clip.clipUrl = null;
+        continue;
+      }
       try {
         const res = await fetch(clip.clipUrl);
         if (res.ok) {
@@ -80,6 +115,10 @@ export async function POST(req: Request) {
 
     // Download voice if remote
     if (clip.voiceUrl && (clip.voiceUrl.startsWith("http://") || clip.voiceUrl.startsWith("https://"))) {
+      if (!isSafeUrl(clip.voiceUrl)) {
+        clip.voiceUrl = null;
+        continue;
+      }
       try {
         const res = await fetch(clip.voiceUrl);
         if (res.ok) {

@@ -31,19 +31,21 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   });
   const weekWords = weekLogs.reduce((sum, l) => sum + l.wordCount, 0);
 
-  // Streak: count consecutive days back from today
+  // Streak: count consecutive days back from today (batch query)
+  const maxStreakDays = 365;
+  const streakStart = new Date(today);
+  streakStart.setDate(streakStart.getDate() - maxStreakDays + 1);
+  const streakLogs = await prisma.writingLog.findMany({
+    where: { novelId, date: { gte: streakStart, lte: today }, wordCount: { gt: 0 } },
+    select: { date: true },
+    orderBy: { date: "desc" },
+  });
+  const streakDates = new Set(streakLogs.map((l) => l.date.toISOString().slice(0, 10)));
   let streak = 0;
   const checkDate = new Date(today);
-  while (true) {
-    const log = await prisma.writingLog.findUnique({
-      where: { novelId_date: { novelId, date: new Date(checkDate) } },
-    });
-    if (log && log.wordCount > 0) {
-      streak++;
-      checkDate.setDate(checkDate.getDate() - 1);
-    } else {
-      break;
-    }
+  while (streakDates.has(checkDate.toISOString().slice(0, 10))) {
+    streak++;
+    checkDate.setDate(checkDate.getDate() - 1);
   }
 
   // Daily logs for the past 30 days (for chart)

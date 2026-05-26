@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Network, Loader2, ArrowRight, Users, RefreshCw, FileText, ExternalLink, ChevronDown, ChevronUp, Sparkles, Settings2, Plus, Trash2, Clock } from "lucide-react";
 import Link from "next/link";
 import WanxiangResult from "@/components/shared/WanxiangResult";
@@ -32,57 +32,33 @@ interface HistoryItem {
   createdAt: string;
 }
 
+function makeDefaultAgents(count: number): AgentConfig[] {
+  const result: AgentConfig[] = [];
+  for (let i = 0; i < count; i++) {
+    const preset = rolePresets[i % rolePresets.length];
+    result.push({
+      name: `${preset.name}${Math.floor(i / rolePresets.length) > 0 ? Math.floor(i / rolePresets.length) + 1 : ""}`,
+      role: preset.role,
+    });
+  }
+  return result.slice(0, count);
+}
+
 export default function WanxiangPage() {
   const [topic, setTopic] = useState("");
   const [seedMaterial, setSeedMaterial] = useState("");
   const [agentCount, setAgentCount] = useState(10);
   const [rounds, setRounds] = useState(5);
   const [loading, setLoading] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
   const [showMirofish, setShowMirofish] = useState(false);
   const [showAgentConfig, setShowAgentConfig] = useState(false);
-  const [agents, setAgents] = useState<AgentConfig[]>([]);
+  const [agents, setAgents] = useState<AgentConfig[]>(() => makeDefaultAgents(10));
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
-
-  // Generate default agents when count changes
-  const generateAgents = useCallback((count: number) => {
-    const result: AgentConfig[] = [];
-    for (let i = 0; i < count; i++) {
-      const preset = rolePresets[i % rolePresets.length];
-      result.push({
-        name: `${preset.name}${Math.floor(i / rolePresets.length) > 0 ? Math.floor(i / rolePresets.length) + 1 : ""}`,
-        role: preset.role,
-      });
-    }
-    setAgents(result.slice(0, count));
-  }, []);
-
-  useEffect(() => {
-    if (agents.length === 0 && agentCount > 0) {
-      generateAgents(agentCount);
-    }
-  }, [agentCount, agents.length, generateAgents]);
-
-  useEffect(() => {
-    if (agents.length < agentCount) {
-      const toAdd = agentCount - agents.length;
-      const newAgents: AgentConfig[] = [];
-      const startIdx = agents.length;
-      for (let i = 0; i < toAdd; i++) {
-        const preset = rolePresets[(startIdx + i) % rolePresets.length];
-        newAgents.push({
-          name: `${preset.name}${Math.floor((startIdx + i) / rolePresets.length) > 0 ? Math.floor((startIdx + i) / rolePresets.length) + 1 : ""}`,
-          role: preset.role,
-        });
-      }
-      setAgents((prev) => [...prev, ...newAgents]);
-    } else if (agents.length > agentCount) {
-      setAgents((prev) => prev.slice(0, agentCount));
-    }
-  }, [agentCount]);
 
   // Load history
   useEffect(() => {
@@ -202,7 +178,17 @@ export default function WanxiangPage() {
                   min={3}
                   max={50}
                   value={agentCount}
-                  onChange={(e) => setAgentCount(+e.target.value)}
+                  onChange={(e) => {
+                    const newCount = +e.target.value;
+                    setAgentCount(newCount);
+                    setAgents((prev) => {
+                      if (newCount > prev.length) {
+                        const extra = makeDefaultAgents(newCount).slice(prev.length);
+                        return [...prev, ...extra];
+                      }
+                      return prev.slice(0, newCount);
+                    });
+                  }}
                   className="w-full accent-[var(--nebula)]"
                 />
                 <span className="text-xs text-muted-foreground">{agentCount} 个</span>

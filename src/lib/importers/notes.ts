@@ -64,6 +64,7 @@ function parseMarkdown(content: string): ParsedNote[] {
 
 function parseJson(data: unknown): ParsedNote[] {
   const arr = Array.isArray(data) ? data : [data];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return arr.map((item: any) => ({
     title: item.title || item.name || "未命名笔记",
     body: item.body || item.content || item.text || "",

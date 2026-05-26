@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   const files: { name: string; content: string }[] = [];
   const entries = Array.from(formData.entries());
 
-  for (const [key, value] of entries) {
+  for (const [, value] of entries) {
     if (value instanceof File) {
       if (value.size > MAX_FILE_SIZE) {
         return NextResponse.json(

@@ -125,7 +125,7 @@ ${nextChapter ? `后一章开头 (${nextChapter.title}): ${nextChapter.body.slic
     console.error("Review AI error:", e);
     return NextResponse.json({
       overall: "fail",
-      summary: e instanceof Error ? e.message : "AI 调用失败",
+      summary: e instanceof Error ? e.message : "未知错误",
       issues: [],
       strengths: [],
     });

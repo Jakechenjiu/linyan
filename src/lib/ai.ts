@@ -127,7 +127,7 @@ export async function callAi(params: AiCallParams): Promise<string> {
   }
 
   if (!content) {
-    console.error("Empty LLM response, keys:", Object.keys(data), "sample:", JSON.stringify(data).slice(0, 500));
+    console.error("Empty LLM response, keys:", Object.keys(data));
     throw new Error("AI 返回了空内容，请重试。如果持续出现，请检查 API 配置。");
   }
 

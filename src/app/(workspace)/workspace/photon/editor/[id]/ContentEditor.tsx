@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Save, Sparkles, Loader2, Check, X } from "lucide-react";
+import { ArrowLeft, Save, Sparkles, Loader2, X } from "lucide-react";
 import { saveContent } from "./actions";
 
 interface Props {
@@ -52,8 +52,8 @@ export default function ContentEditor({ content }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "优化失败");
       setVariants(data.variants);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "未知错误");
     } finally {
       setOptimizing(false);
     }

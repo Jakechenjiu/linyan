@@ -145,7 +145,7 @@ export async function POST(req: Request) {
       });
       results.push({
         clipId: clip.id,
-        error: e instanceof Error ? e.message : "Generation failed",
+        error: e instanceof Error ? e.message : "未知错误",
       });
     }
   }

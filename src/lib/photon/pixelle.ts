@@ -14,8 +14,7 @@ import { pixelleProvider } from "./video-providers";
 export const submitClipGeneration = (params: { prompt: string; duration: number; style?: string }) =>
   pixelleProvider.generateVideo(params);
 
-export const pollTask = (taskId: string, options?: { maxRetries?: number; intervalMs?: number }) => {
-  const { maxRetries = 120, intervalMs = 5000 } = options || {};
+export const pollTask = (taskId: string) => {
   return pixelleProvider.pollTask(taskId);
 };
 

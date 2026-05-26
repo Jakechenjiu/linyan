@@ -37,7 +37,7 @@ const scriptSystemPrompt = `你是一位资深的抖音短视频编导，擅长�
 }`;
 
 function getField(data: unknown, key: string): string | null {
-  if (typeof (data as any)?.get === "function") return (data as FormData).get(key) as string | null;
+  if (typeof (data as Record<string, unknown>)?.get === "function") return (data as FormData).get(key) as string | null;
   return (data as Record<string, string>)[key] || null;
 }
 
@@ -97,7 +97,7 @@ ${style === "image" ? "注意：图文风格以文字和静态画面为主，画
       temperature: 0.9,
     });
   } catch (e) {
-    redirect(`/workspace/photon/batch?error=${encodeURIComponent(e instanceof Error ? e.message : "AI调用失败")}`);
+    redirect(`/workspace/photon/batch?error=${encodeURIComponent(e instanceof Error ? e.message : "未知错误")}`);
   }
 
   // Parse JSON

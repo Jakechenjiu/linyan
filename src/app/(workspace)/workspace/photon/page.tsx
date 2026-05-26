@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
-import { FileText, Sparkles, Layers, Calendar, TrendingUp, Plus, Video, Play } from "lucide-react";
+import { Sparkles, Layers, Calendar, TrendingUp, Plus, Video, Play } from "lucide-react";
 import ImportButton from "@/components/shared/ImportButton";
 
 const platforms = [
@@ -22,8 +22,11 @@ export default async function PhotonPage() {
   }
   const userId = session?.user?.id;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let recentContents: any[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let videoProjects: any[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let stats: any[] = [];
   let fetchError: string | null = null;
 

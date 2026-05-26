@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
-import { GitBranch, Sparkles, FlaskConical, Plus, FileText } from "lucide-react";
+import { GitBranch, Sparkles, Plus, FileText } from "lucide-react";
 import { loadBuiltInStoryPrompts } from "@/lib/prompts";
 
 export default async function LabPage() {

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=420,height=750">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 420px; height: 750px;
+  background: #060a10;
+  font-family: 'PingFang SC','Microsoft YaHei',sans-serif;
+  color: #fff;
+  overflow: hidden;
+  position: relative;
+}
+.slide {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 40px 24px;
+  opacity: 0; transition: opacity 0.5s;
+  text-align: center;
+}
+.slide.active { opacity: 1; }
+
+.stars {
+  position: absolute; inset: 0; pointer-events: none;
+}
+.star {
+  position: absolute; background: #fff; border-radius: 50%;
+  animation: twinkle 3s infinite alternate;
+}
+@keyframes twinkle { from { opacity: 0.1; } to { opacity: 0.4; } }
+
+.logo-icon {
+  width: 80px; height: 80px;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 0 20px rgba(0,229,255,0.4));
+}
+
+h1 {
+  font-family: 'PingFang SC','Noto Serif SC',serif;
+  font-size: 36px; font-weight: 700;
+  background: linear-gradient(135deg, #fff 0%, #00e5ff 50%, #7c3aed 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  letter-spacing: 8px; margin-bottom: 4px;
+}
+
+h2 {
+  font-size: 20px; color: rgba(255,255,255,0.85);
+  letter-spacing: 4px; margin-bottom: 12px;
+}
+
+.tag {
+  font-size: 12px; color: rgba(0,229,255,0.5);
+  font-family: 'JetBrains Mono',monospace;
+  letter-spacing: 4px;
+}
+
+.feature-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; width: 100%; margin-top: 20px;
+}
+
+.feature-card {
+  background: rgba(15,22,36,0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px; padding: 16px;
+  text-align: center;
+}
+
+.feature-icon { font-size: 28px; margin-bottom: 6px; }
+.feature-label { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.85); }
+.feature-en { font-size: 9px; color: rgba(0,229,255,0.4); font-family: 'JetBrains Mono',monospace; }
+
+.tech-list {
+  font-family: 'JetBrains Mono',monospace;
+  font-size: 12px; color: rgba(0,229,255,0.6);
+  line-height: 2; margin-top: 16px;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+.pipeline-box {
+  width: 100%; margin-top: 12px;
+}
+.pipe-step {
+  background: rgba(15,22,36,0.7);
+  border-left: 2px solid #00e5ff;
+  padding: 8px 12px; margin-bottom: 6px;
+  border-radius: 0 8px 8px 0; text-align: left;
+  font-size: 11px;
+}
+.pipe-step strong { color: #00e5ff; font-family: 'JetBrains Mono',monospace; font-size: 10px; }
+
+.footer-url {
+  font-family: 'JetBrains Mono',monospace;
+  font-size: 11px; color: rgba(255,255,255,0.3);
+  letter-spacing: 3px; margin-top: auto; padding-top: 20px;
+}
+
+.glow-orb {
+  position: absolute; width: 200px; height: 200px;
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(0,229,255,0.06) 0%, transparent 70%);
+}
+</style>
+</head>
+<body>
+
+<div class="stars">
+  <div class="star" style="width:2px;height:2px;top:10%;left:15%"></div>
+  <div class="star" style="width:1px;height:1px;top:25%;left:80%;animation-delay:0.5s"></div>
+  <div class="star" style="width:1.5px;height:1.5px;top:50%;left:10%;animation-delay:1s"></div>
+  <div class="star" style="width:1px;height:1px;top:70%;left:85%;animation-delay:0.3s"></div>
+  <div class="star" style="width:2px;height:2px;top:35%;left:50%;animation-delay:0.7s"></div>
+  <div class="star" style="width:1px;height:1px;top:80%;left:30%;animation-delay:1.5s"></div>
+</div>
+
+<div class="glow-orb" style="top:5%;left:-50px"></div>
+<div class="glow-orb" style="bottom:5%;right:-50px;background:radial-gradient(circle,rgba(124,58,237,0.04) 0%,transparent 70%)"></div>
+
+<!-- Slide 0: Logo -->
+<div class="slide active" id="s0">
+  <svg width="80" height="80" viewBox="0 0 100 100" fill="none">
+    <ellipse cx="50" cy="28" rx="36" ry="5" fill="none" stroke="#7c3aed" stroke-width="0.8" opacity="0.3" stroke-dasharray="12 5 4 5"/>
+    <rect x="14" y="34" width="72" height="48" rx="14" fill="none" stroke="#00e5ff" stroke-width="2.5" opacity="0.9"/>
+    <rect x="24" y="42" width="52" height="28" rx="9" fill="none" stroke="rgba(0,229,255,0.2)" stroke-width="1.2"/>
+    <rect x="30" y="47" width="40" height="18" rx="7" fill="rgba(0,229,255,0.06)"/>
+    <line x1="34" y1="53" x2="66" y2="53" stroke="#00e5ff" stroke-width="0.5" opacity="0.2"/>
+    <line x1="34" y1="57" x2="60" y2="57" stroke="#00e5ff" stroke-width="0.5" opacity="0.15"/>
+    <circle cx="50" cy="14" r="5" fill="#00e5ff" opacity="0.9"/>
+    <circle cx="50" cy="14" r="12" fill="#f0e68c" opacity="0.15"/>
+    <circle cx="32" cy="26" r="2" fill="#f0e68c" opacity="0.5"/>
+  </svg>
+  <h1>灵砚</h1>
+  <div class="tag" style="margin-top:4px">LINGYAN AI</div>
+  <div style="font-size:14px;color:rgba(255,255,255,0.5);margin-top:12px;letter-spacing:2px">四个AI模块 · 全栈自研</div>
+</div>
+
+<!-- Slide 1: Star Writing -->
+<div class="slide" id="s1">
+  <h2>星图写作</h2>
+  <div class="tag">STAR WRITING ENGINE</div>
+  <div class="pipeline-box">
+    <div class="pipe-step"><strong>DIRECTOR ENGINE</strong> 生成写作任务书</div>
+    <div class="pipe-step"><strong>CONSTRAINT KERNEL</strong> 世界观硬约束注入</div>
+    <div class="pipe-step"><strong>HUMAN VOICE FILTER</strong> 82禁用词实时拦截</div>
+    <div class="pipe-step"><strong>CONTINUITY MEMORY</strong> 事实结算·伏笔归档</div>
+  </div>
+  <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:10px">Four-Stage Pipeline · 写完即审 · 五维打分</div>
+</div>
+
+<!-- Slide 2: Photon -->
+<div class="slide" id="s2">
+  <h2>光子发布</h2>
+  <div class="tag">PHOTON STUDIO</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-top:16px;font-size:24px">
+    <span>💬</span><span style="color:#00e5ff">→</span><span>📝</span><span style="color:#00e5ff">→</span><span>🎬</span><span style="color:#00e5ff">→</span><span>🎥</span>
+  </div>
+  <div style="font-size:13px;color:rgba(255,255,255,0.6);margin-top:12px;letter-spacing:2px">
+    一句话 → 脚本 → 画面 → 成片
+  </div>
+  <div class="tech-list">
+    wan2.6-t2v · X-DashScope-Async<br>
+    Qwen-TTS · Server-Side Assembly<br>
+    <span style="color:rgba(255,255,255,0.3)">全链路自动化 · 三分钟出片</span>
+  </div>
+</div>
+
+<!-- Slide 3: Notes + Wanxiang -->
+<div class="slide" id="s3">
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">📝</div>
+      <div class="feature-label">灵思笔记</div>
+      <div class="feature-en">LINGSI NOTES</div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:6px">双向链接图谱<br>知识自动关联</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔮</div>
+      <div class="feature-label">万象推演</div>
+      <div class="feature-en">WANXIANG ENGINE</div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:6px">多Agent辩论框架<br>交叉验证预测</div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 4: Tech Stack -->
+<div class="slide" id="s4">
+  <h2 style="font-size:18px">技术栈</h2>
+  <div class="tag">TECH STACK</div>
+  <div class="tech-list" style="margin-top:20px">
+    ⚡ Next.js 16 + Turbopack<br>
+    🗄️ Prisma 7 + Neon PostgreSQL<br>
+    🎨 Three.js · React Three Fiber<br>
+    🔐 NextAuth v5<br>
+  </div>
+  <div style="font-size:14px;color:#00e5ff;margin-top:16px;letter-spacing:2px">
+    全免费 · Closed Beta 内测中
+  </div>
+</div>
+
+<!-- Slide 5: CTA -->
+<div class="slide" id="s5">
+  <h1>灵砚</h1>
+  <div style="font-size:18px;color:rgba(255,255,255,0.7);margin-top:8px;letter-spacing:3px">
+    你的 AI 创作引擎
+  </div>
+  <div class="footer-url" style="margin-top:24px">lingyan.ai</div>
+</div>
+
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const timings = [0, 4.3, 20.7, 31.4, 36.6, 42.1, 50.2, 53.9];
+let current = -1;
+
+function showSlide(index) {
+  if (index === current) return;
+  if (current >= 0) slides[current].classList.remove('active');
+  slides[index].classList.add('active');
+  current = index;
+}
+
+showSlide(0);
+
+// Schedule slides based on TTS timing
+timings.forEach((t, i) => {
+  if (i > 0) setTimeout(() => showSlide(i), t * 1000);
+});
+</script>
+
+</body>
+</html>

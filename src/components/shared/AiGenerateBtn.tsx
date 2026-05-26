@@ -54,9 +54,9 @@ export default function AiGenerateBtn({ novelId, chapterId, direction, onText, c
       }
 
       onText(text);
-    } catch (e: any) {
-      if (e.name !== "AbortError") {
-        setError(e.message || "生成失败");
+    } catch (e: unknown) {
+      if (!(e instanceof Error && e.name === "AbortError")) {
+        setError((e instanceof Error ? e.message : null) || "生成失败");
       }
     } finally {
       setStreaming(false);

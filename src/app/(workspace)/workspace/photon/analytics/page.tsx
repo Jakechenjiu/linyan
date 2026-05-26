@@ -17,6 +17,7 @@ export default async function PhotonAnalyticsPage() {
   }
   if (!session?.user?.id) redirect("/login");
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let contents: any[] = [];
   let fetchError: string | null = null;
   try {

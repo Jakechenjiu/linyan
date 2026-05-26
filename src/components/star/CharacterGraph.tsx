@@ -42,13 +42,13 @@ export default function CharacterGraph({ novelId }: { novelId: string }) {
   const [edges, setEdges] = useState<RelEdge[]>([]);
   const [dragNode, setDragNode] = useState<string | null>(null);
   const [hoverNode, setHoverNode] = useState<string | null>(null);
-  const [dimensions, setDimensions] = useState({ w: 600, h: 400 });
+  const [dimensions] = useState({ w: 600, h: 400 });
 
   useEffect(() => {
     fetch(`/api/novels/${novelId}`)
       .then((r) => r.json())
       .then((data) => {
-        const chars: CharNode[] = data.characters?.map((c: any, i: number) => ({
+        const chars: CharNode[] = data.characters?.map((c: { id: string; name: string; role: string }, i: number) => ({
           id: c.id,
           name: c.name,
           role: c.role,

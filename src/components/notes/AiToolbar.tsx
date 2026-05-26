@@ -55,8 +55,8 @@ export default function AiToolbar({
         appended += chunk;
         onAppendText(chunk);
       }
-    } catch (e: any) {
-      alert(e.message || "续写失败");
+    } catch (e: unknown) {
+      alert((e instanceof Error ? e.message : null) || "续写失败");
     } finally {
       setLoadingAction(null);
     }
@@ -82,8 +82,8 @@ export default function AiToolbar({
       if (!res.ok) throw new Error((await res.json()).error || "Failed");
       const data = await res.json();
       onReplaceText(data.result);
-    } catch (e: any) {
-      alert(e.message || "润色失败");
+    } catch (e: unknown) {
+      alert((e instanceof Error ? e.message : null) || "润色失败");
     } finally {
       setLoadingAction(null);
     }
@@ -102,8 +102,8 @@ export default function AiToolbar({
       if (!res.ok) throw new Error((await res.json()).error || "Failed");
       const data = await res.json();
       setSummaryPopup(data.result);
-    } catch (e: any) {
-      alert(e.message || "摘要生成失败");
+    } catch (e: unknown) {
+      alert((e instanceof Error ? e.message : null) || "摘要生成失败");
     } finally {
       setLoadingAction(null);
     }
@@ -122,8 +122,8 @@ export default function AiToolbar({
       if (!res.ok) throw new Error((await res.json()).error || "Failed");
       const data = await res.json();
       setSuggestedTags(data.tags.filter((t: string) => !tags.includes(t)));
-    } catch (e: any) {
-      alert(e.message || "标签建议失败");
+    } catch (e: unknown) {
+      alert((e instanceof Error ? e.message : null) || "标签建议失败");
     } finally {
       setLoadingAction(null);
     }
@@ -151,8 +151,8 @@ export default function AiToolbar({
         if (chunk.startsWith("[ERROR]")) throw new Error(chunk.slice(7));
         setChatReply((prev) => prev + chunk);
       }
-    } catch (e: any) {
-      setChatReply((prev) => prev + `\n\n❌ ${e.message}`);
+    } catch (e: unknown) {
+      setChatReply((prev) => prev + `\n\n❌ ${e instanceof Error ? e.message : "未知错误"}`);
     } finally {
       setChatLoading(false);
     }

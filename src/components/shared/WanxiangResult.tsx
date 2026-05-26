@@ -97,8 +97,8 @@ export default function WanxiangResult({ data }: { data: any }) {
         result += chunk;
         setAiAnalysis(result);
       }
-    } catch (e: any) {
-      setAnalysisError(e.message || "分析失败");
+    } catch (e: unknown) {
+      setAnalysisError((e instanceof Error ? e.message : null) || "分析失败");
     } finally {
       setAnalyzing(false);
     }

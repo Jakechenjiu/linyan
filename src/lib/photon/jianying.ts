@@ -1,7 +1,5 @@
 import { randomUUID } from "crypto";
 
-const NS = "d81e812d-f8d4-4b04-8c5d-8e7c1e9b2a63"; // fixed namespace for deterministic-ish IDs
-
 function uid(): string {
   return randomUUID();
 }

@@ -97,18 +97,18 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ ...data, simulationId: simulation?.id });
-  } catch (e: any) {
+  } catch (e: unknown) {
     // Mark simulation as failed
     if (simulation) {
       try {
         await prisma.simulation.update({
           where: { id: simulation.id },
-          data: { status: "failed", result: JSON.stringify({ error: e.message }) },
+          data: { status: "failed", result: JSON.stringify({ error: e instanceof Error ? e.message : "未知错误" }) },
         });
       } catch {}
     }
 
-    if (e.name === "TimeoutError") {
+    if (e instanceof Error && e.name === "TimeoutError") {
       return NextResponse.json({ error: "推演超时，请减少智能体数量或轮次后重试" }, { status: 504 });
     }
     return NextResponse.json({ error: "万象推演服务未启动，请先启动 Docker 容器" }, { status: 503 });

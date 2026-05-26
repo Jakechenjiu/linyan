@@ -17,10 +17,10 @@ export default async function StarAnalyticsPage() {
   const avgChapterLen = totalChapters > 0 ? Math.round(totalWords / totalChapters) : 0;
 
   // Weekly trend (30 days)
-  const now = Date.now();
+  const now = new Date();
   const days: { label: string; words: number }[] = [];
   for (let i = 29; i >= 0; i--) {
-    const d = new Date(now - i * 86400000);
+    const d = new Date(now.getTime() - i * 86400000);
     days.push({ label: `${d.getMonth() + 1}/${d.getDate()}`, words: 0 });
   }
   for (const n of novels) {

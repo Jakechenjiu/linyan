@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Wand2, Clapperboard, Download, Loader2, Play, Film, ExternalLink } from "lucide-react";
 import TimelineBar from "@/components/photon/TimelineBar";
 import ScriptEditor from "@/components/photon/ScriptEditor";
-import { updateClip, reorderClips, deleteClip, updateProject } from "./actions";
+import { updateClip, reorderClips, deleteClip } from "./actions";
 
 interface ClipData {
   id: string;
@@ -112,7 +112,7 @@ export default function StudioShell({ project: initialProject }: Props) {
         const errors: string[] = [];
         setClips((prev) =>
           prev.map((c) => {
-            const result = data.results.find((r: any) => r.clipId === c.id);
+            const result = data.results.find((r: { clipId: string; error?: string; videoUrl?: string; voiceUrl?: string }) => r.clipId === c.id);
             if (result && !result.error) {
               return {
                 ...c,
@@ -132,8 +132,8 @@ export default function StudioShell({ project: initialProject }: Props) {
         if (errors.length > 0) setError(errors.join("\n"));
       }
       router.refresh();
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "未知错误");
     } finally {
       setGenerating(false);
     }
@@ -152,8 +152,8 @@ export default function StudioShell({ project: initialProject }: Props) {
       if (!res.ok) throw new Error(data.error || "合成失败");
       setProject((prev) => ({ ...prev, outputUrl: data.outputUrl, status: "done" }));
       router.refresh();
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "未知错误");
     } finally {
       setAssembling(false);
     }
@@ -172,8 +172,8 @@ export default function StudioShell({ project: initialProject }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "导出失败");
       setExportResult(data.message);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "未知错误");
     } finally {
       setExporting(false);
     }

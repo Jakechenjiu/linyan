@@ -9,6 +9,7 @@ interface ParsedContent {
 
 function parseJson(data: unknown): ParsedContent[] {
   const arr = Array.isArray(data) ? data : [data];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return arr.map((item: any) => ({
     title: item.title || item.name || "未命名内容",
     body: item.body || item.content || item.text || "",

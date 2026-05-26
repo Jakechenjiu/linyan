@@ -13,6 +13,7 @@ export default async function CalendarPage() {
   }
   if (!session?.user?.id) redirect("/login");
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let entries: any[] = [];
   let fetchError: string | null = null;
   try {
