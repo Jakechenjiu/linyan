@@ -1,7 +1,16 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import { Toaster } from "sonner";
+import dynamic from "next/dynamic";
 import "./globals.css";
+
+const SpaceBackground = dynamic(() => import("@/components/shared/SpaceBackground"), {
+  ssr: false,
+});
+
+const CursorGlow = dynamic(() => import("@/components/shared/CursorGlow"), {
+  ssr: false,
+});
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
@@ -23,6 +32,8 @@ export default function RootLayout({
       className={`${jetbrainsMono.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foreground)]">
+        <SpaceBackground />
+        <CursorGlow />
         {children}
         <Toaster position="bottom-right" theme="dark" />
       </body>
