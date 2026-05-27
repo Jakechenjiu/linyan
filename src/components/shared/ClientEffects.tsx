@@ -9,6 +9,11 @@ export default function ClientEffects() {
   useEffect(() => {
     setMounted(true);
 
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    if (prefersReduced || isMobile) return;
+
     const handleMouseMove = (e: MouseEvent) => {
       setMousePos({
         x: (e.clientX / window.innerWidth) * 100,
@@ -16,33 +21,23 @@ export default function ClientEffects() {
       });
     };
 
-    // Only add on desktop
-    const isDesktop = !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (isDesktop && !prefersReduced) {
-      window.addEventListener("mousemove", handleMouseMove);
-    }
-
+    window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
   if (!mounted) return null;
 
-  const prefersReduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (prefersReduced) return null;
-
   return (
     <>
-      {/* Ambient glow that follows mouse */}
+      {/* Mouse-following ambient glow */}
       <div
-        className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000"
+        className="fixed inset-0 z-0 pointer-events-none"
         style={{
-          background: `radial-gradient(600px circle at ${mousePos.x}% ${mousePos.y}%, rgba(0,229,255,0.03), transparent 60%)`,
+          background: `radial-gradient(600px circle at ${mousePos.x}% ${mousePos.y}%, rgba(0,229,255,0.04), transparent 60%)`,
+          transition: "background 0.3s ease-out",
         }}
       />
-
-      {/* Static ambient glows */}
+      {/* Static ambient glow */}
       <div
         className="fixed inset-0 z-0 pointer-events-none"
         style={{

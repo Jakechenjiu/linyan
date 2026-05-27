@@ -46,22 +46,25 @@ export default async function WorkspaceDashboard() {
 
   return (
     <div className="space-y-10 max-w-5xl">
-      {/* Header */}
-      <div className="animate-slide-up">
+      {/* Header with text reveal */}
+      <div className="reveal">
         <h1 className="font-mono text-3xl font-bold tracking-wide">
           欢迎回来，<span className="text-gradient-cyan glow-text">{" "}{session?.user?.name ?? "创作者"}</span>
         </h1>
         <p className="text-sm text-muted-foreground mt-2">选择创作模块，开始今天的工作</p>
       </div>
 
-      {/* Module Cards */}
+      {/* Module Cards with stagger */}
       <div className="grid gap-6 md:grid-cols-2">
         {modules.map((mod, i) => (
-          <div key={mod.href} className="animate-slide-up" style={{ animationDelay: `${i * 0.1}s` }}>
+          <div
+            key={mod.href}
+            className={`reveal reveal-delay-${i + 1}`}
+          >
             <SpotlightCard href={mod.href} color={mod.color}>
               <div className="relative z-10">
                 <div
-                  className="w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300"
+                  className="w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 ease-out"
                   style={{ background: `${mod.color}15`, color: mod.color }}
                 >
                   {mod.icon}
@@ -78,7 +81,7 @@ export default async function WorkspaceDashboard() {
                   {mod.features.map((f) => (
                     <span
                       key={f}
-                      className="text-[10px] px-2 py-0.5 rounded-full group-hover:scale-105 transition-transform"
+                      className="text-[10px] px-2 py-0.5 rounded-full group-hover:scale-105 transition-transform duration-300"
                       style={{ background: `${mod.color}10`, color: mod.color }}
                     >
                       {f}
@@ -86,10 +89,10 @@ export default async function WorkspaceDashboard() {
                   ))}
                 </div>
                 <div
-                  className="flex items-center gap-1 text-xs font-medium group-hover:gap-2 transition-all"
+                  className="flex items-center gap-1 text-xs font-medium group-hover:gap-2 transition-all duration-300"
                   style={{ color: mod.color }}
                 >
-                  进入 <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                  进入 <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform duration-300" />
                 </div>
               </div>
             </SpotlightCard>
@@ -97,8 +100,8 @@ export default async function WorkspaceDashboard() {
         ))}
       </div>
 
-      {/* Quick Stats */}
-      <div className="liquid-glass rounded-2xl p-6 animate-slide-up" style={{ animationDelay: "0.4s" }}>
+      {/* Quick Stats with reveal */}
+      <div className="liquid-glass rounded-2xl p-6 reveal reveal-delay-5">
         <h2 className="font-mono text-lg font-bold mb-4 flex items-center gap-2">
           <BarChart3 size={20} className="text-[var(--cyan)]" />
           创作概览
