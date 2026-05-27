@@ -1,20 +1,57 @@
 "use client";
 
-import dynamic from "next/dynamic";
-
-const ImmersiveScene = dynamic(() => import("@/components/shared/ImmersiveScene"), {
-  ssr: false,
-});
-
-const CursorGlow = dynamic(() => import("@/components/shared/CursorGlow"), {
-  ssr: false,
-});
+import { useEffect, useState } from "react";
 
 export default function ClientEffects() {
+  const [mounted, setMounted] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+
+  useEffect(() => {
+    setMounted(true);
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePos({
+        x: (e.clientX / window.innerWidth) * 100,
+        y: (e.clientY / window.innerHeight) * 100,
+      });
+    };
+
+    // Only add on desktop
+    const isDesktop = !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (isDesktop && !prefersReduced) {
+      window.addEventListener("mousemove", handleMouseMove);
+    }
+
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  if (!mounted) return null;
+
+  const prefersReduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (prefersReduced) return null;
+
   return (
     <>
-      <ImmersiveScene />
-      <CursorGlow />
+      {/* Ambient glow that follows mouse */}
+      <div
+        className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000"
+        style={{
+          background: `radial-gradient(600px circle at ${mousePos.x}% ${mousePos.y}%, rgba(0,229,255,0.03), transparent 60%)`,
+        }}
+      />
+
+      {/* Static ambient glows */}
+      <div
+        className="fixed inset-0 z-0 pointer-events-none"
+        style={{
+          background: `
+            radial-gradient(ellipse 50% 40% at 20% 20%, rgba(0,229,255,0.02) 0%, transparent 60%),
+            radial-gradient(ellipse 40% 50% at 80% 80%, rgba(124,58,237,0.02) 0%, transparent 60%)
+          `,
+        }}
+      />
     </>
   );
 }
