@@ -27,6 +27,20 @@ model User {
   videoProjects VideoProject[]
   notes        Note[]
   simulations  Simulation[]
+  membershipCode MembershipCode? @relation("CodeUser")
+}
+
+model MembershipCode {
+  id          String    @id @default(cuid())
+  codeHash    String    @unique    // SHA-256 hash of the code
+  tier        String    @default("pro")  // pro
+  duration    Int?                 // days, null = permanent
+  usedBy      String?   @unique    // user ID who used it
+  usedAt      DateTime?            // when it was used
+  expiresAt   DateTime?            // code expiration date (before use)
+  createdBy   String               // admin who created it
+  createdAt   DateTime @default(now())
+  user        User?    @relation("CodeUser", fields: [usedBy], references: [id])
 }
 
 model Novel {

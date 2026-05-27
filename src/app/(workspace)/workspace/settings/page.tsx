@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { User, Film, Network, ExternalLink, CheckCircle2, AlertCircle, Brain, ArrowRight, Crown, Lock } from "lucide-react";
 import { checkMembership, FREE_LIMITS } from "@/lib/membership";
+import MembershipCodeInput from "@/components/shared/MembershipCodeInput";
 
 const providerOptions = [
   { value: "deepseek", label: "DeepSeek", desc: "性价比最高，推荐" },
@@ -165,7 +166,7 @@ export default async function SettingsPage() {
 
               <div className="p-4 rounded-xl bg-[var(--star)]/5 border border-[var(--star)]/20">
                 <p className="text-sm font-bold text-[var(--star)] mb-2">解锁全部功能</p>
-                <ul className="text-[11px] text-muted-foreground space-y-1 mb-3">
+                <ul className="text-[11px] text-muted-foreground space-y-1 mb-4">
                   <li>• 无限小说和章节数</li>
                   <li>• AI 对话编辑（实时协作改写）</li>
                   <li>• 灵思笔记 · 知识图谱</li>
@@ -173,9 +174,9 @@ export default async function SettingsPage() {
                   <li>• 导出 EPUB / PDF</li>
                   <li>• 批量生成 · 多平台适配</li>
                 </ul>
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-[var(--background)] border border-card-border">
-                  <span className="text-[11px] text-muted-foreground">加入创作社群获取会员资格</span>
-                  <span className="text-[11px] text-[var(--star)] font-medium">→ 微信扫码入群</span>
+                <div className="space-y-2">
+                  <p className="text-[11px] text-muted-foreground">输入会员码激活：</p>
+                  <MembershipCodeInput />
                 </div>
               </div>
             </div>
