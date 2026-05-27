@@ -98,8 +98,29 @@ export default function ContentEditor({ content }: Props) {
     }
     return () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+      // 离开页面时立即保存
+      if (title !== lastSavedRef.current.title || body !== lastSavedRef.current.body || status !== lastSavedRef.current.status) {
+        const fd = new FormData();
+        fd.set("contentId", content.id);
+        fd.set("title", title);
+        fd.set("body", body);
+        fd.set("status", status);
+        saveContent(fd);
+      }
     };
-  }, [title, body, status, triggerAutoSave]);
+  }, [title, body, status, triggerAutoSave, content.id]);
+
+  // 浏览器关闭/刷新时提示
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (title !== lastSavedRef.current.title || body !== lastSavedRef.current.body || status !== lastSavedRef.current.status) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [title, body, status]);
 
   const sendChat = async (message: string, mode: string = "chat", targetPlatform?: string) => {
     if (!message.trim() || streaming) return;

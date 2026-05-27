@@ -96,8 +96,24 @@ export default function NovelEditor({ novelId, chapter }: Props) {
     }
     return () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+      // 离开页面时立即保存
+      if (title !== lastSavedRef.current.title || body !== lastSavedRef.current.body) {
+        saveChapter(chapter.id, title, body);
+      }
     };
-  }, [title, body, triggerAutoSave]);
+  }, [title, body, triggerAutoSave, chapter.id]);
+
+  // 浏览器关闭/刷新时提示
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (title !== lastSavedRef.current.title || body !== lastSavedRef.current.body) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [title, body]);
 
   const handleAiGenerate = async () => {
     setStreaming(true);
@@ -406,6 +422,25 @@ export default function NovelEditor({ novelId, chapter }: Props) {
         className="w-full bg-transparent text-sm leading-relaxed resize-none focus:outline-none"
         placeholder="开始写作…"
       />
+
+      {/* Save status - integrated into editor */}
+      <div className="flex items-center justify-between mt-1 py-1">
+        <span className="text-[10px] text-muted-foreground">{body.trim().length} 字</span>
+        {saved ? (
+          <span className="flex items-center gap-1 text-[10px] text-emerald-400">
+            <Check size={10} /> 已保存
+          </span>
+        ) : saving ? (
+          <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <Loader2 size={10} className="animate-spin" /> 保存中…
+          </span>
+        ) : (
+          <button type="button" onClick={handleSave}
+            className="flex items-center gap-1 text-[10px] text-[var(--cyan)] hover:underline">
+            <Save size={10} /> 保存
+          </button>
+        )}
+      </div>
 
       {/* Fact Snapshot */}
       {factData && (
