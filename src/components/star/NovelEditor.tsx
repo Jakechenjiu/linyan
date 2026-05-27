@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Save, Sparkles, Loader2, Eye, Stars, ChevronDown, ChevronRight, FileText, AlertTriangle, Zap, Users } from "lucide-react";
+import { Save, Sparkles, Loader2, Eye, Stars, ChevronDown, ChevronRight, FileText, AlertTriangle, Zap, Users, Check } from "lucide-react";
 import { saveChapter } from "./actions";
 
 interface ReviewResult {
@@ -44,6 +44,7 @@ export default function NovelEditor({ novelId, chapter }: Props) {
   const [title, setTitle] = useState(chapter.title);
   const [body, setBody] = useState(chapter.body);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(true); // 已保存状态
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [direction, setDirection] = useState("");
@@ -55,6 +56,8 @@ export default function NovelEditor({ novelId, chapter }: Props) {
   const [showFacts, setShowFacts] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
   const [chatHistory, setChatHistory] = useState<{ role: "user" | "ai"; text: string }[]>([]);
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedRef = useRef({ title: chapter.title, body: chapter.body });
 
   const factData = chapter.factSnapshot ? JSON.parse(chapter.factSnapshot) as {
     newFacts?: string[];
@@ -66,8 +69,35 @@ export default function NovelEditor({ novelId, chapter }: Props) {
   const handleSave = async () => {
     setSaving(true);
     await saveChapter(chapter.id, title, body);
+    lastSavedRef.current = { title, body };
     setSaving(false);
+    setSaved(true);
   };
+
+  // Auto-save with debounce
+  const triggerAutoSave = useCallback(() => {
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(async () => {
+      if (title !== lastSavedRef.current.title || body !== lastSavedRef.current.body) {
+        setSaving(true);
+        await saveChapter(chapter.id, title, body);
+        lastSavedRef.current = { title, body };
+        setSaving(false);
+        setSaved(true);
+      }
+    }, 2000); // 2秒无操作后自动保存
+  }, [title, body, chapter.id]);
+
+  // Watch for changes and trigger auto-save
+  useEffect(() => {
+    if (title !== lastSavedRef.current.title || body !== lastSavedRef.current.body) {
+      setSaved(false);
+      triggerAutoSave();
+    }
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, [title, body, triggerAutoSave]);
 
   const handleAiGenerate = async () => {
     setStreaming(true);
@@ -527,10 +557,20 @@ export default function NovelEditor({ novelId, chapter }: Props) {
             {reviewing ? "审查中…" : "审查"}
           </button>
 
-          <button type="button" onClick={handleSave}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--cyan-soft)] text-[var(--cyan)] hover:bg-[var(--cyan)] hover:text-[#0a0e17] transition-all">
-            <Save size={12} /> {saving ? "保存中…" : "保存"}
-          </button>
+          {saved ? (
+            <span className="flex items-center gap-1 px-3 py-1.5 text-xs text-emerald-400">
+              <Check size={12} /> 已保存
+            </span>
+          ) : saving ? (
+            <span className="flex items-center gap-1 px-3 py-1.5 text-xs text-muted-foreground">
+              <Loader2 size={12} className="animate-spin" /> 保存中…
+            </span>
+          ) : (
+            <button type="button" onClick={handleSave}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--cyan-soft)] text-[var(--cyan)] hover:bg-[var(--cyan)] hover:text-[#0a0e17] transition-all">
+              <Save size={12} /> 保存
+            </button>
+          )}
         </div>
       </div>
       {error && (

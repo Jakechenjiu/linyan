@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Save, Sparkles, Loader2, Send, Wand2, Repeat, Globe, X, ChevronDown } from "lucide-react";
+import { ArrowLeft, Save, Sparkles, Loader2, Send, Wand2, Repeat, Globe, X, ChevronDown, Check } from "lucide-react";
 import { saveContent } from "./actions";
 
 interface Props {
@@ -39,7 +39,10 @@ export default function ContentEditor({ content }: Props) {
   const [body, setBody] = useState(content.body);
   const [status, setStatus] = useState(content.status);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedRef = useRef({ title: content.title, body: content.body, status: content.status });
 
   // AI Chat state
   const [chatInput, setChatInput] = useState("");
@@ -62,9 +65,41 @@ export default function ContentEditor({ content }: Props) {
     formData.set("body", body);
     formData.set("status", status);
     await saveContent(formData);
+    lastSavedRef.current = { title, body, status };
     setSaving(false);
+    setSaved(true);
     router.refresh();
   };
+
+  // Auto-save with debounce
+  const triggerAutoSave = useCallback(() => {
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(async () => {
+      if (title !== lastSavedRef.current.title || body !== lastSavedRef.current.body || status !== lastSavedRef.current.status) {
+        setSaving(true);
+        const formData = new FormData();
+        formData.set("contentId", content.id);
+        formData.set("title", title);
+        formData.set("body", body);
+        formData.set("status", status);
+        await saveContent(formData);
+        lastSavedRef.current = { title, body, status };
+        setSaving(false);
+        setSaved(true);
+      }
+    }, 2000);
+  }, [title, body, status, content.id]);
+
+  // Watch for changes and trigger auto-save
+  useEffect(() => {
+    if (title !== lastSavedRef.current.title || body !== lastSavedRef.current.body || status !== lastSavedRef.current.status) {
+      setSaved(false);
+      triggerAutoSave();
+    }
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, [title, body, status, triggerAutoSave]);
 
   const sendChat = async (message: string, mode: string = "chat", targetPlatform?: string) => {
     if (!message.trim() || streaming) return;
@@ -163,10 +198,20 @@ export default function ContentEditor({ content }: Props) {
             <option value="published">已发布</option>
           </select>
           <span className="text-[10px] text-muted-foreground">{body.trim().length} 字</span>
-          <button type="button" onClick={handleSave} disabled={saving}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[var(--cyan)] text-[#0a0e17] hover:opacity-90 transition-all disabled:opacity-50">
-            <Save size={12} /> {saving ? "保存中…" : "保存"}
-          </button>
+          {saved ? (
+            <span className="flex items-center gap-1 px-3 py-1.5 text-[11px] text-emerald-400">
+              <Check size={12} /> 已保存
+            </span>
+          ) : saving ? (
+            <span className="flex items-center gap-1 px-3 py-1.5 text-[11px] text-muted-foreground">
+              <Loader2 size={12} className="animate-spin" /> 保存中…
+            </span>
+          ) : (
+            <button type="button" onClick={handleSave}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[var(--cyan)] text-[#0a0e17] hover:opacity-90 transition-all">
+              <Save size={12} /> 保存
+            </button>
+          )}
         </div>
       </div>
 

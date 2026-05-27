@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import type { Backlink } from "@/lib/notes";
+import { Check, Loader2 } from "lucide-react";
 import AiToolbar from "./AiToolbar";
 import OutgoingLinks from "./OutgoingLinks";
 
@@ -34,7 +35,11 @@ export default function NoteEditor({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
   const [expandedBacklink, setExpandedBacklink] = useState<string | null>(null);
+  const [saved, setSaved] = useState(true);
+  const [saving, setSaving] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedRef = useRef({ title: initialTitle, body: initialBody, tags: initialTags });
 
   const searchNotes = useCallback(
     async (q: string) => {
@@ -113,7 +118,36 @@ export default function NoteEditor({
     e.preventDefault();
     if (!title.trim()) return;
     onSave({ title: title.trim(), body, tags });
+    lastSavedRef.current = { title: title.trim(), body, tags };
+    setSaved(true);
   };
+
+  // Auto-save with debounce
+  const triggerAutoSave = useCallback(() => {
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      const trimmedTitle = title.trim();
+      if (trimmedTitle && (trimmedTitle !== lastSavedRef.current.title || body !== lastSavedRef.current.body || JSON.stringify(tags) !== JSON.stringify(lastSavedRef.current.tags))) {
+        setSaving(true);
+        onSave({ title: trimmedTitle, body, tags });
+        lastSavedRef.current = { title: trimmedTitle, body, tags };
+        setSaving(false);
+        setSaved(true);
+      }
+    }, 2000);
+  }, [title, body, tags, onSave]);
+
+  // Watch for changes and trigger auto-save
+  useEffect(() => {
+    const trimmedTitle = title.trim();
+    if (trimmedTitle && (trimmedTitle !== lastSavedRef.current.title || body !== lastSavedRef.current.body || JSON.stringify(tags) !== JSON.stringify(lastSavedRef.current.tags))) {
+      setSaved(false);
+      triggerAutoSave();
+    }
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, [title, body, tags, triggerAutoSave]);
 
   // AI toolbar callbacks
   const handleAppendText = useCallback((text: string) => {
@@ -205,13 +239,23 @@ export default function NoteEditor({
       {/* Actions */}
       <div className="flex items-center justify-between pt-3 border-t border-card-border">
         <div className="flex gap-2">
-          <button
-            type="submit"
-            className="btn-shimmer px-4 py-2 rounded-lg text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_16px_rgba(0,229,255,0.3)] transition-all"
-            style={{ color: "#0a0e17" }}
-          >
-            {id ? "保存" : "创建笔记"}
-          </button>
+          {id && saved ? (
+            <span className="flex items-center gap-1 px-4 py-2 text-sm text-emerald-400">
+              <Check size={14} /> 已保存
+            </span>
+          ) : id && saving ? (
+            <span className="flex items-center gap-1 px-4 py-2 text-sm text-muted-foreground">
+              <Loader2 size={14} className="animate-spin" /> 保存中…
+            </span>
+          ) : (
+            <button
+              type="submit"
+              className="btn-shimmer px-4 py-2 rounded-lg text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_16px_rgba(0,229,255,0.3)] transition-all"
+              style={{ color: "#0a0e17" }}
+            >
+              {id ? "保存" : "创建笔记"}
+            </button>
+          )}
           {onDelete && (
             <button
               type="button"
