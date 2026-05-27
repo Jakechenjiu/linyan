@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 
-const SpaceBackground = dynamic(() => import("@/components/shared/SpaceBackground"), {
+const ImmersiveScene = dynamic(() => import("@/components/shared/ImmersiveScene"), {
   ssr: false,
 });
 
@@ -13,7 +13,7 @@ const CursorGlow = dynamic(() => import("@/components/shared/CursorGlow"), {
 export default function ClientEffects() {
   return (
     <>
-      <SpaceBackground />
+      <ImmersiveScene />
       <CursorGlow />
     </>
   );
