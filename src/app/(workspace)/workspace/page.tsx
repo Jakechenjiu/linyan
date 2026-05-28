@@ -66,7 +66,7 @@ export default async function WorkspaceDashboard() {
       </div>
 
       {/* Quick Stats Row */}
-      <div className="grid grid-cols-4 gap-3 reveal reveal-delay-1">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 reveal reveal-delay-1">
         {[
           { label: "今日字数", value: todayWords.toLocaleString(), icon: <TrendingUp size={14} />, color: "var(--cyan)", href: "/workspace/star" },
           { label: "小说", value: stats.novels, icon: <FileText size={14} />, color: "var(--cyan)", href: "/workspace/star" },
@@ -84,7 +84,7 @@ export default async function WorkspaceDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-4 gap-3 reveal reveal-delay-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 reveal reveal-delay-2">
         {[
           { href: "/workspace/star/create", label: "写小说", icon: <Star size={16} />, color: "var(--cyan)" },
           { href: "/workspace/photon", label: "做视频", icon: <Zap size={16} />, color: "var(--nebula)" },
@@ -108,7 +108,7 @@ export default async function WorkspaceDashboard() {
       </div>
 
       {/* Recent Activity */}
-      <div className="grid md:grid-cols-3 gap-4 reveal reveal-delay-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 reveal reveal-delay-4">
         {/* Recent Novels */}
         {recentNovels.length > 0 && (
           <div className="space-card rounded-xl p-4">
@@ -171,7 +171,7 @@ export default async function WorkspaceDashboard() {
       </div>
 
       {/* Module Cards */}
-      <div className="grid grid-cols-2 gap-4 reveal reveal-delay-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 reveal reveal-delay-5">
         {[
           { href: "/workspace/star", icon: <Star size={20} />, title: "星图写作", desc: "长篇小说智能引擎", color: "var(--cyan)" },
           { href: "/workspace/photon", icon: <Zap size={20} />, title: "光子发布", desc: "短视频和内容引擎", color: "var(--nebula)" },

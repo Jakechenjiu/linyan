@@ -73,7 +73,7 @@ export default function GlobalAI() {
 
       {/* Modal */}
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center pb-24 px-4">
+        <div className="fixed inset-0 z-50 flex items-end justify-center pb-20 md:pb-24 px-3 md:px-4">
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
 
