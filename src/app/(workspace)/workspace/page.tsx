@@ -1,6 +1,8 @@
 import { auth } from "@/lib/auth";
-import { Star, Zap, Network, ArrowRight, BarChart3, Brain } from "lucide-react";
+import { prisma } from "@/lib/db";
+import { Star, Zap, Network, ArrowRight, BarChart3, Brain, Clock, FileText, Video, TrendingUp } from "lucide-react";
 import SpotlightCard from "@/components/shared/SpotlightCard";
+import Link from "next/link";
 
 const modules = [
   {
@@ -8,45 +10,71 @@ const modules = [
     icon: <Star size={28} />,
     title: "星图写作",
     subtitle: "Star Writing",
-    desc: "长篇智能创作引擎 — 章节管理、AI续写、写作分析",
+    desc: "长篇智能创作引擎 — AI 对话编辑、五种模式、素材库",
     color: "var(--cyan)",
-    features: ["AI 续写", "章节管理", "写作统计"],
+    features: ["AI 对话编辑", "五种模式", "素材库", "事实追踪"],
   },
   {
     href: "/workspace/photon",
     icon: <Zap size={28} />,
     title: "光子发布",
     subtitle: "Photon Publishing",
-    desc: "自媒体爆款流水线 — 模板驱动、多平台一键生成",
+    desc: "短视频和内容引擎 — 工作流驱动、多平台适配",
     color: "var(--nebula)",
-    features: ["模板工坊", "批量生成", "内容日历"],
+    features: ["工作流引擎", "多平台", "AI 改写", "导出剪映"],
   },
   {
     href: "/workspace/notes",
     icon: <Brain size={28} />,
     title: "灵思笔记",
     subtitle: "LingSi Notes",
-    desc: "知识中枢 — Obsidian 风格双向链接、知识图谱可视化",
+    desc: "知识中枢 — 双向链接、知识图谱、标签系统",
     color: "var(--cyan)",
-    features: ["双向链接", "知识图谱", "标签系统"],
+    features: ["双向链接", "知识图谱", "标签系统", "AI 辅助"],
   },
   {
     href: "/workspace/wanxiang",
     icon: <Network size={28} />,
     title: "万象推演",
     subtitle: "Wanxiang Sandbox",
-    desc: "多智能体推演引擎 — 构建平行数字世界，预测未来走向",
+    desc: "多智能体推演引擎 — 模拟未来、分析趋势",
     color: "var(--nebula)",
-    features: ["智能体模拟", "推演报告", "知识图谱"],
+    features: ["多智能体", "推演报告", "场景模拟", "数据分析"],
   },
 ];
 
 export default async function WorkspaceDashboard() {
   const session = await auth();
+  const userId = session?.user?.id;
+
+  // Fetch real stats
+  let stats = { novels: 0, chapters: 0, words: 0, contents: 0, videos: 0, notes: 0 };
+  let recentNovels: { id: string; title: string; updatedAt: Date }[] = [];
+
+  if (userId) {
+    const [novelCount, chapterAgg, contentCount, videoCount, noteCount, novels] = await Promise.all([
+      prisma.novel.count({ where: { userId } }),
+      prisma.chapter.aggregate({ where: { novel: { userId } }, _sum: { wordCount: true }, _count: true }),
+      prisma.content.count({ where: { userId } }),
+      prisma.videoProject.count({ where: { userId } }),
+      prisma.note.count({ where: { userId } }),
+      prisma.novel.findMany({ where: { userId }, orderBy: { updatedAt: "desc" }, take: 3, select: { id: true, title: true, updatedAt: true } }),
+    ]);
+
+    stats = {
+      novels: novelCount,
+      chapters: chapterAgg._count,
+      words: chapterAgg._sum.wordCount || 0,
+      contents: contentCount,
+      videos: videoCount,
+      notes: noteCount,
+    };
+    recentNovels = novels;
+  }
 
   return (
     <div className="space-y-10 max-w-5xl">
-      {/* Header with text reveal */}
+      {/* Header */}
       <div className="reveal">
         <h1 className="font-mono text-3xl font-bold tracking-wide">
           欢迎回来，<span className="text-gradient-cyan glow-text">{" "}{session?.user?.name ?? "创作者"}</span>
@@ -54,13 +82,51 @@ export default async function WorkspaceDashboard() {
         <p className="text-sm text-muted-foreground mt-2">选择创作模块，开始今天的工作</p>
       </div>
 
-      {/* Module Cards with stagger */}
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 reveal reveal-delay-1">
+        {[
+          { label: "小说", value: stats.novels, icon: <FileText size={16} />, color: "var(--cyan)" },
+          { label: "总字数", value: stats.words.toLocaleString(), icon: <TrendingUp size={16} />, color: "var(--nebula)" },
+          { label: "文章", value: stats.contents, icon: <FileText size={16} />, color: "var(--star)" },
+          { label: "视频", value: stats.videos, icon: <Video size={16} />, color: "var(--cyan)" },
+        ].map((stat) => (
+          <div key={stat.label} className="space-card rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span style={{ color: stat.color }}>{stat.icon}</span>
+              <span className="text-[11px] text-muted-foreground">{stat.label}</span>
+            </div>
+            <div className="font-mono text-xl font-bold">{stat.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Recent novels */}
+      {recentNovels.length > 0 && (
+        <div className="reveal reveal-delay-2">
+          <h2 className="font-mono text-sm font-bold text-muted-foreground mb-3 flex items-center gap-2">
+            <Clock size={14} /> 最近编辑
+          </h2>
+          <div className="flex gap-3">
+            {recentNovels.map((novel) => (
+              <Link
+                key={novel.id}
+                href={`/workspace/star/${novel.id}`}
+                className="space-card rounded-xl p-3 flex-1 hover:border-[var(--cyan)]/30 transition-all"
+              >
+                <p className="text-sm font-medium truncate">{novel.title}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {new Date(novel.updatedAt).toLocaleDateString("zh-CN")}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Module Cards */}
       <div className="grid gap-6 md:grid-cols-2">
         {modules.map((mod, i) => (
-          <div
-            key={mod.href}
-            className={`reveal reveal-delay-${i + 1}`}
-          >
+          <div key={mod.href} className={`reveal reveal-delay-${i + 2}`}>
             <SpotlightCard href={mod.href} color={mod.color}>
               <div className="relative z-10">
                 <div
@@ -98,26 +164,6 @@ export default async function WorkspaceDashboard() {
             </SpotlightCard>
           </div>
         ))}
-      </div>
-
-      {/* Quick Stats with reveal */}
-      <div className="liquid-glass rounded-2xl p-6 reveal reveal-delay-5">
-        <h2 className="font-mono text-lg font-bold mb-4 flex items-center gap-2">
-          <BarChart3 size={20} className="text-[var(--cyan)]" />
-          创作概览
-        </h2>
-        <div className="grid grid-cols-3 gap-8 text-center">
-          {[
-            { label: "创作内容", value: "—" },
-            { label: "总字数", value: "—" },
-            { label: "覆盖平台", value: "—" },
-          ].map((stat) => (
-            <div key={stat.label}>
-              <div className="font-mono text-2xl font-bold text-foreground mb-1">{stat.value}</div>
-              <div className="text-xs text-muted-foreground">{stat.label}</div>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
