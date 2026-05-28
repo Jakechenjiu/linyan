@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { GripVertical, Trash2, Plus } from "lucide-react";
+import { GripVertical, Trash2, Plus, Check } from "lucide-react";
 import { toast } from "sonner";
 
 interface ChapterItem {
@@ -29,30 +29,20 @@ export default function ChapterList({
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const [insertAfterId, setInsertAfterId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
 
-  const handleDragStart = (idx: number) => {
-    setDragIdx(idx);
-  };
-
-  const handleDragOver = (e: React.DragEvent, idx: number) => {
-    e.preventDefault();
-    setOverIdx(idx);
-  };
+  const handleDragStart = (idx: number) => setDragIdx(idx);
+  const handleDragOver = (e: React.DragEvent, idx: number) => { e.preventDefault(); setOverIdx(idx); };
 
   const handleDrop = async (idx: number) => {
-    if (dragIdx === null || dragIdx === idx) {
-      setDragIdx(null);
-      setOverIdx(null);
-      return;
-    }
-
+    if (dragIdx === null || dragIdx === idx) { setDragIdx(null); setOverIdx(null); return; }
     const reordered = [...items];
     const [moved] = reordered.splice(dragIdx, 1);
     reordered.splice(idx, 0, moved);
     setItems(reordered);
     setDragIdx(null);
     setOverIdx(null);
-
     await fetch(`/api/novels/${novelId}/chapters/reorder`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -60,33 +50,18 @@ export default function ChapterList({
     });
   };
 
-  const handleDragEnd = () => {
-    setDragIdx(null);
-    setOverIdx(null);
-  };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
-
     const formData = new FormData();
     formData.set("title", newTitle.trim());
-    if (insertAfterId) {
-      formData.set("afterChapterId", insertAfterId);
-    }
-
+    if (insertAfterId) formData.set("afterChapterId", insertAfterId);
     const result = await addAction(formData);
     if (result.ok) {
       toast.success(`章节「${result.title}」已创建`);
       setNewTitle("");
       setInsertAfterId(null);
-      // Optimistic update
-      const newChapter: ChapterItem = {
-        id: crypto.randomUUID(),
-        title: result.title!,
-        order: 0,
-        wordCount: 0,
-      };
+      const newChapter: ChapterItem = { id: crypto.randomUUID(), title: result.title!, order: 0, wordCount: 0 };
       if (insertAfterId) {
         const idx = items.findIndex((ch) => ch.id === insertAfterId);
         const updated = [...items];
@@ -98,6 +73,23 @@ export default function ChapterList({
     } else {
       toast.error(result.error || "创建失败");
     }
+  };
+
+  const handleStartEdit = (ch: ChapterItem) => {
+    setEditingId(ch.id);
+    setEditingTitle(ch.title);
+  };
+
+  const handleSaveEdit = async (chId: string) => {
+    if (!editingTitle.trim()) { setEditingId(null); return; }
+    setItems((prev) => prev.map((ch) => ch.id === chId ? { ...ch, title: editingTitle.trim() } : ch));
+    setEditingId(null);
+    await fetch(`/api/chapters/${chId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: editingTitle.trim() }),
+    });
+    toast.success("标题已更新");
   };
 
   return (
@@ -114,18 +106,13 @@ export default function ChapterList({
           className="w-full px-3 py-2 rounded-lg bg-[var(--background)] border border-card-border text-xs focus:outline-none focus:border-[var(--cyan)] transition-colors"
         />
         <div className="flex gap-1.5 mt-2">
-          <button
-            type="submit"
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--cyan-soft)] text-[var(--cyan)] hover:bg-[var(--cyan)] hover:text-[#0a0e17] transition-all"
-          >
+          <button type="submit"
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--cyan-soft)] text-[var(--cyan)] hover:bg-[var(--cyan)] hover:text-[#0a0e17] transition-all">
             {insertAfterId ? "插入章节" : "添加章节"}
           </button>
           {insertAfterId && (
-            <button
-              type="button"
-              onClick={() => setInsertAfterId(null)}
-              className="px-2 py-1.5 rounded-lg text-[10px] text-muted-foreground hover:text-foreground border border-card-border transition-colors"
-            >
+            <button type="button" onClick={() => setInsertAfterId(null)}
+              className="px-2 py-1.5 rounded-lg text-[10px] text-muted-foreground hover:text-foreground border border-card-border transition-colors">
               取消
             </button>
           )}
@@ -136,11 +123,11 @@ export default function ChapterList({
         {items.map((ch, idx) => (
           <div
             key={ch.id}
-            draggable
+            draggable={editingId !== ch.id}
             onDragStart={() => handleDragStart(idx)}
             onDragOver={(e) => handleDragOver(e, idx)}
             onDrop={() => handleDrop(idx)}
-            onDragEnd={handleDragEnd}
+            onDragEnd={() => { setDragIdx(null); setOverIdx(null); }}
             className={`space-card rounded-lg p-2.5 group cursor-default transition-all ${
               dragIdx === idx ? "opacity-50" : ""
             } ${overIdx === idx && dragIdx !== idx ? "border-[var(--cyan)] border" : ""} ${
@@ -148,23 +135,38 @@ export default function ChapterList({
             }`}
           >
             <div className="flex items-start gap-1.5">
-              <button
-                className="mt-0.5 text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing transition-colors"
-                aria-label="拖拽排序"
-              >
+              <button className="mt-0.5 text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing transition-colors"
+                aria-label="拖拽排序">
                 <GripVertical size={12} />
               </button>
-              <a href={`#chapter-${ch.id}`} className="flex-1 min-w-0">
+
+              <div className="flex-1 min-w-0">
                 <span className="text-[10px] text-muted-foreground">第 {idx + 1} 章</span>
-                <p className="text-xs font-medium truncate">{ch.title}</p>
+                {editingId === ch.id ? (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <input
+                      value={editingTitle}
+                      onChange={(e) => setEditingTitle(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleSaveEdit(ch.id); if (e.key === "Escape") setEditingId(null); }}
+                      className="flex-1 px-1.5 py-0.5 rounded bg-[var(--background)] border border-[var(--cyan)] text-xs focus:outline-none"
+                      autoFocus
+                    />
+                    <button onClick={() => handleSaveEdit(ch.id)} className="p-0.5 text-emerald-400 hover:text-emerald-300">
+                      <Check size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-xs font-medium truncate cursor-text hover:text-[var(--cyan)] transition-colors"
+                    onClick={() => handleStartEdit(ch)} title="点击编辑标题">
+                    {ch.title}
+                  </p>
+                )}
                 <span className="text-[10px] text-muted-foreground">{ch.wordCount} 字</span>
-              </a>
+              </div>
+
               <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={() => setInsertAfterId(ch.id)}
-                  className="p-0.5 rounded text-muted-foreground hover:text-[var(--cyan)] transition-colors"
-                  title="在此章后插入"
-                >
+                <button onClick={() => setInsertAfterId(ch.id)}
+                  className="p-0.5 rounded text-muted-foreground hover:text-[var(--cyan)] transition-colors" title="在此章后插入">
                   <Plus size={12} />
                 </button>
                 <form action={deleteAction.bind(null, ch.id)}>
