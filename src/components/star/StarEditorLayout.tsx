@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Plus, Trash2, GripVertical, ChevronLeft, ChevronRight, PanelRightClose, PanelRight } from "lucide-react";
+import { Plus, Trash2, GripVertical, ChevronLeft, ChevronRight, PanelRightClose, PanelRight, BookOpen } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import ChatPanel from "./ChatPanel";
 import ChapterViewer from "./ChapterViewer";
@@ -171,6 +172,16 @@ export default function StarEditorLayout({
                   </button>
                 </div>
               ))}
+            </div>
+
+            {/* Reference notes */}
+            <div className="p-2 border-t border-card-border shrink-0">
+              <Link
+                href="/workspace/notes"
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded text-[10px] text-muted-foreground hover:text-[var(--cyan)] hover:bg-[var(--accent)] transition-colors"
+              >
+                <BookOpen size={10} /> 引用笔记
+              </Link>
             </div>
           </>
         )}

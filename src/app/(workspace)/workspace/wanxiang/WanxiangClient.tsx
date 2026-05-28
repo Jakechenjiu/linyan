@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Network, Loader2, ArrowRight, Users, RefreshCw, FileText, ExternalLink, ChevronDown, ChevronUp, Sparkles, Settings2, Plus, Trash2, Clock, Brain, Download, Bookmark, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import WanxiangResult from "@/components/shared/WanxiangResult";
@@ -32,8 +33,27 @@ const categoryLabels: Record<string, string> = {
 };
 
 export default function WanxiangPage() {
+  const searchParams = useSearchParams();
   const [topic, setTopic] = useState("");
   const [seedMaterial, setSeedMaterial] = useState("");
+
+  // Pre-fill from note if coming from notes page
+  useEffect(() => {
+    const fromNoteId = searchParams.get("from");
+    if (fromNoteId) {
+      fetch(`/api/notes/${fromNoteId}`)
+        .then((res) => res.json())
+        .then((note) => {
+          if (note.body) {
+            setSeedMaterial(note.body.slice(0, 2000));
+            if (note.title) {
+              setTopic(note.title);
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [searchParams]);
   const [agentCount, setAgentCount] = useState(10);
   const [rounds, setRounds] = useState(5);
   const [loading, setLoading] = useState(false);
