@@ -190,7 +190,7 @@ export default function StarEditorLayout({
       {/* Right: Chapter Viewer */}
       <div
         className={`shrink-0 border-l border-card-border flex flex-col transition-all duration-200 ${
-          viewerOpen ? "w-80" : "w-10"
+          viewerOpen ? "w-96" : "w-10"
         }`}
       >
         <div className="flex items-center justify-between px-2 py-2 border-b border-card-border shrink-0">

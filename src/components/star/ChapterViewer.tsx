@@ -108,7 +108,7 @@ export default function ChapterViewer({
         <span className="text-[10px] text-muted-foreground">{chapter.wordCount} 字</span>
       </div>
 
-      {/* Content */}
+      {/* Content - scrollable */}
       <div className="flex-1 overflow-y-auto p-4">
         {activeTab === "content" && (
           <div>
@@ -128,24 +128,6 @@ export default function ChapterViewer({
               placeholder="点击这里开始写作…"
               spellCheck={false}
             />
-
-            {/* Save bar */}
-            <div className="flex items-center justify-end gap-2 mt-2 pt-2 border-t border-card-border">
-              {saving && (
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Loader2 size={12} className="animate-spin" /> 保存中…
-                </span>
-              )}
-              {!saving && saved && (
-                <span className="flex items-center gap-1 text-xs text-emerald-400">
-                  <Check size={12} /> 已保存
-                </span>
-              )}
-              <button type="button" onClick={handleSave}
-                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium bg-[var(--cyan-soft)] text-[var(--cyan)] hover:bg-[var(--cyan)] hover:text-[#0a0e17] transition-all">
-                <Save size={12} /> 保存
-              </button>
-            </div>
 
             {/* Fact Snapshot */}
             {factData && (
@@ -261,6 +243,27 @@ export default function ChapterViewer({
             )}
           </div>
         )}
+      </div>
+
+      {/* Save bar - fixed at bottom */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-t border-card-border shrink-0 bg-[var(--background)]">
+        <span className="text-[10px] text-muted-foreground">{chapter.wordCount} 字</span>
+        <div className="flex items-center gap-2">
+          {saving && (
+            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <Loader2 size={11} className="animate-spin" /> 保存中…
+            </span>
+          )}
+          {!saving && saved && (
+            <span className="flex items-center gap-1 text-[11px] text-emerald-400">
+              <Check size={11} /> 已保存
+            </span>
+          )}
+          <button type="button" onClick={handleSave}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[var(--cyan-soft)] text-[var(--cyan)] hover:bg-[var(--cyan)] hover:text-[#0a0e17] transition-all">
+            <Save size={11} /> 保存
+          </button>
+        </div>
       </div>
     </div>
   );

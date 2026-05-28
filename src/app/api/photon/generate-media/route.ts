@@ -43,8 +43,8 @@ export async function POST(req: Request) {
 
   // Determine provider: explicit param > auto-detect > dashscope default
   let providerType: ProviderType = "dashscope";
-  if (providerParam === "pixelle" || providerParam === "dashscope") {
-    providerType = providerParam;
+  if (providerParam && ["dashscope", "kling", "zhipu", "pixelle"].includes(providerParam)) {
+    providerType = providerParam as ProviderType;
   } else {
     providerType = await detectAvailableProvider({ apiKey: userDashscopeKey });
   }
@@ -53,9 +53,7 @@ export async function POST(req: Request) {
   const available = await videoProvider.isAvailable();
   if (!available) {
     return NextResponse.json({
-      error: providerType === "dashscope"
-        ? "DashScope API Key 未配置。请在设置页面「通义万相」中配置您的 API Key，或前往 dashscope.console.aliyun.com 获取"
-        : "Pixelle-Video 服务未启动。请确认服务运行在 http://localhost:8501",
+      error: `视频生成服务不可用 (${providerType})。请在设置页面配置对应的 API Key，或切换到其他视频模型。`,
     }, { status: 400 });
   }
 
