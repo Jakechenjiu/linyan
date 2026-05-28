@@ -28,7 +28,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
 
   return (
     <WorkspaceLayoutClient sidebar={sidebar}>
-      <main className="flex-1 overflow-y-auto p-4 md:p-8">
+      <main className="flex-1 overflow-y-auto p-4 md:p-8 relative z-20">
         {children}
       </main>
     </WorkspaceLayoutClient>

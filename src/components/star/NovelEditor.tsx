@@ -432,23 +432,25 @@ export default function NovelEditor({ novelId, chapter }: Props) {
         )}
       </div>
 
-      {/* Save status - integrated into editor */}
-      <div className="flex items-center justify-between mt-1 py-1">
-        <span className="text-[10px] text-muted-foreground">{body.trim().length} 字</span>
-        {saved ? (
-          <span className="flex items-center gap-1 text-[10px] text-emerald-400">
-            <Check size={10} /> 已保存
-          </span>
-        ) : saving ? (
-          <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-            <Loader2 size={10} className="animate-spin" /> 保存中…
-          </span>
-        ) : (
+      {/* Save bar */}
+      <div className="flex items-center justify-between mt-2 pt-2 border-t border-card-border">
+        <span className="text-xs text-muted-foreground">{body.trim().length} 字</span>
+        <div className="flex items-center gap-3">
+          {saving && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Loader2 size={12} className="animate-spin" /> 保存中…
+            </span>
+          )}
+          {!saving && saved && (
+            <span className="flex items-center gap-1 text-xs text-emerald-400">
+              <Check size={12} /> 已保存
+            </span>
+          )}
           <button type="button" onClick={handleSave}
-            className="flex items-center gap-1 text-[10px] text-[var(--cyan)] hover:underline">
-            <Save size={10} /> 保存
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium bg-[var(--cyan-soft)] text-[var(--cyan)] hover:bg-[var(--cyan)] hover:text-[#0a0e17] transition-all">
+            <Save size={12} /> 保存
           </button>
-        )}
+        </div>
       </div>
 
       {/* Fact Snapshot */}
