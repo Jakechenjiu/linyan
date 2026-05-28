@@ -49,12 +49,18 @@ export default function ChapterViewer({
   const [saved, setSaved] = useState(true);
 
   const factData = chapter?.factSnapshot
-    ? (JSON.parse(chapter.factSnapshot) as {
-        newFacts?: string[];
-        stateChanges?: string[];
-        openHooks?: string[];
-        characterMoments?: Record<string, string>;
-      })
+    ? (() => {
+        try {
+          return JSON.parse(chapter.factSnapshot) as {
+            newFacts?: string[];
+            stateChanges?: string[];
+            openHooks?: string[];
+            characterMoments?: Record<string, string>;
+          };
+        } catch {
+          return null;
+        }
+      })()
     : null;
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
