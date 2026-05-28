@@ -3,6 +3,7 @@
 import { useState, ReactNode } from "react";
 import WorkspaceAtmosphere from "@/components/brand/WorkspaceAtmosphere";
 import CursorGlow from "@/components/brand/CursorGlow";
+import GlobalAI from "@/components/shared/GlobalAI";
 import { Menu, X } from "lucide-react";
 
 export default function WorkspaceLayoutClient({
@@ -73,6 +74,8 @@ export default function WorkspaceLayoutClient({
 
         {children}
       </div>
+
+      <GlobalAI />
     </>
   );
 }
