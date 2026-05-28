@@ -219,6 +219,8 @@ export default function StarEditorLayout({
             chapter={selectedChapter}
             characters={characters}
             outlineVolumes={outlineVolumes}
+            onBodyChange={handleBodyChange}
+            onSave={handleSave}
           />
         )}
       </div>

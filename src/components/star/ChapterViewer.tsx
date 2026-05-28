@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, FileText, Zap, AlertTriangle, Sparkles, Users, BookOpen, ListTree, Palette } from "lucide-react";
+import { ChevronDown, ChevronRight, FileText, Zap, AlertTriangle, Sparkles, Users, BookOpen, ListTree, Palette, Save, Check, Loader2 } from "lucide-react";
 
 interface Chapter {
   id: string;
@@ -34,13 +34,19 @@ export default function ChapterViewer({
   chapter,
   characters,
   outlineVolumes,
+  onBodyChange,
+  onSave,
 }: {
   chapter: Chapter | null;
   characters: Character[];
   outlineVolumes: OutlineVolume[];
+  onBodyChange?: (body: string) => void;
+  onSave?: () => Promise<void>;
 }) {
   const [activeTab, setActiveTab] = useState<TabId>("content");
   const [showFacts, setShowFacts] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(true);
 
   const factData = chapter?.factSnapshot
     ? (JSON.parse(chapter.factSnapshot) as {
@@ -56,6 +62,21 @@ export default function ChapterViewer({
     { id: "outline", label: "大纲", icon: <ListTree size={12} /> },
     { id: "characters", label: "角色", icon: <Palette size={12} /> },
   ];
+
+  const handleBodyChange = (newBody: string) => {
+    if (onBodyChange) {
+      onBodyChange(newBody);
+      setSaved(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!onSave) return;
+    setSaving(true);
+    await onSave();
+    setSaving(false);
+    setSaved(true);
+  };
 
   if (!chapter) {
     return (
@@ -98,7 +119,33 @@ export default function ChapterViewer({
                 <p className="text-xs">{chapter.outline.summary}</p>
               </div>
             )}
-            <div className="text-sm leading-relaxed whitespace-pre-wrap">{chapter.body || "（空章节）"}</div>
+            {/* Editable textarea */}
+            <textarea
+              value={chapter.body}
+              onChange={(e) => handleBodyChange(e.target.value)}
+              rows={Math.max(15, chapter.body.split("\n").length + 4)}
+              className="w-full bg-[var(--accent)]/20 text-sm leading-relaxed resize-none rounded-lg p-4 border border-card-border focus:outline-none focus:border-[var(--cyan)] focus:bg-[var(--accent)]/40 transition-all cursor-text"
+              placeholder="点击这里开始写作…"
+              spellCheck={false}
+            />
+
+            {/* Save bar */}
+            <div className="flex items-center justify-end gap-2 mt-2 pt-2 border-t border-card-border">
+              {saving && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Loader2 size={12} className="animate-spin" /> 保存中…
+                </span>
+              )}
+              {!saving && saved && (
+                <span className="flex items-center gap-1 text-xs text-emerald-400">
+                  <Check size={12} /> 已保存
+                </span>
+              )}
+              <button type="button" onClick={handleSave}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium bg-[var(--cyan-soft)] text-[var(--cyan)] hover:bg-[var(--cyan)] hover:text-[#0a0e17] transition-all">
+                <Save size={12} /> 保存
+              </button>
+            </div>
 
             {/* Fact Snapshot */}
             {factData && (
