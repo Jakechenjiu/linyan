@@ -6,8 +6,13 @@ const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL || "deepseek-v4-pro";
 
 const providerDefaults: Record<string, { baseUrl: string; model: string }> = {
   deepseek: { baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
+  qwen: { baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus" },
+  zhipu: { baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash" },
+  moonshot: { baseUrl: "https://api.moonshot.cn/v1", model: "moonshot-v1-8k" },
+  spark: { baseUrl: "https://spark-api-open.xf-yun.com/v1", model: "generalv3.5" },
   openai: { baseUrl: "https://api.openai.com/v1", model: "gpt-4o" },
   anthropic: { baseUrl: "https://api.anthropic.com", model: "claude-sonnet-4-6" },
+  google: { baseUrl: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.0-flash" },
 };
 
 export async function getAiConfig(userId: string) {

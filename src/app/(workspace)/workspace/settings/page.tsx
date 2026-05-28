@@ -7,21 +7,47 @@ import { checkMembership, FREE_LIMITS } from "@/lib/membership";
 import MembershipCodeInput from "@/components/shared/MembershipCodeInput";
 
 const providerOptions = [
-  { value: "deepseek", label: "DeepSeek", desc: "性价比最高，推荐" },
-  { value: "openai", label: "OpenAI", desc: "GPT-4o 等模型" },
-  { value: "anthropic", label: "Anthropic", desc: "Claude 系列模型" },
+  { value: "deepseek", label: "DeepSeek", desc: "性价比最高，推荐", region: "国内" },
+  { value: "qwen", label: "通义千问", desc: "阿里云，能力强", region: "国内" },
+  { value: "zhipu", label: "智谱 GLM", desc: "清华系，中文优秀", region: "国内" },
+  { value: "moonshot", label: "月之暗面", desc: "Kimi，长文本强", region: "国内" },
+  { value: "spark", label: "讯飞星火", desc: "科大讯飞，语音强", region: "国内" },
+  { value: "openai", label: "OpenAI", desc: "GPT-4o 等模型", region: "海外" },
+  { value: "anthropic", label: "Anthropic", desc: "Claude 系列模型", region: "海外" },
+  { value: "google", label: "Google", desc: "Gemini 系列模型", region: "海外" },
 ];
 
 const providerEndpoints: Record<string, string> = {
   deepseek: "https://api.deepseek.com/v1",
+  qwen: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  zhipu: "https://open.bigmodel.cn/api/paas/v4",
+  moonshot: "https://api.moonshot.cn/v1",
+  spark: "https://spark-api-open.xf-yun.com/v1",
   openai: "https://api.openai.com/v1",
   anthropic: "https://api.anthropic.com",
+  google: "https://generativelanguage.googleapis.com/v1beta",
 };
 
 const providerKeyLinks: Record<string, string> = {
   deepseek: "https://platform.deepseek.com/api_keys",
+  qwen: "https://dashscope.console.aliyun.com/apiKey",
+  zhipu: "https://open.bigmodel.cn/usercenter/apikeys",
+  moonshot: "https://platform.moonshot.cn/console/api-keys",
+  spark: "https://console.xfyun.cn/services/bm4",
   openai: "https://platform.openai.com/api-keys",
   anthropic: "https://console.anthropic.com/settings/keys",
+  google: "https://aistudio.google.com/apikey",
+};
+
+const providerModels: Record<string, string[]> = {
+  deepseek: ["deepseek-chat", "deepseek-reasoner"],
+  qwen: ["qwen-plus", "qwen-turbo", "qwen-max"],
+  zhipu: ["glm-4-flash", "glm-4-plus", "glm-4"],
+  moonshot: ["moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k"],
+  spark: ["generalv3.5", "4.0Ultra"],
+  openai: ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo"],
+  anthropic: ["claude-sonnet-4-20250514", "claude-haiku-4-20250414"],
+  google: ["gemini-2.0-flash", "gemini-1.5-pro"],
 };
 
 export default async function SettingsPage() {
@@ -270,25 +296,41 @@ export default async function SettingsPage() {
             {/* Provider */}
             <div>
               <label className="text-sm font-medium mb-2 block">API 提供商</label>
-              <div className="grid grid-cols-3 gap-2">
-                {providerOptions.map((p) => (
+              {/* 国内 */}
+              <p className="text-[10px] text-muted-foreground mb-2">国内厂商</p>
+              <div className="grid grid-cols-5 gap-2 mb-3">
+                {providerOptions.filter((p) => p.region === "国内").map((p) => (
                   <label
                     key={p.value}
-                    className={`p-3 rounded-xl text-center cursor-pointer transition-all border ${
+                    className={`p-2.5 rounded-xl text-center cursor-pointer transition-all border ${
                       (user?.apiProvider || "deepseek") === p.value
                         ? "border-[var(--cyan)] bg-[var(--cyan-soft)]"
                         : "border-card-border hover:border-[var(--cyan)] hover:bg-[var(--accent)]"
                     }`}
                   >
-                    <input
-                      type="radio"
-                      name="apiProvider"
-                      value={p.value}
-                      defaultChecked={(user?.apiProvider || "deepseek") === p.value}
-                      className="hidden"
-                    />
+                    <input type="radio" name="apiProvider" value={p.value}
+                      defaultChecked={(user?.apiProvider || "deepseek") === p.value} className="hidden" />
                     <div className="text-xs font-medium">{p.label}</div>
-                    <div className="text-[10px] text-muted-foreground">{p.desc}</div>
+                    <div className="text-[9px] text-muted-foreground">{p.desc}</div>
+                  </label>
+                ))}
+              </div>
+              {/* 海外 */}
+              <p className="text-[10px] text-muted-foreground mb-2">海外厂商</p>
+              <div className="grid grid-cols-3 gap-2">
+                {providerOptions.filter((p) => p.region === "海外").map((p) => (
+                  <label
+                    key={p.value}
+                    className={`p-2.5 rounded-xl text-center cursor-pointer transition-all border ${
+                      (user?.apiProvider || "deepseek") === p.value
+                        ? "border-[var(--cyan)] bg-[var(--cyan-soft)]"
+                        : "border-card-border hover:border-[var(--cyan)] hover:bg-[var(--accent)]"
+                    }`}
+                  >
+                    <input type="radio" name="apiProvider" value={p.value}
+                      defaultChecked={(user?.apiProvider || "deepseek") === p.value} className="hidden" />
+                    <div className="text-xs font-medium">{p.label}</div>
+                    <div className="text-[9px] text-muted-foreground">{p.desc}</div>
                   </label>
                 ))}
               </div>
