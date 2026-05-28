@@ -93,8 +93,23 @@ export default function ChapterViewer({
     );
   }
 
+  const roleColors: Record<string, string> = {
+    protagonist: "bg-cyan-500/20 text-cyan-400",
+    antagonist: "bg-red-500/20 text-red-400",
+    love_interest: "bg-pink-500/20 text-pink-400",
+    mentor: "bg-amber-500/20 text-amber-400",
+    supporting: "bg-purple-500/20 text-purple-400",
+  };
+  const roleLabels: Record<string, string> = {
+    protagonist: "主角",
+    antagonist: "反派",
+    love_interest: "感情线",
+    mentor: "导师",
+    supporting: "配角",
+  };
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Tabs */}
       <div className="flex items-center gap-1 px-3 py-2 border-b border-card-border shrink-0">
         {tabs.map((tab) => (
@@ -110,12 +125,10 @@ export default function ChapterViewer({
             {tab.icon} {tab.label}
           </button>
         ))}
-        <div className="flex-1" />
-        <span className="text-[10px] text-muted-foreground">{chapter.wordCount} 字</span>
       </div>
 
       {/* Content - scrollable */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 min-h-0">
         {activeTab === "content" && (
           <div>
             <h3 className="font-mono text-sm font-bold mb-3">{chapter.title}</h3>
@@ -125,7 +138,6 @@ export default function ChapterViewer({
                 <p className="text-xs">{chapter.outline.summary}</p>
               </div>
             )}
-            {/* Editable textarea */}
             <textarea
               value={chapter.body}
               onChange={(e) => handleBodyChange(e.target.value)}
@@ -134,8 +146,6 @@ export default function ChapterViewer({
               placeholder="点击这里开始写作…"
               spellCheck={false}
             />
-
-            {/* Fact Snapshot */}
             {factData && (
               <div className="mt-4 rounded-xl border border-card-border overflow-hidden">
                 <button
@@ -176,7 +186,7 @@ export default function ChapterViewer({
                         <p className="flex items-center gap-1 font-medium text-pink-400 mb-0.5"><Users size={10} /> 角色时刻</p>
                         <ul className="space-y-0.5 ml-4">
                           {Object.entries(factData.characterMoments).map(([name, moment]) => (
-                            <li key={name} className="text-muted-foreground"><span className="text-foreground font-medium">{name}：</span>{moment}</li>
+                            <li key={name} className="text-muted-foreground"><span className="text-foreground font-medium">{String(name)}：</span>{String(moment)}</li>
                           ))}
                         </ul>
                       </div>
@@ -215,44 +225,28 @@ export default function ChapterViewer({
 
         {activeTab === "characters" && (
           <div className="space-y-2">
-            {characters.length === 0 ? (
+            {!characters || characters.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center">暂无角色</p>
             ) : (
-              characters.map((char) => {
-                const roleColors: Record<string, string> = {
-                  protagonist: "bg-cyan-500/20 text-cyan-400",
-                  antagonist: "bg-red-500/20 text-red-400",
-                  love_interest: "bg-pink-500/20 text-pink-400",
-                  mentor: "bg-amber-500/20 text-amber-400",
-                  supporting: "bg-purple-500/20 text-purple-400",
-                };
-                const roleLabels: Record<string, string> = {
-                  protagonist: "主角",
-                  antagonist: "反派",
-                  love_interest: "感情线",
-                  mentor: "导师",
-                  supporting: "配角",
-                };
-                return (
-                  <div key={char.id} className="space-card rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold">{char.name}</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${roleColors[char.role] || roleColors.supporting}`}>
-                        {roleLabels[char.role] || char.role}
-                      </span>
-                    </div>
-                    {char.tagline && <p className="text-[10px] text-[var(--star)] mb-1">{char.tagline}</p>}
-                    {char.personality && <p className="text-[11px] text-muted-foreground">{char.personality}</p>}
+              characters.map((char) => (
+                <div key={char.id} className="space-card rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-bold">{char.name || "未命名"}</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${roleColors[char.role] || roleColors.supporting}`}>
+                      {roleLabels[char.role] || char.role || "配角"}
+                    </span>
                   </div>
-                );
-              })
+                  {char.tagline && <p className="text-[10px] text-[var(--star)] mb-1">{char.tagline}</p>}
+                  {char.personality && <p className="text-[11px] text-muted-foreground">{char.personality}</p>}
+                </div>
+              ))
             )}
           </div>
         )}
       </div>
 
       {/* Save bar - fixed at bottom */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-t border-card-border shrink-0 bg-[var(--background)]">
+      <div className="flex items-center justify-between px-4 py-3 border-t border-card-border shrink-0 bg-[var(--background)]">
         <span className="text-[10px] text-muted-foreground">{chapter.wordCount} 字</span>
         <div className="flex items-center gap-2">
           {saving && (
@@ -266,8 +260,8 @@ export default function ChapterViewer({
             </span>
           )}
           <button type="button" onClick={handleSave}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[var(--cyan-soft)] text-[var(--cyan)] hover:bg-[var(--cyan)] hover:text-[#0a0e17] transition-all">
-            <Save size={11} /> 保存
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-bold bg-[var(--cyan)] text-[#0a0e17] hover:opacity-90 transition-all">
+            <Save size={12} /> 保存
           </button>
         </div>
       </div>
