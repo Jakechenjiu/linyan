@@ -419,9 +419,10 @@ export default function NovelEditor({ novelId, chapter }: Props) {
           ref={textareaRef}
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          rows={Math.max(8, body.split("\n").length + 4)}
-          className="w-full bg-transparent text-sm leading-relaxed resize-none focus:outline-none rounded-lg p-3 transition-all focus:bg-[var(--accent)]/30"
-          placeholder="开始写作…"
+          rows={Math.max(10, body.split("\n").length + 4)}
+          className="w-full bg-[var(--accent)]/20 text-sm leading-relaxed resize-none rounded-lg p-4 border border-card-border focus:outline-none focus:border-[var(--cyan)] focus:bg-[var(--accent)]/40 transition-all cursor-text"
+          placeholder="点击这里开始写作…"
+          spellCheck={false}
         />
         {streaming && (
           <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded-md bg-[var(--nebula)]/10 border border-[var(--nebula)]/20">
