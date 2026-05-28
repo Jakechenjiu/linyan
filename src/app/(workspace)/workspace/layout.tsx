@@ -9,7 +9,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   try {
     session = await auth();
   } catch {
-    return <main className="flex-1 overflow-y-auto p-8">{children}</main>;
+    return <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>;
   }
   if (!session?.user) redirect("/login");
 
@@ -19,17 +19,18 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
     select: { membership: true, membershipId: true },
   });
 
+  const sidebar = (
+    <WorkspaceSidebar
+      user={session.user}
+      membership={{ tier: user?.membership || "free", membershipId: user?.membershipId }}
+    />
+  );
+
   return (
-    <WorkspaceLayoutClient>
-      <div className="flex h-screen relative z-10">
-        <WorkspaceSidebar
-          user={session.user}
-          membership={{ tier: user?.membership || "free", membershipId: user?.membershipId }}
-        />
-        <main className="flex-1 overflow-y-auto p-8">
-          {children}
-        </main>
-      </div>
+    <WorkspaceLayoutClient sidebar={sidebar}>
+      <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        {children}
+      </main>
     </WorkspaceLayoutClient>
   );
 }

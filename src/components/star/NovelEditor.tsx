@@ -414,14 +414,22 @@ export default function NovelEditor({ novelId, chapter }: Props) {
         className="w-full font-mono text-xl font-bold bg-transparent border-b border-card-border pb-2 mb-4 focus:outline-none focus:border-[var(--cyan)] transition-colors"
       />
 
-      <textarea
-        ref={textareaRef}
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        rows={Math.max(8, body.split("\n").length + 4)}
-        className="w-full bg-transparent text-sm leading-relaxed resize-none focus:outline-none"
-        placeholder="开始写作…"
-      />
+      <div className="relative">
+        <textarea
+          ref={textareaRef}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={Math.max(8, body.split("\n").length + 4)}
+          className="w-full bg-transparent text-sm leading-relaxed resize-none focus:outline-none rounded-lg p-3 transition-all focus:bg-[var(--accent)]/30"
+          placeholder="开始写作…"
+        />
+        {streaming && (
+          <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded-md bg-[var(--nebula)]/10 border border-[var(--nebula)]/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--nebula)] animate-pulse" />
+            <span className="text-[9px] text-[var(--nebula)]">生成中</span>
+          </div>
+        )}
+      </div>
 
       {/* Save status - integrated into editor */}
       <div className="flex items-center justify-between mt-1 py-1">
@@ -509,22 +517,31 @@ export default function NovelEditor({ novelId, chapter }: Props) {
       )}
 
       <div className="flex items-center justify-between mt-4 pt-4 border-t border-card-border">
-        <span className="text-xs text-muted-foreground">{wordCount.toLocaleString()} 字</span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground">{wordCount.toLocaleString()} 字</span>
+          {streaming && (
+            <span className="flex items-center gap-1.5 text-[10px] text-[var(--nebula)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--nebula)] animate-pulse" />
+              AI 生成中…
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {/* AI Mode Selector */}
           <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-[var(--accent)] border border-card-border">
             {[
-              { id: "chat", label: "对话" },
-              { id: "continue", label: "续写" },
-              { id: "describe", label: "描写" },
-              { id: "expand", label: "扩写" },
-              { id: "rewrite", label: "改写" },
-              { id: "brainstorm", label: "灵感" },
+              { id: "chat", label: "对话", desc: "AI直接改正文" },
+              { id: "continue", label: "续写", desc: "从光标继续写" },
+              { id: "describe", label: "描写", desc: "加感官细节" },
+              { id: "expand", label: "扩写", desc: "加对话动作" },
+              { id: "rewrite", label: "改写", desc: "提升文字质感" },
+              { id: "brainstorm", label: "灵感", desc: "给剧情方向" },
             ].map((m) => (
               <button
                 key={m.id}
                 type="button"
                 onClick={() => setAiMode(m.id)}
+                title={m.desc}
                 className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
                   aiMode === m.id
                     ? "bg-[var(--nebula)] text-[#0a0e17]"
