@@ -27,6 +27,7 @@ model User {
   videoProjects VideoProject[]
   notes        Note[]
   simulations  Simulation[]
+  reports      Report[]
   membershipCode MembershipCode? @relation("CodeUser")
 }
 
@@ -263,4 +264,17 @@ model Simulation {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  reporterId  String
+  reporter    User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType  String   // novel|content|video|note|simulation
+  targetId    String
+  reason      String   // illegal|spam|abuse|other
+  description String?
+  status      String   @default("pending")  // pending|reviewed|resolved|dismissed
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
