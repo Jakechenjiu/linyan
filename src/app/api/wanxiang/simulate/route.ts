@@ -1,8 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
-
-const WANXIANG_URL = process.env.WANXIANG_URL || "http://localhost:5001";
+import { runSimulation } from "@/lib/wanxiang/engine";
 
 export async function POST(req: Request) {
   let session;
@@ -23,6 +22,24 @@ export async function POST(req: Request) {
   const agentCount = body.agentCount || 10;
   const rounds = body.rounds || 5;
 
+  // Default agents if not provided
+  const defaultAgents = [
+    { name: "分析师", role: "冷静客观的数据分析师" },
+    { name: "反对者", role: "持怀疑态度，善于发现风险" },
+    { name: "乐观派", role: "关注机遇和可能性" },
+    { name: "悲观派", role: "关注最坏情况和脆弱环节" },
+    { name: "领域专家", role: "深厚专业知识的技术权威" },
+    { name: "创新者", role: "善于提出颠覆性想法" },
+    { name: "保守派", role: "倾向于维持现状" },
+    { name: "用户体验设计师", role: "从用户视角思考" },
+    { name: "市场专家", role: "了解市场动态和竞争格局" },
+    { name: "战略顾问", role: "从全局视角分析问题" },
+  ];
+
+  const agents = (body.agents && Array.isArray(body.agents) && body.agents.length > 0)
+    ? body.agents.map((a: { name: string; role: string }) => ({ name: a.name, role: a.role }))
+    : defaultAgents.slice(0, agentCount);
+
   // Create simulation record
   let simulation;
   try {
@@ -30,7 +47,7 @@ export async function POST(req: Request) {
       data: {
         topic: body.topic,
         seedMaterial: body.seedMaterial || "",
-        agentCount,
+        agentCount: agents.length,
         rounds,
         status: "running",
         userId: session.user.id,
@@ -38,50 +55,17 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     console.error("Failed to create simulation record:", e);
-    // Non-fatal: continue without persistence
   }
 
   try {
-    const payload: Record<string, unknown> = {
-      topic: body.topic,
-      seed_material: body.seedMaterial || "",
-      agent_count: agentCount,
+    // Run simulation using AI engine
+    const result = await runSimulation(
+      body.topic,
+      body.seedMaterial || "",
+      agents,
       rounds,
-      platforms: body.platforms || ["twitter"],
-    };
-
-    // Include agent configs if provided
-    if (body.agents && Array.isArray(body.agents) && body.agents.length > 0) {
-      payload.agent_configs = body.agents.map((a: any) => ({
-        name: a.name,
-        role: a.role,
-      }));
-    }
-
-    const res = await fetch(`${WANXIANG_URL}/simulation/start`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(300000),
-    });
-
-    if (!res.ok) {
-      const err = await res.text().catch(() => "Unknown error");
-
-      // Mark simulation as failed
-      if (simulation) {
-        try {
-          await prisma.simulation.update({
-            where: { id: simulation.id },
-            data: { status: "failed", result: JSON.stringify({ error: err }) },
-          });
-        } catch {}
-      }
-
-      return NextResponse.json({ error: `万象推演失败: ${err}` }, { status: 502 });
-    }
-
-    const data = await res.json();
+      session.user.id
+    );
 
     // Mark simulation as completed
     if (simulation) {
@@ -90,27 +74,33 @@ export async function POST(req: Request) {
           where: { id: simulation.id },
           data: {
             status: "completed",
-            result: JSON.stringify(data),
+            result: JSON.stringify(result),
           },
         });
       } catch {}
     }
 
-    return NextResponse.json({ ...data, simulationId: simulation?.id });
+    return NextResponse.json({
+      ...result,
+      simulationId: simulation?.id,
+    });
   } catch (e: unknown) {
     // Mark simulation as failed
     if (simulation) {
       try {
         await prisma.simulation.update({
           where: { id: simulation.id },
-          data: { status: "failed", result: JSON.stringify({ error: e instanceof Error ? e.message : "未知错误" }) },
+          data: {
+            status: "failed",
+            result: JSON.stringify({ error: e instanceof Error ? e.message : "未知错误" }),
+          },
         });
       } catch {}
     }
 
-    if (e instanceof Error && e.name === "TimeoutError") {
-      return NextResponse.json({ error: "推演超时，请减少智能体数量或轮次后重试" }, { status: 504 });
-    }
-    return NextResponse.json({ error: "万象推演服务未启动，请先启动 Docker 容器" }, { status: 503 });
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "推演失败" },
+      { status: 500 }
+    );
   }
 }
