@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Save, Sparkles, Loader2, Eye, Stars, ChevronDown, ChevronRight, FileText, AlertTriangle, Zap, Users, Check } from "lucide-react";
+import { Save, Sparkles, Loader2, Eye, Stars, ChevronDown, ChevronRight, FileText, AlertTriangle, Zap, Users, Check, Shield } from "lucide-react";
 import { saveChapter } from "./actions";
+import AuditPanel from "./AuditPanel";
 
 interface ReviewResult {
   overall: string;
@@ -511,6 +512,16 @@ export default function NovelEditor({ novelId, chapter }: Props) {
           )}
         </div>
       )}
+
+      {/* AI Audit Panel */}
+      <AuditPanel
+        novelId={novelId}
+        chapterId={chapter.id}
+        onRewrite={(issues) => {
+          setAiMode("chat");
+          setChatMessage(`请修复以下AI味问题：\n${issues}`);
+        }}
+      />
 
       {/* Chat History */}
       {chatHistory.length > 0 && (
