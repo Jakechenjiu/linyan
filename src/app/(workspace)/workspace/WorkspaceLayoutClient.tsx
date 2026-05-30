@@ -62,11 +62,14 @@ export default function WorkspaceLayoutClient({
         {sidebar && (
           <div
             className={`
-              fixed md:static inset-y-0 left-0 z-40 transform transition-transform duration-300
+              fixed md:static inset-y-0 left-0 z-40 w-56 transform transition-transform duration-300
               ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
             `}
           >
-            <div onClick={() => setMobileMenuOpen(false)}>
+            <div
+              className="h-full overflow-y-auto"
+              onClick={() => setMobileMenuOpen(false)}
+            >
               {sidebar}
             </div>
           </div>
