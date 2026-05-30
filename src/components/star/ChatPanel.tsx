@@ -208,7 +208,7 @@ export default function ChatPanel({
             <button
               key={action.id}
               onClick={() => sendMessage(action.prompt)}
-              disabled={streaming || !chapterId}
+              disabled={streaming}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium bg-[var(--accent)] border border-card-border text-muted-foreground hover:text-foreground hover:border-[var(--cyan)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {action.icon} {action.label}
