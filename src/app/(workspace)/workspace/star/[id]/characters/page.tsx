@@ -119,10 +119,11 @@ export default async function NovelCharactersPage({ params }: { params: Promise<
                       <button type="submit" className="text-xs text-[var(--cyan)] hover:underline flex items-center gap-1">
                         <Save size={12} /> 保存
                       </button>
-                      <button type="button" onClick={async () => { "use server"; deleteCharacter(char.id); }}
-                        className="text-xs text-muted-foreground hover:text-red-400">
-                        <Trash2 size={12} />
-                      </button>
+                      <form action={deleteCharacter.bind(null, char.id)}>
+                        <button type="submit" className="text-xs text-muted-foreground hover:text-red-400">
+                          <Trash2 size={12} />
+                        </button>
+                      </form>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -182,40 +183,7 @@ export default async function NovelCharactersPage({ params }: { params: Promise<
                     )}
                     {/* Hidden field to persist current relationships */}
                     <input type="hidden" name="relationships" value={char.relationships || "[]"} />
-                    {/* Quick-add relationship form */}
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <select id={`rel-target-${char.id}`} className="text-[10px] px-1.5 py-1 rounded bg-[var(--background)] border border-card-border text-muted-foreground">
-                        <option value="">选择角色…</option>
-                        {novel.characters.filter((c) => c.id !== char.id).map((c) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
-                      <select id={`rel-type-${char.id}`} className="text-[10px] px-1.5 py-1 rounded bg-[var(--background)] border border-card-border text-muted-foreground">
-                        {Object.entries(relTypes).map(([k, v]) => (
-                          <option key={k} value={k}>{v.label}</option>
-                        ))}
-                      </select>
-                      <input id={`rel-label-${char.id}`} placeholder="标签（可选）" className="text-[10px] px-1.5 py-1 rounded bg-[var(--background)] border border-card-border text-muted-foreground w-20" />
-                      <button type="button" onClick={async () => {
-                        "use server";
-                        const targetEl = document.getElementById(`rel-target-${char.id}`) as HTMLSelectElement;
-                        const typeEl = document.getElementById(`rel-type-${char.id}`) as HTMLSelectElement;
-                        const labelEl = document.getElementById(`rel-label-${char.id}`) as HTMLInputElement;
-                        if (!targetEl?.value) return;
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        let rels: any[] = [];
-                        try { rels = JSON.parse(char.relationships || "[]"); } catch {}
-                        rels.push({ characterId: targetEl.value, type: typeEl.value, label: labelEl.value });
-                        await prisma.character.updateMany({
-                          where: { id: char.id },
-                          data: { relationships: JSON.stringify(rels) },
-                        });
-                        revalidatePath(`/workspace/star/${novel!.id}/characters`);
-                      }}
-                        className="text-[10px] px-2 py-1 rounded text-[var(--cyan)] hover:bg-[var(--cyan-soft)] transition-colors">
-                        添加
-                      </button>
-                    </div>
+                    {/* Note: Relationship editing available in graph view */}
                   </div>
                 </form>
               </div>
