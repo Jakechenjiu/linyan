@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { User, Brain, Video, Crown, ExternalLink, CheckCircle2, AlertCircle, Key } from "lucide-react";
 import { checkMembership, FREE_LIMITS } from "@/lib/membership";
 import MembershipCodeInput from "@/components/shared/MembershipCodeInput";
+import ProviderSelector from "@/components/settings/ProviderSelector";
 
 // AI 文本 Provider
 const aiProviders = [
@@ -205,42 +206,11 @@ export default async function SettingsPage() {
           {/* Provider 选择 */}
           <div className="mb-4">
             <label className="text-sm font-medium mb-2 block">API 提供商</label>
-            <p className="text-[10px] text-muted-foreground mb-2">国内厂商</p>
-            <div className="grid grid-cols-5 gap-2 mb-3">
-              {aiProviders.filter((p) => p.region === "国内").map((p) => (
-                <label
-                  key={p.value}
-                  className={`p-2.5 rounded-xl text-center cursor-pointer transition-all border ${
-                    (user?.apiProvider || "deepseek") === p.value
-                      ? "border-[var(--cyan)] bg-[var(--cyan-soft)]"
-                      : "border-card-border hover:border-[var(--cyan)] hover:bg-[var(--accent)]"
-                  }`}
-                >
-                  <input type="radio" name="apiProvider" value={p.value}
-                    defaultChecked={(user?.apiProvider || "deepseek") === p.value} className="hidden" />
-                  <div className="text-xs font-medium">{p.label}</div>
-                  <div className="text-[9px] text-muted-foreground">{p.desc}</div>
-                </label>
-              ))}
-            </div>
-            <p className="text-[10px] text-muted-foreground mb-2">海外厂商</p>
-            <div className="grid grid-cols-3 gap-2">
-              {aiProviders.filter((p) => p.region === "海外").map((p) => (
-                <label
-                  key={p.value}
-                  className={`p-2.5 rounded-xl text-center cursor-pointer transition-all border ${
-                    (user?.apiProvider || "deepseek") === p.value
-                      ? "border-[var(--cyan)] bg-[var(--cyan-soft)]"
-                      : "border-card-border hover:border-[var(--cyan)] hover:bg-[var(--accent)]"
-                  }`}
-                >
-                  <input type="radio" name="apiProvider" value={p.value}
-                    defaultChecked={(user?.apiProvider || "deepseek") === p.value} className="hidden" />
-                  <div className="text-xs font-medium">{p.label}</div>
-                  <div className="text-[9px] text-muted-foreground">{p.desc}</div>
-                </label>
-              ))}
-            </div>
+            <ProviderSelector
+              providers={aiProviders}
+              defaultValue={user?.apiProvider || "deepseek"}
+              name="apiProvider"
+            />
           </div>
 
           {/* API Key */}
