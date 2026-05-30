@@ -1,6 +1,6 @@
 #!/bin/bash
 # 灵砚服务器初始化脚本
-# 在阿里云香港轻量服务器上运行（Ubuntu 22.04）
+# 支持 Alibaba Cloud Linux / Ubuntu / CentOS
 
 set -e
 
@@ -8,27 +8,66 @@ echo "=========================================="
 echo "  灵砚 LingYan 服务器初始化"
 echo "=========================================="
 
+# 检测操作系统
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    OS=$ID
+    echo "检测到系统: $OS"
+else
+    echo "无法检测操作系统"
+    exit 1
+fi
+
+# 根据系统选择包管理器
+if [[ "$OS" == "alinux" || "$OS" == "centos" || "$OS" == "rhel" ]]; then
+    PKG="yum"
+    echo "使用 yum 包管理器"
+elif [[ "$OS" == "ubuntu" || "$OS" == "debian" ]]; then
+    PKG="apt"
+    echo "使用 apt 包管理器"
+else
+    echo "不支持的系统: $OS"
+    exit 1
+fi
+
 # 1. 更新系统
 echo "[1/7] 更新系统..."
-apt update && apt upgrade -y
+if [[ "$PKG" == "yum" ]]; then
+    yum update -y
+else
+    apt update && apt upgrade -y
+fi
 
 # 2. 安装 Node.js 20
 echo "[2/7] 安装 Node.js..."
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-apt install -y nodejs
+if [[ "$PKG" == "yum" ]]; then
+    # Alibaba Cloud Linux
+    curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+    yum install -y nodejs
+else
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt install -y nodejs
+fi
 echo "Node.js $(node -v) 已安装"
 
 # 3. 安装 PostgreSQL
 echo "[3/7] 安装 PostgreSQL..."
-apt install -y postgresql postgresql-contrib
-systemctl start postgresql
-systemctl enable postgresql
+if [[ "$PKG" == "yum" ]]; then
+    yum install -y postgresql-server postgresql
+    postgresql-setup --initdb
+    systemctl start postgresql
+    systemctl enable postgresql
+else
+    apt install -y postgresql postgresql-contrib
+    systemctl start postgresql
+    systemctl enable postgresql
+fi
 echo "PostgreSQL 已安装"
 
 # 4. 创建数据库
 echo "[4/7] 创建数据库..."
-sudo -u postgres psql -c "CREATE DATABASE linyan;"
-sudo -u postgres psql -c "CREATE USER linyan WITH PASSWORD 'lingyan2026';"
+sudo -u postgres psql -c "CREATE DATABASE linyan;" 2>/dev/null || echo "数据库已存在"
+sudo -u postgres psql -c "CREATE USER linyan WITH PASSWORD 'lingyan2026';" 2>/dev/null || echo "用户已存在"
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE linyan TO linyan;"
 sudo -u postgres psql -c "ALTER USER linyan CREATEDB;"
 echo "数据库已创建"
@@ -36,12 +75,16 @@ echo "数据库已创建"
 # 5. 安装 PM2 和 Nginx
 echo "[5/7] 安装 PM2 和 Nginx..."
 npm install -g pm2
-apt install -y nginx
+if [[ "$PKG" == "yum" ]]; then
+    yum install -y nginx
+else
+    apt install -y nginx
+fi
 echo "PM2 和 Nginx 已安装"
 
 # 6. 配置 Nginx
 echo "[6/7] 配置 Nginx..."
-cat > /etc/nginx/sites-available/lingyan << 'NGINX'
+cat > /etc/nginx/conf.d/lingyan.conf << 'NGINX'
 server {
     listen 80;
     server_name _;
@@ -62,18 +105,29 @@ server {
 }
 NGINX
 
-ln -sf /etc/nginx/sites-available/lingyan /etc/nginx/sites-enabled/
-rm -f /etc/nginx/sites-enabled/default
+# 删除默认配置（如果存在）
+rm -f /etc/nginx/conf.d/default.conf 2>/dev/null
+rm -f /etc/nginx/sites-enabled/default 2>/dev/null
+
 systemctl restart nginx
 systemctl enable nginx
 echo "Nginx 已配置"
 
 # 7. 配置防火墙
 echo "[7/7] 配置防火墙..."
-ufw allow 22/tcp
-ufw allow 80/tcp
-ufw allow 443/tcp
-ufw --force enable
+if [[ "$PKG" == "yum" ]]; then
+    # Alibaba Cloud Linux 使用 firewalld
+    systemctl start firewalld 2>/dev/null || true
+    firewall-cmd --permanent --add-service=ssh
+    firewall-cmd --permanent --add-service=http
+    firewall-cmd --permanent --add-service=https
+    firewall-cmd --reload
+else
+    ufw allow 22/tcp
+    ufw allow 80/tcp
+    ufw allow 443/tcp
+    ufw --force enable
+fi
 echo "防火墙已配置"
 
 echo ""
