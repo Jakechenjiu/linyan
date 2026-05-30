@@ -38,7 +38,7 @@ export default function WorkspaceLayoutClient({
         }}
       />
 
-      {/* Mobile overlay - 点击关闭侧边栏 */}
+      {/* Mobile overlay */}
       {mobileMenuOpen && (
         <div
           className="fixed inset-0 bg-black/50 md:hidden z-[40]"
@@ -56,22 +56,33 @@ export default function WorkspaceLayoutClient({
         </button>
       )}
 
-      {/* Sidebar - 在遮罩之上 */}
-      {sidebar && (
-        <div
-          className={`fixed md:static inset-y-0 left-0 z-[45] w-56 shrink-0 transform transition-transform duration-300 ${
-            mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-          }`}
-        >
-          <div className="h-full overflow-y-auto">
+      <div className="flex h-screen relative z-[10]">
+        {/* Sidebar - desktop: static, mobile: fixed */}
+        {sidebar && (
+          <div
+            className={`hidden md:block w-56 shrink-0 h-screen sticky top-0`}
+          >
             {sidebar}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Main content */}
-      <div className="flex-1 overflow-y-auto relative z-[10]">
-        {children}
+        {/* Mobile sidebar */}
+        {sidebar && (
+          <div
+            className={`fixed md:hidden inset-y-0 left-0 z-[45] w-56 transform transition-transform duration-300 ${
+              mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
+          >
+            <div className="h-full overflow-y-auto">
+              {sidebar}
+            </div>
+          </div>
+        )}
+
+        {/* Main content */}
+        <div className="flex-1 overflow-y-auto">
+          {children}
+        </div>
       </div>
 
       <GlobalAI />

@@ -66,7 +66,7 @@ export default function WorkspaceSidebar({ user, membership }: {
   };
 
   return (
-    <aside className="w-56 shrink-0 h-full flex flex-col liquid-glass !rounded-none !border-t-0 !border-l-0 !border-b-0">
+    <aside className="w-56 shrink-0 h-screen sticky top-0 flex flex-col liquid-glass !rounded-none !border-t-0 !border-l-0 !border-b-0">
       {/* Logo */}
       <div className="px-4 py-5 border-b border-white/[0.04]">
         <Link
