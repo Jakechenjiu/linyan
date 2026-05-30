@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Plus, Trash2, GripVertical, ChevronLeft, ChevronRight, PanelRightClose, PanelRight, BookOpen, Save, Check, Loader2 } from "lucide-react";
+import { Plus, Trash2, GripVertical, ChevronLeft, ChevronRight, PanelRightClose, PanelRight, BookOpen, Save, Check, Loader2, Shield } from "lucide-react";
 import Link from "next/link";
+import AuditPanel from "./AuditPanel";
 import { toast } from "sonner";
 import ChatPanel from "./ChatPanel";
 
@@ -328,6 +329,20 @@ export default function StarEditorLayout({
               <BookOpen size={32} className="text-muted-foreground/40 mb-3 mx-auto" />
               <p className="text-sm text-muted-foreground">选择一个章节查看</p>
             </div>
+          </div>
+        )}
+
+        {/* AI Audit Panel */}
+        {viewerOpen && selectedChapter && (
+          <div className="border-t border-card-border p-3 shrink-0">
+            <AuditPanel
+              novelId={novelId}
+              chapterId={selectedChapter.id}
+              onRewrite={(issues) => {
+                // Switch to chat mode and send rewrite request
+                toast.success("正在修复AI味问题…");
+              }}
+            />
           </div>
         )}
       </div>
