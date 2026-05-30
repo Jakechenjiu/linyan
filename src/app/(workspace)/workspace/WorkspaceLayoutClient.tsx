@@ -38,10 +38,10 @@ export default function WorkspaceLayoutClient({
         }}
       />
 
-      {/* Mobile overlay */}
+      {/* Mobile overlay - 点击关闭侧边栏 */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 md:hidden z-[45]"
+          className="fixed inset-0 bg-black/50 md:hidden z-[40]"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -56,24 +56,22 @@ export default function WorkspaceLayoutClient({
         </button>
       )}
 
-      <div className="flex h-screen relative z-[10]">
-        {/* Sidebar */}
-        {sidebar && (
-          <div
-            className={`fixed md:static inset-y-0 left-0 z-[48] w-56 shrink-0 transform transition-transform duration-300 ${
-              mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-            }`}
-          >
-            <div className="h-full overflow-y-auto">
-              {sidebar}
-            </div>
+      {/* Sidebar - 在遮罩之上 */}
+      {sidebar && (
+        <div
+          className={`fixed md:static inset-y-0 left-0 z-[45] w-56 shrink-0 transform transition-transform duration-300 ${
+            mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          }`}
+        >
+          <div className="h-full overflow-y-auto">
+            {sidebar}
           </div>
-        )}
-
-        {/* Main content */}
-        <div className="flex-1 overflow-y-auto">
-          {children}
         </div>
+      )}
+
+      {/* Main content */}
+      <div className="flex-1 overflow-y-auto relative z-[10]">
+        {children}
       </div>
 
       <GlobalAI />
