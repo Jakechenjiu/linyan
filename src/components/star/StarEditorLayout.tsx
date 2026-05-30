@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Plus, Trash2, GripVertical, ChevronLeft, ChevronRight, PanelRightClose, PanelRight, BookOpen } from "lucide-react";
+import { Plus, Trash2, GripVertical, ChevronLeft, ChevronRight, PanelRightClose, PanelRight, BookOpen, Save, Check, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import ChatPanel from "./ChatPanel";
-import ChapterViewer from "./ChapterViewer";
 
 interface ChapterItem {
   id: string;
@@ -54,6 +53,10 @@ export default function StarEditorLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(true);
   const [newTitle, setNewTitle] = useState("");
+  const [editingBody, setEditingBody] = useState(false);
+  const [editedBody, setEditedBody] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(true);
 
   const selectedChapter = chapters.find((ch) => ch.id === selectedId) || null;
 
@@ -93,14 +96,39 @@ export default function StarEditorLayout({
       setChapters((prev) =>
         prev.map((ch) => (ch.id === selectedId ? { ...ch, body, wordCount: body.replace(/\s/g, "").length } : ch))
       );
+      setSaved(false);
     },
     [selectedId]
   );
 
   const handleSave = useCallback(async () => {
     if (!selectedChapter) return;
+    setSaving(true);
     await saveAction(selectedChapter.id, selectedChapter.title, selectedChapter.body);
+    setSaving(false);
+    setSaved(true);
+    toast.success("已保存");
   }, [selectedChapter, saveAction]);
+
+  const handleStartEdit = () => {
+    if (selectedChapter) {
+      setEditedBody(selectedChapter.body);
+      setEditingBody(true);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedChapter) return;
+    setSaving(true);
+    setChapters((prev) =>
+      prev.map((ch) => (ch.id === selectedId ? { ...ch, body: editedBody, wordCount: editedBody.replace(/\s/g, "").length } : ch))
+    );
+    await saveAction(selectedChapter.id, selectedChapter.title, editedBody);
+    setSaving(false);
+    setSaved(true);
+    setEditingBody(false);
+    toast.success("已保存");
+  };
 
   return (
     <div className="flex-1 flex overflow-hidden">
@@ -187,7 +215,7 @@ export default function StarEditorLayout({
         )}
       </div>
 
-      {/* Center: Chat Panel */}
+      {/* Center: Chat Panel (Primary Interface) */}
       <div className="flex-1 min-w-0 flex flex-col">
         <ChatPanel
           novelId={novelId}
@@ -198,7 +226,7 @@ export default function StarEditorLayout({
         />
       </div>
 
-      {/* Right: Chapter Viewer */}
+      {/* Right: Chapter Viewer/Editor */}
       <div
         className={`shrink-0 border-l border-card-border flex flex-col overflow-hidden transition-all duration-200 ${
           viewerOpen ? "w-[28rem]" : "w-10"
@@ -215,7 +243,9 @@ export default function StarEditorLayout({
           )}
           {viewerOpen && (
             <>
-              <span className="text-[11px] font-medium text-muted-foreground">章节内容</span>
+              <span className="text-[11px] font-medium text-muted-foreground">
+                {selectedChapter ? selectedChapter.title : "章节内容"}
+              </span>
               <button
                 onClick={() => setViewerOpen(false)}
                 className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
@@ -225,14 +255,80 @@ export default function StarEditorLayout({
             </>
           )}
         </div>
-        {viewerOpen && (
-          <ChapterViewer
-            chapter={selectedChapter}
-            characters={characters}
-            outlineVolumes={outlineVolumes}
-            onBodyChange={handleBodyChange}
-            onSave={handleSave}
-          />
+
+        {viewerOpen && selectedChapter && (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Content area */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {editingBody ? (
+                <textarea
+                  value={editedBody}
+                  onChange={(e) => setEditedBody(e.target.value)}
+                  className="w-full h-full min-h-[400px] bg-transparent text-sm leading-relaxed resize-none focus:outline-none rounded-lg p-3 border border-card-border focus:border-[var(--cyan)] transition-colors"
+                  placeholder="编辑正文…"
+                />
+              ) : (
+                <div
+                  className="text-sm leading-relaxed whitespace-pre-wrap cursor-text hover:bg-[var(--accent)]/30 rounded-lg p-3 transition-colors"
+                  onClick={handleStartEdit}
+                  title="点击编辑"
+                >
+                  {selectedChapter.body || "（空章节，点击开始写作）"}
+                </div>
+              )}
+            </div>
+
+            {/* Bottom bar */}
+            <div className="flex items-center justify-between px-4 py-2.5 border-t border-card-border shrink-0 bg-[var(--background)]">
+              <span className="text-[10px] text-muted-foreground">
+                {selectedChapter.wordCount} 字
+              </span>
+              <div className="flex items-center gap-2">
+                {editingBody ? (
+                  <>
+                    <button
+                      onClick={() => setEditingBody(false)}
+                      className="px-3 py-1.5 rounded-lg text-[11px] text-muted-foreground hover:text-foreground border border-card-border transition-colors"
+                    >
+                      取消
+                    </button>
+                    <button
+                      onClick={handleSaveEdit}
+                      disabled={saving}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-[var(--cyan)] text-[#0a0e17] hover:opacity-90 transition-all disabled:opacity-50"
+                    >
+                      {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
+                      保存
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {saved ? (
+                      <span className="flex items-center gap-1 text-[11px] text-emerald-400">
+                        <Check size={11} /> 已保存
+                      </span>
+                    ) : (
+                      <button
+                        onClick={handleSave}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-[var(--cyan)] text-[#0a0e17] hover:opacity-90 transition-all"
+                      >
+                        <Save size={11} /> 保存
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {viewerOpen && !selectedChapter && (
+          <div className="flex-1 flex items-center justify-center text-center p-6">
+            <div>
+              <BookOpen size={32} className="text-muted-foreground/40 mb-3 mx-auto" />
+              <p className="text-sm text-muted-foreground">选择一个章节查看</p>
+            </div>
+          </div>
         )}
       </div>
     </div>
