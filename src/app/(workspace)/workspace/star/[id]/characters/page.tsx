@@ -46,20 +46,24 @@ export default async function NovelCharactersPage({ params }: { params: Promise<
 
   async function deleteCharacter(cid: string) {
     "use server";
+    const s = await auth();
+    if (!s?.user?.id) return;
     await prisma.character.deleteMany({
-      where: { id: cid, novel: { userId: session!.user!.id } },
+      where: { id: cid, novel: { userId: s.user.id } },
     });
     revalidatePath(`/workspace/star/${novel!.id}/characters`);
   }
 
   async function saveCharacter(cid: string, formData: FormData) {
     "use server";
+    const s = await auth();
+    if (!s?.user?.id) return;
     const data: Record<string, string | null> = {};
     for (const key of ["name", "tagline", "role", "appearance", "personality", "desire", "flaw", "wound", "need", "change", "goldenFinger", "relationships"]) {
       data[key] = (formData.get(key) as string) || null;
     }
     await prisma.character.updateMany({
-      where: { id: cid, novel: { userId: session!.user!.id } },
+      where: { id: cid, novel: { userId: s.user.id } },
       data,
     });
     revalidatePath(`/workspace/star/${novel!.id}/characters`);
