@@ -105,31 +105,25 @@ export default async function NovelCharactersPage({ params }: { params: Promise<
 
             return (
               <div key={char.id} className="space-card rounded-xl p-5">
-                <form action={saveCharacter.bind(null, char.id)}>
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <input name="name" defaultValue={char.name}
-                        className="font-mono font-bold text-lg bg-transparent border-0 text-foreground focus:outline-none focus:border-b focus:border-[var(--cyan)] w-32"
-                      />
-                      <select name="role" defaultValue={char.role}
-                        className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent)] border-0 text-muted-foreground"
-                      >
-                        {Object.entries(roleLabels).map(([k, v]) => (
-                          <option key={k} value={k}>{v.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button type="submit" className="text-xs text-[var(--cyan)] hover:underline flex items-center gap-1">
-                        <Save size={12} /> 保存
-                      </button>
-                      <form action={deleteCharacter.bind(null, char.id)}>
-                        <button type="submit" className="text-xs text-muted-foreground hover:text-red-400">
-                          <Trash2 size={12} />
-                        </button>
-                      </form>
-                    </div>
+                {/* Header with name, role, and action buttons */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-lg">{char.name}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent)] text-muted-foreground">
+                      {roleLabels[char.role]?.label || char.role}
+                    </span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <form action={deleteCharacter.bind(null, char.id)}>
+                      <button type="submit" className="text-xs text-muted-foreground hover:text-red-400">
+                        <Trash2 size={12} />
+                      </button>
+                    </form>
+                  </div>
+                </div>
+
+                {/* Character details form */}
+                <form action={saveCharacter.bind(null, char.id)}>
                   <div className="grid grid-cols-2 gap-3">
                     {[
                       { key: "tagline", label: "称号", placeholder: "如：废柴少年 / 重生仙尊" },
@@ -144,7 +138,6 @@ export default async function NovelCharactersPage({ params }: { params: Promise<
                           {key === "desire" ? <span style={{ color: "var(--cyan)" }}>{label}</span> :
                            key === "flaw" ? <span style={{ color: "#ef4444" }}>{label}</span> : label}
                         </label>
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                         <input name={key} defaultValue={(char as any)[key] || ""} placeholder={placeholder}
                           className="w-full px-2 py-1 rounded-lg bg-[var(--accent)] border border-card-border text-foreground text-xs placeholder:text-muted-foreground focus:outline-none focus:border-[var(--cyan)] transition-colors"
                         />
@@ -166,30 +159,39 @@ export default async function NovelCharactersPage({ params }: { params: Promise<
                     </div>
                   </div>
 
-                  {/* Relationships section */}
-                  <div className="mt-4 pt-3 border-t border-card-border">
-                    <p className="text-[10px] text-muted-foreground mb-2">角色关系</p>
-                    {relationships.length === 0 ? (
-                      <p className="text-[10px] text-muted-foreground/50">暂无关系设定</p>
-                    ) : (
-                      <div className="flex flex-wrap gap-1.5 mb-2">
-                        {relationships.map((rel, ri) => {
-                          const target = novel.characters.find((c) => c.id === rel.characterId);
-                          const rt = relTypes[rel.type] || relTypes.ally;
-                          return (
-                            <span key={ri} className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full"
-                              style={{ background: `${rt.color}15`, color: rt.color }}>
-                              {rt.label}: {target?.name || "?"}{rel.label ? ` (${rel.label})` : ""}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {/* Hidden field to persist current relationships */}
-                    <input type="hidden" name="relationships" value={char.relationships || "[]"} />
-                    {/* Note: Relationship editing available in graph view */}
+                  {/* Save button */}
+                  <div className="mt-3 flex justify-end">
+                    <button type="submit" className="text-xs text-[var(--cyan)] hover:underline flex items-center gap-1">
+                      <Save size={12} /> 保存
+                    </button>
                   </div>
+
+                  {/* Hidden fields */}
+                  <input type="hidden" name="name" value={char.name} />
+                  <input type="hidden" name="role" value={char.role} />
+                  <input type="hidden" name="relationships" value={char.relationships || "[]"} />
                 </form>
+
+                {/* Relationships display */}
+                <div className="mt-4 pt-3 border-t border-card-border">
+                  <p className="text-[10px] text-muted-foreground mb-2">角色关系</p>
+                  {relationships.length === 0 ? (
+                    <p className="text-[10px] text-muted-foreground/50">暂无关系设定</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {relationships.map((rel, ri) => {
+                        const target = novel.characters.find((c) => c.id === rel.characterId);
+                        const rt = relTypes[rel.type] || relTypes.ally;
+                        return (
+                          <span key={ri} className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full"
+                            style={{ background: `${rt.color}15`, color: rt.color }}>
+                            {rt.label}: {target?.name || "?"}{rel.label ? ` (${rel.label})` : ""}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })
