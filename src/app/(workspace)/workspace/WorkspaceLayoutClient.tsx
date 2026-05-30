@@ -32,50 +32,48 @@ export default function WorkspaceLayoutClient({
 
       {/* 顶部渐暗遮罩 */}
       <div
-        className="fixed inset-0 pointer-events-none"
+        className="fixed inset-0 pointer-events-none z-[1]"
         style={{
-          zIndex: 1,
           background: "radial-gradient(ellipse 100% 50% at 50% 0%, rgba(0,0,0,0.25), transparent 70%)",
         }}
       />
+
+      {/* Mobile overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 md:hidden z-[45]"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
 
       {/* Mobile menu button */}
       {sidebar && (
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="fixed top-3 left-3 z-50 p-2 rounded-lg bg-[var(--bg-elevated)] border border-card-border md:hidden"
+          className="fixed top-3 left-3 z-[50] p-2 rounded-lg bg-[var(--bg-elevated)] border border-card-border md:hidden"
         >
           {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
       )}
 
-      {/* Mobile overlay */}
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-
-      <div className="flex h-screen relative z-10">
+      <div className="flex h-screen relative z-[10]">
         {/* Sidebar */}
         {sidebar && (
           <div
-            className={`
-              fixed md:static inset-y-0 left-0 z-40 w-56 transform transition-transform duration-300
-              ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
-            `}
+            className={`fixed md:static inset-y-0 left-0 z-[48] w-56 shrink-0 transform transition-transform duration-300 ${
+              mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+            }`}
           >
-            <div
-              className="h-full overflow-y-auto"
-              onClick={() => setMobileMenuOpen(false)}
-            >
+            <div className="h-full overflow-y-auto">
               {sidebar}
             </div>
           </div>
         )}
 
-        {children}
+        {/* Main content */}
+        <div className="flex-1 overflow-y-auto">
+          {children}
+        </div>
       </div>
 
       <GlobalAI />
