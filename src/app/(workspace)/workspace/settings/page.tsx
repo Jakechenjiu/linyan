@@ -8,6 +8,7 @@ import MembershipCodeInput from "@/components/shared/MembershipCodeInput";
 
 // AI 文本 Provider
 const aiProviders = [
+  { value: "xiaomimimo", label: "小米 MiMo", desc: "小米百亿tokens，免费额度", region: "国内" },
   { value: "deepseek", label: "DeepSeek", desc: "性价比最高，推荐", region: "国内" },
   { value: "qwen", label: "通义千问", desc: "阿里云，能力强", region: "国内" },
   { value: "zhipu", label: "智谱 GLM", desc: "清华系，中文优秀", region: "国内" },
@@ -27,6 +28,7 @@ const videoProviders = [
 ];
 
 const providerKeyLinks: Record<string, string> = {
+  xiaomimimo: "https://token-plan-cn.xiaomimimo.com",
   deepseek: "https://platform.deepseek.com/api_keys",
   qwen: "https://dashscope.console.aliyun.com/apiKey",
   zhipu: "https://open.bigmodel.cn/usercenter/apikeys",
