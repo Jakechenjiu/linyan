@@ -6,6 +6,7 @@ import ModuleCard from "@/components/shared/ModuleCard";
 import { Logo } from "@/components/brand";
 import { Star, Zap, Network, Brain, ArrowRight, Check, Sparkles, Shield, Globe, Cpu } from "lucide-react";
 import { CinematicHero } from "./CinematicHero";
+import PublicNav from "@/components/layout/PublicNav";
 
 const features = [
   {
@@ -49,38 +50,7 @@ export default async function Home() {
       <CursorGlow />
 
       {/* Nav */}
-      <header className="relative z-10 liquid-glass border-b border-white/[0.04] rounded-none mx-0">
-        <div className="flex items-center justify-between px-6 py-3.5 max-w-7xl mx-auto w-full">
-          <Logo size="md" />
-          <div className="flex items-center gap-5">
-            <Link href="/explore" className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200">
-              探索
-            </Link>
-            {hasSession ? (
-              <Link
-                href="/workspace"
-                className="px-5 py-2 rounded-xl text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_24px_rgba(0,229,255,0.35)] transition-all duration-300 btn-shimmer ripple"
-                style={{ color: "#0a0e17" }}
-              >
-                进入工作台
-              </Link>
-            ) : (
-              <>
-                <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200">
-                  登录
-                </Link>
-                <Link
-                  href="/register"
-                  className="px-5 py-2 rounded-xl text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_24px_rgba(0,229,255,0.35)] transition-all duration-300 btn-shimmer ripple"
-                  style={{ color: "#0a0e17" }}
-                >
-                  免费注册
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      <PublicNav hasSession={hasSession} />
 
       {/* Hero */}
       <CinematicHero hasSession={hasSession} />
@@ -155,7 +125,7 @@ export default async function Home() {
       {/* How it works */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 pb-20">
         <h2 className="font-mono text-2xl font-bold text-center mb-12">工作流程</h2>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { step: "01", title: "输入", desc: "一句话描述需求" },
             { step: "02", title: "生成", desc: "AI 自动生成内容" },

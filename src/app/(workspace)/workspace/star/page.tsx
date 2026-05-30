@@ -78,12 +78,12 @@ export default async function StarPage() {
 
   return (
     <div className="space-y-8 max-w-4xl">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="font-mono text-3xl font-bold tracking-wide">星图写作</h1>
           <p className="text-sm text-muted-foreground mt-1">长篇智能创作引擎</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {membership.isActive && (
             <Link
               href="/workspace/star/analytics"

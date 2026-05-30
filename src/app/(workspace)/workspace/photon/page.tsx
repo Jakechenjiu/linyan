@@ -48,7 +48,7 @@ export default async function PhotonPage() {
               查看全部
             </Link>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {videoProjects.map((proj) => {
               const doneCount = proj.clips.filter((c) => c.status === "done").length;
               const statusColor = proj.status === "done" ? "bg-emerald-400" : proj.status === "generating" ? "bg-amber-400 animate-pulse" : "bg-muted-foreground/30";
@@ -85,7 +85,7 @@ export default async function PhotonPage() {
               <FileText size={14} className="text-[var(--nebula)]" /> 最近文章
             </h2>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {contents.map((content) => {
               const platformLabels: Record<string, string> = {
                 wechat: "公众号", xiaohongshu: "小红书", douyin: "抖音",

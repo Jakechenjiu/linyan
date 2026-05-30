@@ -68,12 +68,12 @@ export default async function NotesPage({ searchParams }: { searchParams: Promis
   return (
     <div className="space-y-8 max-w-4xl">
       {/* Header */}
-      <div className="glass-card rounded-2xl p-5 flex items-center justify-between">
+      <div className="glass-card rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="font-mono text-2xl font-bold tracking-wide">灵思笔记</h1>
           <p className="text-sm text-muted-foreground mt-1">知识管理与双向链接</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link
             href="/workspace/notes/graph"
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs border border-card-border text-muted-foreground hover:text-foreground hover:border-[var(--cyan)] transition-all"

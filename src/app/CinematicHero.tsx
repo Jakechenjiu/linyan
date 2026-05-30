@@ -78,7 +78,7 @@ export function CinematicHero({ hasSession }: { hasSession: boolean }) {
 
       {/* CTAs */}
       <div
-        className="flex items-center gap-4"
+        className="flex flex-col sm:flex-row items-center gap-4"
         style={{
           opacity: visible ? 1 : 0,
           transform: visible ? "translateY(0)" : "translateY(16px)",
