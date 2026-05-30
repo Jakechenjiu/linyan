@@ -59,12 +59,20 @@ export default function NovelEditor({ novelId, chapter }: Props) {
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedRef = useRef({ title: chapter.title, body: chapter.body });
 
-  const factData = chapter.factSnapshot ? JSON.parse(chapter.factSnapshot) as {
-    newFacts?: string[];
-    stateChanges?: string[];
-    openHooks?: string[];
-    characterMoments?: Record<string, string>;
-  } : null;
+  const factData = chapter.factSnapshot
+    ? (() => {
+        try {
+          return JSON.parse(chapter.factSnapshot) as {
+            newFacts?: string[];
+            stateChanges?: string[];
+            openHooks?: string[];
+            characterMoments?: Record<string, string>;
+          };
+        } catch {
+          return null;
+        }
+      })()
+    : null;
 
   const handleSave = async () => {
     setSaving(true);
