@@ -53,7 +53,7 @@ export default function ChatPanel({
   const sendMessage = async (text: string) => {
     if (!text.trim() || streaming) return;
     const userMsg: Message = {
-      id: crypto.randomUUID(),
+      id: Math.random().toString(36).slice(2) + Date.now().toString(36),
       role: "user",
       content: text.trim(),
       timestamp: Date.now(),
@@ -125,7 +125,7 @@ export default function ChatPanel({
       }
 
       const aiMsg: Message = {
-        id: crypto.randomUUID(),
+        id: Math.random().toString(36).slice(2) + Date.now().toString(36),
         role: "assistant",
         content: isBodyUpdate ? "已修改正文" : streamingText || "处理完成",
         timestamp: Date.now(),
@@ -135,7 +135,7 @@ export default function ChatPanel({
     } catch (e: unknown) {
       if (!(e instanceof Error && e.name === "AbortError")) {
         const errMsg: Message = {
-          id: crypto.randomUUID(),
+          id: Math.random().toString(36).slice(2) + Date.now().toString(36),
           role: "assistant",
           content: `错误: ${e instanceof Error ? e.message : "未知错误"}`,
           timestamp: Date.now(),

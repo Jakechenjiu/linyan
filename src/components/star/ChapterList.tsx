@@ -61,7 +61,7 @@ export default function ChapterList({
       toast.success(`章节「${result.title}」已创建`);
       setNewTitle("");
       setInsertAfterId(null);
-      const newChapter: ChapterItem = { id: crypto.randomUUID(), title: result.title!, order: 0, wordCount: 0 };
+      const newChapter: ChapterItem = { id: Math.random().toString(36).slice(2) + Date.now().toString(36), title: result.title!, order: 0, wordCount: 0 };
       if (insertAfterId) {
         const idx = items.findIndex((ch) => ch.id === insertAfterId);
         const updated = [...items];

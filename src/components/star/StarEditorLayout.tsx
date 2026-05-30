@@ -70,7 +70,7 @@ export default function StarEditorLayout({
       toast.success(`章节「${result.title}」已创建`);
       setNewTitle("");
       const newCh: ChapterItem = {
-        id: crypto.randomUUID(),
+        id: Math.random().toString(36).slice(2) + Date.now().toString(36),
         title: result.title!,
         body: "",
         wordCount: 0,
