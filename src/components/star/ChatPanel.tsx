@@ -250,7 +250,7 @@ export default function ChatPanel({
           ) : (
             <button
               onClick={() => sendMessage(input)}
-              disabled={!input.trim() || !chapterId}
+              disabled={!input.trim()}
               className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-[var(--cyan)] text-[#0a0e17] hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Send size={14} />
