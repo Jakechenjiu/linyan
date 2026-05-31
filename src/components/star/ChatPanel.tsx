@@ -80,37 +80,47 @@ export default function ChatPanel({
       if (!reader) throw new Error("No stream");
 
       const decoder = new TextDecoder();
-      let result = "";
+      let accumulated = "";
+      let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = (result + chunk).split("\n");
-        result = lines.pop() || "";
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
 
         for (const line of lines) {
           if (line.startsWith("data: ")) {
             try {
               const data = JSON.parse(line.slice(6));
               if (data.type === "text") {
-                setStreamingText(data.content);
-              } else if (data.type === "done") {
-                // Finished
+                accumulated = data.content;
+                setStreamingText(accumulated);
               }
             } catch {}
           }
         }
       }
 
+      // Add final message
+      const finalContent = accumulated || "处理完成";
       const aiMsg: Message = {
         id: Math.random().toString(36).slice(2) + Date.now().toString(36),
         role: "assistant",
-        content: streamingText || result,
+        content: finalContent,
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, aiMsg]);
-      setStreamingText("");
+
+      // Check if AI modified the body (look for code blocks with new body)
+      const bodyMatch = finalContent.match(/```(?:text|markdown)?\n([\s\S]*?)```/);
+      if (bodyMatch && bodyMatch[1].trim().length > 100) {
+        // AI provided a modified body in code block
+        const newBody = bodyMatch[1].trim();
+        onBodyChange(newBody);
+        await onSave();
+      }
     } catch (e: unknown) {
       if (!(e instanceof Error && e.name === "AbortError")) {
         const errMsg: Message = {
