@@ -50,7 +50,7 @@ export default function ChatPanel({
   }, [messages, currentTool]);
 
   const sendMessage = async (text: string) => {
-    if (!text.trim() || streaming) return;
+    if (!text.trim() || streaming || !chapterId) return;
     const userMsg: Message = {
       id: Math.random().toString(36).slice(2) + Date.now().toString(36),
       role: "user",
@@ -243,7 +243,7 @@ export default function ChatPanel({
           ) : (
             <button
               onClick={() => sendMessage(input)}
-              disabled={!input.trim()}
+              disabled={!input.trim() || !chapterId}
               className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-[var(--cyan)] text-[#0a0e17] hover:opacity-90 transition-all disabled:opacity-40"
             >
               <Send size={14} />
