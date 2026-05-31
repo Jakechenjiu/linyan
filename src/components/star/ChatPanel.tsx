@@ -1,19 +1,27 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Sparkles, Search, Shield, Compass, Wand2, MessageSquare, Trash2 } from "lucide-react";
+import { Send, Loader2, Sparkles, Shield, Compass, Wand2, MessageSquare, Wrench, Check } from "lucide-react";
+
+interface ToolCall {
+  tool: string;
+  success: boolean;
+  summary: string;
+}
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  toolCalls?: ToolCall[];
+  modifiedBody?: string;
   timestamp: number;
 }
 
 const quickActions = [
-  { id: "review", label: "检查问题", icon: <Shield size={12} />, prompt: "请检查当前章节有没有逻辑漏洞、AI味问题或需要改进的地方。" },
-  { id: "suggest", label: "下一步建议", icon: <Compass size={12} />, prompt: "根据当前剧情和大纲，接下来应该怎么写？给我3个方向。" },
-  { id: "rewrite", label: "帮我改这段", icon: <Wand2 size={12} />, prompt: "分析当前正文，指出问题并直接修改。" },
+  { id: "review", label: "检查问题", icon: <Shield size={12} />, prompt: "请检查当前章节有没有逻辑漏洞、AI味问题或需要改进的地方。列出具体问题。" },
+  { id: "suggest", label: "下一步建议", icon: <Compass size={12} />, prompt: "根据当前剧情和大纲，接下来应该怎么写？给我3个具体方向。" },
+  { id: "rewrite", label: "帮我改这段", icon: <Wand2 size={12} />, prompt: "分析当前正文，找出问题并直接修改。告诉我改了什么。" },
   { id: "character", label: "角色分析", icon: <MessageSquare size={12} />, prompt: "分析当前章节中角色的表现，检查动机、性格一致性。" },
 ];
 
@@ -33,14 +41,13 @@ export default function ChatPanel({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
-  const [streamingText, setStreamingText] = useState("");
+  const [currentTool, setCurrentTool] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const controllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingText]);
+  }, [messages, currentTool]);
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || streaming) return;
@@ -53,10 +60,7 @@ export default function ChatPanel({
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setStreaming(true);
-    setStreamingText("");
-
-    const controller = new AbortController();
-    controllerRef.current = controller;
+    setCurrentTool(null);
 
     try {
       const res = await fetch(`/api/novels/${novelId}/ai-assistant`, {
@@ -66,9 +70,8 @@ export default function ChatPanel({
           chapterId,
           message: text.trim(),
           bodyText: chapterBody,
-          history: messages.slice(-10).map((m) => ({ role: m.role, content: m.content })),
+          history: messages.slice(-6).map((m) => ({ role: m.role, content: m.content })),
         }),
-        signal: controller.signal,
       });
 
       if (!res.ok) {
@@ -76,71 +79,35 @@ export default function ChatPanel({
         throw new Error(err.error || "请求失败");
       }
 
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error("No stream");
+      const data = await res.json();
 
-      const decoder = new TextDecoder();
-      let fullText = "";
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.type === "text") {
-                fullText = data.content;
-                setStreamingText(fullText);
-              }
-            } catch {}
-          }
-        }
-      }
-
-      // Add final message
-      const finalContent = fullText || "处理完成";
       const aiMsg: Message = {
         id: Math.random().toString(36).slice(2) + Date.now().toString(36),
         role: "assistant",
-        content: finalContent,
+        content: data.response || "处理完成",
+        toolCalls: data.toolCalls || [],
+        modifiedBody: data.modifiedBody,
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, aiMsg]);
 
-      // Check if AI modified the body (look for code blocks with new body)
-      const bodyMatch = finalContent.match(/```(?:text|markdown)?\n([\s\S]*?)```/);
-      if (bodyMatch && bodyMatch[1].trim().length > 100) {
-        // AI provided a modified body in code block
-        const newBody = bodyMatch[1].trim();
-        onBodyChange(newBody);
+      // 如果 AI 返回了修改后的正文，自动应用
+      if (data.modifiedBody) {
+        onBodyChange(data.modifiedBody);
         await onSave();
       }
     } catch (e: unknown) {
-      if (!(e instanceof Error && e.name === "AbortError")) {
-        const errMsg: Message = {
-          id: Math.random().toString(36).slice(2) + Date.now().toString(36),
-          role: "assistant",
-          content: `错误: ${e instanceof Error ? e.message : "未知错误"}`,
-          timestamp: Date.now(),
-        };
-        setMessages((prev) => [...prev, errMsg]);
-      }
+      const errMsg: Message = {
+        id: Math.random().toString(36).slice(2) + Date.now().toString(36),
+        role: "assistant",
+        content: `错误: ${e instanceof Error ? e.message : "未知错误"}`,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, errMsg]);
     } finally {
       setStreaming(false);
-      controllerRef.current = null;
-      setStreamingText("");
+      setCurrentTool(null);
     }
-  };
-
-  const handleStop = () => {
-    controllerRef.current?.abort();
-    setStreaming(false);
   };
 
   return (
@@ -152,36 +119,71 @@ export default function ChatPanel({
             <div className="w-14 h-14 rounded-2xl bg-[var(--accent)] flex items-center justify-center mb-4">
               <Sparkles size={24} className="text-[var(--cyan)]" />
             </div>
-            <h3 className="font-mono text-base font-bold mb-2">AI 助手</h3>
+            <h3 className="font-mono text-base font-bold mb-2">AI 写作助手</h3>
             <p className="text-xs text-muted-foreground max-w-[240px] leading-relaxed">
               {chapterId
-                ? "讨论剧情、分析角色、审查正文、获取建议"
+                ? "讨论剧情、分析角色、审查正文、直接修改"
                 : "选择一个章节开始对话"}
             </p>
           </div>
         ) : (
           <div className="max-w-2xl mx-auto space-y-3">
             {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-[13px] leading-relaxed ${
-                    msg.role === "user"
-                      ? "bg-[var(--cyan)] text-[#0a0e17] rounded-br-md"
-                      : "bg-[var(--accent)] text-foreground rounded-bl-md"
-                  }`}
-                >
-                  {msg.content}
+              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className="max-w-[85%] space-y-2">
+                  {/* Message bubble */}
+                  <div
+                    className={`px-3.5 py-2.5 rounded-2xl text-[13px] leading-relaxed ${
+                      msg.role === "user"
+                        ? "bg-[var(--cyan)] text-[#0a0e17] rounded-br-md"
+                        : "bg-[var(--accent)] text-foreground rounded-bl-md"
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+
+                  {/* Tool calls */}
+                  {msg.toolCalls && msg.toolCalls.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 ml-1">
+                      {msg.toolCalls.map((tc, i) => (
+                        <span
+                          key={i}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] ${
+                            tc.success
+                              ? "bg-emerald-500/10 text-emerald-400"
+                              : "bg-red-500/10 text-red-400"
+                          }`}
+                        >
+                          <Wrench size={9} />
+                          {tc.tool}: {tc.summary}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Modified body indicator */}
+                  {msg.modifiedBody && (
+                    <div className="flex items-center gap-1 ml-1 text-[10px] text-emerald-400">
+                      <Check size={10} /> 已更新正文
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
-            {streaming && streamingText && (
+
+            {/* Streaming indicator */}
+            {streaming && (
               <div className="flex justify-start">
-                <div className="max-w-[85%] px-3.5 py-2.5 rounded-2xl bg-[var(--accent)] text-foreground rounded-bl-md text-[13px] leading-relaxed">
-                  {streamingText}
-                  <span className="inline-block w-1.5 h-4 bg-[var(--cyan)] ml-0.5 animate-pulse" />
+                <div className="px-3.5 py-2.5 rounded-2xl bg-[var(--accent)] text-foreground rounded-bl-md text-[13px]">
+                  {currentTool ? (
+                    <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <Wrench size={11} className="animate-pulse" /> {currentTool}…
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      <Loader2 size={12} className="animate-spin" /> 思考中…
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -221,7 +223,7 @@ export default function ChatPanel({
                 sendMessage(input);
               }
             }}
-            placeholder={chapterId ? "和 AI 讨论剧情、分析角色、审查正文…" : "先选择一个章节…"}
+            placeholder={chapterId ? "讨论剧情、分析角色、修改正文…" : "先选择一个章节…"}
             rows={1}
             className="flex-1 bg-transparent text-[13px] resize-none focus:outline-none placeholder:text-muted-foreground min-h-[24px] max-h-[100px] px-1"
             style={{ height: "auto" }}
@@ -233,8 +235,8 @@ export default function ChatPanel({
           />
           {streaming ? (
             <button
-              onClick={handleStop}
-              className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+              className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-red-500/20 text-red-400"
+              disabled
             >
               <Loader2 size={14} className="animate-spin" />
             </button>
