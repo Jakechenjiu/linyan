@@ -69,7 +69,8 @@ interface AiCallParams {
 export async function callAi(params: AiCallParams): Promise<string> {
   const { apiKey, baseUrl, model, provider, system, messages, max_tokens = 4096, temperature = 0.8 } = params;
 
-  const isAnthropic = provider === "anthropic" || provider === "xiaomimimo";
+  // Auto-detect format: if baseUrl contains "/anthropic", use Anthropic format
+  const isAnthropic = baseUrl.includes("/anthropic") || provider === "anthropic";
 
   const url = isAnthropic
     ? `${baseUrl}/v1/messages`
@@ -146,7 +147,8 @@ export async function callAi(params: AiCallParams): Promise<string> {
 export function callAiStream(params: AiCallParams): ReadableStream {
   const { apiKey, baseUrl, model, provider, system, messages, max_tokens = 4096, temperature = 0.8 } = params;
 
-  const isAnthropic = provider === "anthropic" || provider === "xiaomimimo";
+  // Auto-detect format: if baseUrl contains "/anthropic", use Anthropic format
+  const isAnthropic = baseUrl.includes("/anthropic") || provider === "anthropic";
 
   const url = isAnthropic
     ? `${baseUrl}/v1/messages`

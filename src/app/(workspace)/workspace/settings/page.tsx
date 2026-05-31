@@ -6,6 +6,7 @@ import { User, Brain, Video, Crown, ExternalLink, CheckCircle2, AlertCircle, Key
 import { checkMembership, FREE_LIMITS } from "@/lib/membership";
 import MembershipCodeInput from "@/components/shared/MembershipCodeInput";
 import ProviderSelector from "@/components/settings/ProviderSelector";
+import ApiTestButton from "@/components/settings/ApiTestButton";
 
 // AI 文本 Provider
 const aiProviders = [
@@ -27,6 +28,18 @@ const videoProviders = [
   { value: "zhipu", label: "智谱 CogVideoX", desc: "清华系，开源模型", region: "国内", envKey: "ZHIPU_API_KEY" },
   { value: "stability", label: "Stability AI", desc: "Stable Video Diffusion", region: "海外", envKey: "STABILITY_API_KEY" },
 ];
+
+const providerEndpoints: Record<string, string> = {
+  xiaomimimo: "https://token-plan-cn.xiaomimimo.com/anthropic",
+  deepseek: "https://api.deepseek.com/v1",
+  qwen: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  zhipu: "https://open.bigmodel.cn/api/paas/v4",
+  moonshot: "https://api.moonshot.cn/v1",
+  spark: "https://spark-api-open.xf-yun.com/v1",
+  openai: "https://api.openai.com/v1",
+  anthropic: "https://api.anthropic.com",
+  google: "https://generativelanguage.googleapis.com/v1beta",
+};
 
 const providerKeyLinks: Record<string, string> = {
   xiaomimimo: "https://token-plan-cn.xiaomimimo.com",
@@ -229,7 +242,7 @@ export default async function SettingsPage() {
               placeholder="输入你的 API Key"
               className="w-full px-3 py-2 rounded-lg bg-[var(--background)] border border-card-border text-sm focus:outline-none focus:border-[var(--cyan)] transition-colors"
             />
-            <div className="flex items-center gap-2 mt-2">
+            <div className="flex items-center gap-4 mt-2">
               <a
                 href={providerKeyLinks[user?.apiProvider || "deepseek"]}
                 target="_blank"
@@ -238,6 +251,11 @@ export default async function SettingsPage() {
               >
                 获取 API Key <ExternalLink size={10} />
               </a>
+              <ApiTestButton
+                provider={user?.apiProvider || "deepseek"}
+                apiKey={user?.apiKey || ""}
+                baseUrl={providerEndpoints[user?.apiProvider || "deepseek"]}
+              />
             </div>
           </div>
         </div>
