@@ -5,7 +5,7 @@ const DEFAULT_API_KEY = process.env.ANTHROPIC_AUTH_TOKEN || "";
 const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL || "deepseek-v4-pro";
 
 const providerDefaults: Record<string, { baseUrl: string; model: string }> = {
-  xiaomimimo: { baseUrl: "https://token-plan-cn.xiaomimimo.com/v1", model: "mimo-v2.5-pro" },
+  xiaomimimo: { baseUrl: "https://token-plan-cn.xiaomimimo.com/anthropic", model: "mimo-v2.5-pro" },
   deepseek: { baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
   qwen: { baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus" },
   zhipu: { baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash" },
