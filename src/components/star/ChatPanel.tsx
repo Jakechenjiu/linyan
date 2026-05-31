@@ -80,7 +80,7 @@ export default function ChatPanel({
       if (!reader) throw new Error("No stream");
 
       const decoder = new TextDecoder();
-      let accumulated = "";
+      let fullText = "";
       let buffer = "";
 
       while (true) {
@@ -95,8 +95,8 @@ export default function ChatPanel({
             try {
               const data = JSON.parse(line.slice(6));
               if (data.type === "text") {
-                accumulated = data.content;
-                setStreamingText(accumulated);
+                fullText = data.content;
+                setStreamingText(fullText);
               }
             } catch {}
           }
@@ -104,7 +104,7 @@ export default function ChatPanel({
       }
 
       // Add final message
-      const finalContent = accumulated || "处理完成";
+      const finalContent = fullText || "处理完成";
       const aiMsg: Message = {
         id: Math.random().toString(36).slice(2) + Date.now().toString(36),
         role: "assistant",

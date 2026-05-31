@@ -129,15 +129,14 @@ ${ANTI_AI_RULES}
     async start(controller) {
       const reader = stream.getReader();
       const decoder = new TextDecoder();
-      let buffer = "";
+      let accumulated = "";
 
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "text", content: buffer })}\n\n`));
-          buffer = "";
+          accumulated += decoder.decode(value, { stream: true });
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "text", content: accumulated })}\n\n`));
         }
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`));
       } catch (e) {
