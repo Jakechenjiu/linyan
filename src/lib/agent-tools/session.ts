@@ -1,5 +1,5 @@
-// 灵砚 Agent 会话引擎 — 参考 InkOS agent-session 设计
-// AI 决定调用哪些工具，系统执行并返回结果
+// 灵砚 Agent 会话引擎 — 快速版
+// 优化：精简上下文 + 流式输出 + 工具异步
 
 import { getAiConfig, callAi } from "@/lib/ai";
 import { createAgentTools, type AgentTool, type ToolResult } from "./index";
@@ -22,38 +22,36 @@ interface AgentTurnResult {
   modifiedBody?: string;
 }
 
-// 构建工具描述
+// 构建精简工具描述
 function buildToolDescriptions(tools: AgentTool[]): string {
   return tools.map((t) => {
     const params = Object.entries(t.parameters)
-      .map(([name, p]) => `    - ${name} (${p.type}${p.required ? ", 必填" : ""}): ${p.description}`)
-      .join("\n");
-    return `### ${t.name}\n${t.description}\n参数:\n${params}`;
-  }).join("\n\n");
+      .map(([name, p]) => `${name}(${p.type}${p.required ? "*" : ""})`)
+      .join(", ");
+    return `- ${t.name}: ${t.description} [参数: ${params}]`;
+  }).join("\n");
 }
 
-// 解析 AI 响应中的工具调用
+// 解析工具调用
 function parseToolCalls(text: string): Array<{ name: string; params: Record<string, string> }> {
   const calls: Array<{ name: string; params: Record<string, string> }> = [];
   const regex = /\[TOOL_CALL\]\s*(\w+)\s*(\{[\s\S]*?\})\s*\[\/TOOL_CALL\]/g;
   let match;
   while ((match = regex.exec(text)) !== null) {
     try {
-      const name = match[1];
-      const params = JSON.parse(match[2]);
-      calls.push({ name, params });
+      calls.push({ name: match[1], params: JSON.parse(match[2]) });
     } catch {}
   }
   return calls;
 }
 
-// 从 AI 响应中提取修改后的正文
+// 提取修改后的正文
 function extractModifiedBody(text: string): string | undefined {
   const match = text.match(/\[MODIFIED_BODY\]\s*([\s\S]*?)\s*\[\/MODIFIED_BODY\]/);
   return match ? match[1].trim() : undefined;
 }
 
-// Agent 会话主函数
+// Agent 会话主函数 — 快速版
 export async function runAgentSession(
   novelId: string,
   chapterId: string | null,
@@ -71,73 +69,64 @@ export async function runAgentSession(
   const tools = createAgentTools(novelId);
   const toolDescriptions = buildToolDescriptions(tools);
 
-  // 读取章节内容用于上下文
-  let chapterContext = "";
-  if (chapterId) {
-    const readResult = await tools.find((t) => t.name === "read")?.execute({ chapterId });
-    if (readResult?.success) {
-      chapterContext = readResult.content;
-    }
-  }
+  // 精简系统 prompt — 只发关键信息
+  const systemPrompt = `你是灵砚AI写作助手。直接、高效、不废话。
 
-  const systemPrompt = `你是灵砚的AI写作助手。
-
-## 你的能力
-你可以使用以下工具来读取和修改小说内容：
-
+## 工具
 ${toolDescriptions}
 
-## 如何使用工具
-当你需要使用工具时，用以下格式：
+## 工具调用格式
 [TOOL_CALL]
 工具名
-{"参数名": "参数值"}
+{"参数": "值"}
 [/TOOL_CALL]
 
-当你需要修改正文时，输出修改后的完整正文：
+## 修改正文格式
 [MODIFIED_BODY]
-完整的修改后正文
+完整新正文
 [/MODIFIED_BODY]
 
 ## 规则
-${ANTI_AI_RULES}
+- 修改正文前先说明改了什么
+- 输出修改后的完整正文用 [MODIFIED_BODY] 包裹
+- 不废话，直接做
 
-## 当前状态
-${chapterContext ? `当前章节内容：\n${chapterContext}` : "尚未选择章节"}`;
+${ANTI_AI_RULES}`;
 
-  // 构建消息
+  // 精简用户消息 — 只发当前正文
+  const userContent = bodyText
+    ? `当前正文：\n${bodyText.slice(-6000)}\n\n---\n${userMessage}`
+    : userMessage;
+
   const messages: AgentMessage[] = [
-    ...history.slice(-6),
-    { role: "user", content: userMessage },
+    ...history.slice(-4), // 只保留最近4条对话
+    { role: "user", content: userContent },
   ];
 
-  // Agent 循环：最多执行 5 次工具调用
-  const maxToolCalls = 5;
+  // Agent 循环
+  const maxToolCalls = 3;
   let allToolCalls: ToolCall[] = [];
   let finalResponse = "";
   let modifiedBody: string | undefined;
 
   for (let turn = 0; turn <= maxToolCalls; turn++) {
-    // 调用 AI
     const aiResponse = await callAi({
       ...config,
       system: systemPrompt,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      max_tokens: 4096,
+      messages,
+      max_tokens: 2048,
       temperature: 0.7,
     });
 
-    // 检查是否有工具调用
     const toolCalls = parseToolCalls(aiResponse);
 
     if (toolCalls.length === 0) {
-      // 没有工具调用，这就是最终响应
       finalResponse = aiResponse.replace(/\[MODIFIED_BODY\][\s\S]*?\[\/MODIFIED_BODY\]/g, "").trim();
       modifiedBody = extractModifiedBody(aiResponse);
       break;
     }
 
-    // 执行工具调用
+    // 执行工具
     const toolResults: string[] = [];
     for (const call of toolCalls) {
       const tool = tools.find((t) => t.name === call.name);
@@ -145,27 +134,19 @@ ${chapterContext ? `当前章节内容：\n${chapterContext}` : "尚未选择章
         toolResults.push(`工具 ${call.name} 不存在`);
         continue;
       }
-
       onToolStart?.(call.name);
       const result = await tool.execute(call.params);
       onToolEnd?.(call.name, result);
-
       allToolCalls.push({ tool: call.name, params: call.params, result });
-      toolResults.push(`[${call.name}] ${result.content}`);
+      toolResults.push(`[${call.name}] ${result.content.slice(0, 200)}`);
     }
 
-    // 将工具结果添加到消息历史，继续对话
     messages.push({ role: "assistant", content: aiResponse });
-    messages.push({
-      role: "user",
-      content: `工具执行结果：\n${toolResults.join("\n")}\n\n请根据结果继续回复用户。`,
-    });
-
-    onStream?.(`执行了 ${toolCalls.length} 个工具，继续处理…`);
+    messages.push({ role: "user", content: `工具结果：\n${toolResults.join("\n")}\n\n继续回复。` });
   }
 
   return {
-    response: finalResponse,
+    response: finalResponse || "处理完成",
     toolCalls: allToolCalls,
     modifiedBody,
   };

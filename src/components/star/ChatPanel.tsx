@@ -79,21 +79,60 @@ export default function ChatPanel({
         throw new Error(err.error || "请求失败");
       }
 
-      const data = await res.json();
+      // 处理 SSE 流式响应
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("No stream");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let responseContent = "";
+      let toolCalls: ToolCall[] = [];
+      let modifiedBody: string | undefined;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6).trim();
+            if (data === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.type === "response") {
+                responseContent = parsed.content;
+                toolCalls = parsed.toolCalls || [];
+                modifiedBody = parsed.modifiedBody;
+              } else if (parsed.type === "tool_start") {
+                setCurrentTool(parsed.tool);
+              } else if (parsed.type === "tool_end") {
+                setCurrentTool(null);
+              } else if (parsed.type === "error") {
+                throw new Error(parsed.message);
+              }
+            } catch (e) {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
 
       const aiMsg: Message = {
         id: Math.random().toString(36).slice(2) + Date.now().toString(36),
         role: "assistant",
-        content: data.response || "处理完成",
-        toolCalls: data.toolCalls || [],
-        modifiedBody: data.modifiedBody,
+        content: responseContent || "处理完成",
+        toolCalls,
+        modifiedBody,
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, aiMsg]);
 
-      // 如果 AI 返回了修改后的正文，自动应用
-      if (data.modifiedBody) {
-        onBodyChange(data.modifiedBody);
+      // 自动应用修改后的正文
+      if (modifiedBody) {
+        onBodyChange(modifiedBody);
         await onSave();
       }
     } catch (e: unknown) {
