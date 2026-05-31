@@ -110,6 +110,7 @@ export async function callAi(params: AiCallParams): Promise<string> {
     method: "POST",
     headers,
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(60000), // 60秒超时
   });
 
   if (!response.ok) {
@@ -196,6 +197,7 @@ export function callAiStream(params: AiCallParams): ReadableStream {
           method: "POST",
           headers,
           body: JSON.stringify(body),
+          signal: AbortSignal.timeout(60000), // 60秒超时
         });
 
         if (!response.ok) {
