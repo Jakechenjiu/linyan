@@ -115,8 +115,9 @@ export async function callAi(params: AiCallParams): Promise<string> {
   if (!response.ok) {
     const errBody = await response.text().catch(() => "");
     console.error(`LLM error (${response.status}):`, errBody.slice(0, 500));
+    console.error(`LLM request: url=${url}, provider=${provider}, model=${model}, keyLength=${apiKey.length}`);
     const msg = response.status === 401 || response.status === 403
-      ? "API Key 无效，请检查设置中的密钥配置"
+      ? `API Key 无效 (${provider})，请检查设置中的密钥配置`
       : `AI 服务返回错误 (${response.status})，请稍后重试`;
     throw new Error(msg);
   }
