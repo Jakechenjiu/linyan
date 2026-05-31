@@ -24,11 +24,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   try {
+    // 限制 bodyText 长度，避免超出 API 上下文窗口
+    const truncatedBody = bodyText ? bodyText.slice(0, 8000) : "";
+
     const result = await runAgentSession(
       novelId,
       chapterId || null,
       message.trim(),
-      bodyText || "",
+      truncatedBody,
       history || [],
       session.user.id,
     );
