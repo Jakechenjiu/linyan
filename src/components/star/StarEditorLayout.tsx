@@ -273,12 +273,18 @@ export default function StarEditorLayout({
                   placeholder="编辑正文…"
                 />
               ) : (
-                <div
-                  className="text-sm leading-relaxed whitespace-pre-wrap cursor-text hover:bg-[var(--accent)]/30 rounded-lg p-3 transition-colors"
-                  onClick={handleStartEdit}
-                  title="点击编辑"
-                >
-                  {selectedChapter.body || "（空章节，点击开始写作）"}
+                <div className="relative group">
+                  <div
+                    className="text-sm leading-relaxed whitespace-pre-wrap cursor-text hover:bg-[var(--accent)]/30 rounded-lg p-3 transition-colors min-h-[200px]"
+                    onClick={handleStartEdit}
+                  >
+                    {selectedChapter.body || "（空章节，点击开始写作）"}
+                  </div>
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="px-2 py-1 rounded text-[10px] bg-[var(--accent)] text-muted-foreground">
+                      点击编辑
+                    </span>
+                  </div>
                 </div>
               )}
             </div>

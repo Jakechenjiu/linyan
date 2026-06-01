@@ -154,16 +154,22 @@ export default function ChatPanel({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {messages.length === 0 && !streaming ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
+          <div className="flex flex-col items-center justify-center h-full text-center px-8">
             <div className="w-14 h-14 rounded-2xl bg-[var(--accent)] flex items-center justify-center mb-4">
               <Sparkles size={24} className="text-[var(--cyan)]" />
             </div>
             <h3 className="font-mono text-base font-bold mb-2">AI 写作助手</h3>
-            <p className="text-xs text-muted-foreground max-w-[240px] leading-relaxed">
+            <p className="text-xs text-muted-foreground max-w-[280px] leading-relaxed mb-4">
               {chapterId
-                ? "讨论剧情、分析角色、审查正文、直接修改"
-                : "选择一个章节开始对话"}
+                ? "在这里和 AI 讨论你的小说。AI 可以分析剧情、检查问题、给出建议，也可以直接帮你修改正文。"
+                : "选择左侧章节列表中的一个章节，开始和 AI 对话。"}
             </p>
+            {chapterId && (
+              <div className="text-[10px] text-muted-foreground/60 space-y-1">
+                <p>💡 快捷指令：检查问题 · 下一步建议 · 帮我改这段 · 角色分析</p>
+                <p>✏️ 修改正文后，右侧会自动更新并保存</p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="max-w-2xl mx-auto space-y-3">
@@ -202,8 +208,9 @@ export default function ChatPanel({
 
                   {/* Modified body indicator */}
                   {msg.modifiedBody && (
-                    <div className="flex items-center gap-1 ml-1 text-[10px] text-emerald-400">
-                      <Check size={10} /> 已更新正文
+                    <div className="ml-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                      <Check size={11} className="text-emerald-400" />
+                      <span className="text-[11px] text-emerald-400">正文已更新并保存</span>
                     </div>
                   )}
                 </div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { Logo } from "@/components/brand";
 import ParticleBg from "@/components/brand/ParticleBg";
@@ -29,7 +30,13 @@ export default function RegisterPage() {
         const data = await res.json();
         setError(data.error || "注册失败");
       } else {
-        router.push("/login");
+        // 自动登录
+        const result = await signIn("credentials", { email, password, redirect: false });
+        if (result?.error) {
+          router.push("/login");
+        } else {
+          router.push("/workspace");
+        }
       }
     } catch {
       setError("网络错误");
