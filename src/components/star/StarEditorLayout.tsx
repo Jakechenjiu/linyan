@@ -102,14 +102,18 @@ export default function StarEditorLayout({
     [selectedId]
   );
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (bodyOverride?: string) => {
     if (!selectedChapter) return;
+    const bodyToSave = bodyOverride || selectedChapter.body;
     setSaving(true);
-    await saveAction(selectedChapter.id, selectedChapter.title, selectedChapter.body);
+    await saveAction(selectedChapter.id, selectedChapter.title, bodyToSave);
     setSaving(false);
     setSaved(true);
-    toast.success("已保存");
   }, [selectedChapter, saveAction]);
+
+  const handleSaveClick = useCallback(() => {
+    handleSave();
+  }, [handleSave]);
 
   const handleStartEdit = () => {
     if (selectedChapter) {
@@ -310,7 +314,7 @@ export default function StarEditorLayout({
                       </span>
                     ) : (
                       <button
-                        onClick={handleSave}
+                        onClick={handleSaveClick}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-[var(--cyan)] text-[#0a0e17] hover:opacity-90 transition-all"
                       >
                         <Save size={11} /> 保存

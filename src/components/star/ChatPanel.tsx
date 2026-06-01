@@ -36,7 +36,7 @@ export default function ChatPanel({
   chapterId: string | null;
   chapterBody: string;
   onBodyChange: (body: string) => void;
-  onSave: () => Promise<void>;
+  onSave: (bodyOverride?: string) => Promise<void>;
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -133,7 +133,7 @@ export default function ChatPanel({
       // 自动应用修改后的正文
       if (modifiedBody) {
         onBodyChange(modifiedBody);
-        await onSave();
+        await onSave(modifiedBody);
       }
     } catch (e: unknown) {
       const errMsg: Message = {
