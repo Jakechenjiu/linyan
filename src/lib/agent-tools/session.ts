@@ -1,9 +1,8 @@
-// 灵砚 Agent 会话引擎 — 快速版
-// 优化：精简上下文 + 流式输出 + 工具异步
+// 灵砚 AI 助手 — 简洁版
+// 核心理念：信任 AI，给工具，不限制思考
 
 import { getAiConfig, callAi } from "@/lib/ai";
 import { createAgentTools, type AgentTool, type ToolResult } from "./index";
-import { ANTI_AI_RULES } from "@/lib/prompts";
 
 interface AgentMessage {
   role: "user" | "assistant";
@@ -22,25 +21,13 @@ interface AgentTurnResult {
   modifiedBody?: string;
 }
 
-// 构建精简工具描述
-function buildToolDescriptions(tools: AgentTool[]): string {
-  return tools.map((t) => {
-    const params = Object.entries(t.parameters)
-      .map(([name, p]) => `${name}(${p.type}${p.required ? "*" : ""})`)
-      .join(", ");
-    return `- ${t.name}: ${t.description} [参数: ${params}]`;
-  }).join("\n");
-}
-
-// 解析工具调用
+// 解析 AI 响应中的工具调用
 function parseToolCalls(text: string): Array<{ name: string; params: Record<string, string> }> {
   const calls: Array<{ name: string; params: Record<string, string> }> = [];
   const regex = /\[TOOL_CALL\]\s*(\w+)\s*(\{[\s\S]*?\})\s*\[\/TOOL_CALL\]/g;
   let match;
   while ((match = regex.exec(text)) !== null) {
-    try {
-      calls.push({ name: match[1], params: JSON.parse(match[2]) });
-    } catch {}
+    try { calls.push({ name: match[1], params: JSON.parse(match[2]) }); } catch {}
   }
   return calls;
 }
@@ -51,7 +38,7 @@ function extractModifiedBody(text: string): string | undefined {
   return match ? match[1].trim() : undefined;
 }
 
-// Agent 会话主函数 — 快速版
+// Agent 会话主函数
 export async function runAgentSession(
   novelId: string,
   chapterId: string | null,
@@ -61,67 +48,73 @@ export async function runAgentSession(
   userId: string,
   onToolStart?: (tool: string) => void,
   onToolEnd?: (tool: string, result: ToolResult) => void,
-  onStream?: (text: string) => void,
 ): Promise<AgentTurnResult> {
   const config = await getAiConfig(userId);
   if (!config.hasKey) throw new Error("请先配置 AI API Key");
 
   const tools = createAgentTools(novelId);
-  const toolDescriptions = buildToolDescriptions(tools);
 
-  // 精简系统 prompt — 只发关键信息
-  const systemPrompt = `你是灵砚AI写作助手。直接、高效、不废话。
+  // 简洁的工具描述
+  const toolList = tools.map((t) => {
+    const params = Object.entries(t.parameters)
+      .map(([name, p]: [string, any]) => `${name}${p.required ? "*" : ""}`)
+      .join(", ");
+    return `- ${t.name}(${params}): ${t.description}`;
+  }).join("\n");
 
-## 工具
-${toolDescriptions}
+  // 简洁的系统 prompt — 不限制 AI 思考
+  const systemPrompt = `你是灵砚的 AI 写作助手。你聪明、有创意、懂写作。
 
-## 工具调用格式
+## 你可以用这些工具操作小说内容：
+${toolList}
+
+## 工具调用格式（仅在需要时使用）：
 [TOOL_CALL]
 工具名
 {"参数": "值"}
 [/TOOL_CALL]
 
-## 修改正文格式
+## 修改正文后输出格式：
 [MODIFIED_BODY]
-完整新正文
+完整的新正文
 [/MODIFIED_BODY]
 
-## 规则
-- 修改正文前先说明改了什么
-- 输出修改后的完整正文用 [MODIFIED_BODY] 包裹
-- 不废话，直接做
+## 你的行为准则：
+- 用户说"继续写"→ 你创作新内容，追加到正文
+- 用户说"改这段"→ 你修改现有内容
+- 用户讨论剧情 → 你分析、建议
+- 你可以先读取内容(read)，再决定怎么做
+- 你可以直接写入新内容(write)或精确修改(edit)
+- 你自主判断该怎么做，不需要用户明确指示每一步`;
 
-${ANTI_AI_RULES}`;
-
-  // 精简用户消息 — 只发当前正文
-  const userContent = bodyText
-    ? `当前正文：\n${bodyText.slice(-6000)}\n\n---\n${userMessage}`
-    : userMessage;
-
+  // 构建消息
   const messages: AgentMessage[] = [
-    ...history.slice(-4), // 只保留最近4条对话
-    { role: "user", content: userContent },
+    ...history.slice(-4),
+    { role: "user", content: userMessage },
   ];
 
   // Agent 循环
-  const maxToolCalls = 3;
   let allToolCalls: ToolCall[] = [];
   let finalResponse = "";
   let modifiedBody: string | undefined;
 
-  for (let turn = 0; turn <= maxToolCalls; turn++) {
+  for (let turn = 0; turn <= 5; turn++) {
     const aiResponse = await callAi({
       ...config,
       system: systemPrompt,
       messages,
-      max_tokens: 2048,
-      temperature: 0.7,
+      max_tokens: 4096,
+      temperature: 0.8,
     });
 
     const toolCalls = parseToolCalls(aiResponse);
 
     if (toolCalls.length === 0) {
-      finalResponse = aiResponse.replace(/\[MODIFIED_BODY\][\s\S]*?\[\/MODIFIED_BODY\]/g, "").trim();
+      // 没有工具调用，这是最终响应
+      finalResponse = aiResponse
+        .replace(/\[MODIFIED_BODY\][\s\S]*?\[\/MODIFIED_BODY\]/g, "")
+        .replace(/\[TOOL_CALL\][\s\S]*?\[\/TOOL_CALL\]/g, "")
+        .trim();
       modifiedBody = extractModifiedBody(aiResponse);
       break;
     }
@@ -138,11 +131,12 @@ ${ANTI_AI_RULES}`;
       const result = await tool.execute(call.params);
       onToolEnd?.(call.name, result);
       allToolCalls.push({ tool: call.name, params: call.params, result });
-      toolResults.push(`[${call.name}] ${result.content.slice(0, 200)}`);
+      toolResults.push(`[${call.name}] ${result.content.slice(0, 500)}`);
     }
 
+    // 工具结果反馈给 AI
     messages.push({ role: "assistant", content: aiResponse });
-    messages.push({ role: "user", content: `工具结果：\n${toolResults.join("\n")}\n\n继续回复。` });
+    messages.push({ role: "user", content: `工具执行结果：\n${toolResults.join("\n")}\n\n继续。` });
   }
 
   return {
