@@ -26,63 +26,30 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // 限制正文长度
   const truncatedBody = bodyText ? bodyText.slice(-8000) : "";
 
-  // 调试日志
-  console.log(`[AI Assistant] novel=${novelId}, chapter=${chapterId}, bodyLen=${bodyText?.length || 0}, truncatedLen=${truncatedBody.length}, msg=${message.trim().slice(0, 50)}`);
+  try {
+    const result = await runAgentSession(
+      novelId,
+      chapterId || null,
+      message.trim(),
+      truncatedBody,
+      history || [],
+      session.user.id,
+    );
 
-  // SSE 流式输出
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    async start(controller) {
-      try {
-        const result = await runAgentSession(
-          novelId,
-          chapterId || null,
-          message.trim(),
-          truncatedBody,
-          history || [],
-          session.user!.id!,
-          (tool) => {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "tool_start", tool })}\n\n`));
-          },
-          (tool, result) => {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-              type: "tool_end",
-              tool,
-              success: result.success,
-              summary: result.content.slice(0, 100),
-            })}\n\n`));
-          },
-        );
-
-        // 发送最终响应
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-          type: "response",
-          content: result.response,
-          toolCalls: result.toolCalls.map((tc) => ({
-            tool: tc.tool,
-            success: tc.result.success,
-            summary: tc.result.content.slice(0, 100),
-          })),
-          modifiedBody: result.modifiedBody,
-        })}\n\n`));
-
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-        controller.close();
-      } catch (e) {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-          type: "error",
-          message: e instanceof Error ? e.message : "AI 调用失败",
-        })}\n\n`));
-        controller.close();
-      }
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
+    return NextResponse.json({
+      response: result.response,
+      toolCalls: result.toolCalls.map((tc) => ({
+        tool: tc.tool,
+        success: true,
+        summary: tc.result.slice(0, 100),
+      })),
+      modifiedBody: result.modifiedBody,
+    });
+  } catch (e: unknown) {
+    console.error(`[AI Assistant] Error:`, e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "AI 调用失败" },
+      { status: 500 }
+    );
+  }
 }

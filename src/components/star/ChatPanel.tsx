@@ -40,17 +40,16 @@ export default function ChatPanel({
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [streaming, setStreaming] = useState(false);
-  const [currentTool, setCurrentTool] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, currentTool]);
+  }, [messages]);
 
   const sendMessage = async (text: string) => {
-    if (!text.trim() || streaming || !chapterId) return;
+    if (!text.trim() || loading || !chapterId) return;
     const userMsg: Message = {
       id: Math.random().toString(36).slice(2) + Date.now().toString(36),
       role: "user",
@@ -59,11 +58,10 @@ export default function ChatPanel({
     };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
-    setStreaming(true);
-    setCurrentTool(null);
+    setLoading(true);
+    
 
     try {
-      console.log(`[ChatPanel] chapterId=${chapterId}, bodyLen=${chapterBody?.length || 0}`);
       const res = await fetch(`/api/novels/${novelId}/ai-assistant`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -80,61 +78,22 @@ export default function ChatPanel({
         throw new Error(err.error || "请求失败");
       }
 
-      // 处理 SSE 流式响应
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error("No stream");
-
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let responseContent = "";
-      let toolCalls: ToolCall[] = [];
-      let modifiedBody: string | undefined;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6).trim();
-            if (data === "[DONE]") continue;
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.type === "response") {
-                responseContent = parsed.content;
-                toolCalls = parsed.toolCalls || [];
-                modifiedBody = parsed.modifiedBody;
-              } else if (parsed.type === "tool_start") {
-                setCurrentTool(parsed.tool);
-              } else if (parsed.type === "tool_end") {
-                setCurrentTool(null);
-              } else if (parsed.type === "error") {
-                throw new Error(parsed.message);
-              }
-            } catch (e) {
-              // Skip invalid JSON
-            }
-          }
-        }
-      }
+      const data = await res.json();
 
       const aiMsg: Message = {
         id: Math.random().toString(36).slice(2) + Date.now().toString(36),
         role: "assistant",
-        content: responseContent || "处理完成",
-        toolCalls,
-        modifiedBody,
+        content: data.response || "处理完成",
+        toolCalls: data.toolCalls || [],
+        modifiedBody: data.modifiedBody,
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, aiMsg]);
 
       // 自动应用修改后的正文
-      if (modifiedBody) {
-        onBodyChange(modifiedBody);
-        await onSave(modifiedBody);
+      if (data.modifiedBody) {
+        onBodyChange(data.modifiedBody);
+        await onSave(data.modifiedBody);
       }
     } catch (e: unknown) {
       const errMsg: Message = {
@@ -145,8 +104,8 @@ export default function ChatPanel({
       };
       setMessages((prev) => [...prev, errMsg]);
     } finally {
-      setStreaming(false);
-      setCurrentTool(null);
+      setLoading(false);
+      
     }
   };
 
@@ -154,7 +113,7 @@ export default function ChatPanel({
     <div className="flex flex-col h-full">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        {messages.length === 0 && !streaming ? (
+        {messages.length === 0 && !loading ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-8">
             <div className="w-14 h-14 rounded-2xl bg-[var(--accent)] flex items-center justify-center mb-4">
               <Sparkles size={24} className="text-[var(--cyan)]" />
@@ -218,19 +177,13 @@ export default function ChatPanel({
               </div>
             ))}
 
-            {/* Streaming indicator */}
-            {streaming && (
+            {/* Loading indicator */}
+            {loading && (
               <div className="flex justify-start">
                 <div className="px-3.5 py-2.5 rounded-2xl bg-[var(--accent)] text-foreground rounded-bl-md text-[13px]">
-                  {currentTool ? (
-                    <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                      <Wrench size={11} className="animate-pulse" /> {currentTool}…
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1.5">
-                      <Loader2 size={12} className="animate-spin" /> 思考中…
-                    </span>
-                  )}
+                  <span className="flex items-center gap-1.5">
+                    <Loader2 size={12} className="animate-spin" /> 思考中…
+                  </span>
                 </div>
               </div>
             )}
@@ -247,7 +200,7 @@ export default function ChatPanel({
               <button
                 key={action.id}
                 onClick={() => sendMessage(action.prompt)}
-                disabled={streaming}
+                disabled={loading}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium bg-[var(--accent)] border border-card-border text-muted-foreground hover:text-foreground hover:border-[var(--cyan)] transition-all disabled:opacity-40"
               >
                 {action.icon} {action.label}
@@ -280,7 +233,7 @@ export default function ChatPanel({
               target.style.height = Math.min(target.scrollHeight, 100) + "px";
             }}
           />
-          {streaming ? (
+          {loading ? (
             <button
               className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-red-500/20 text-red-400"
               disabled

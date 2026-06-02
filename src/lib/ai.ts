@@ -62,6 +62,31 @@ interface AiCallParams {
   temperature?: number;
 }
 
+// 工具调用类型
+export interface AiTool {
+  name: string;
+  description: string;
+  parameters: Record<string, { type: string; description: string; required?: boolean }>;
+}
+
+export interface AiToolCall {
+  id: string;
+  name: string;
+  input: Record<string, string>;
+}
+
+export interface AiToolResult {
+  toolCallId: string;
+  name: string;
+  result: string;
+}
+
+export interface AiResponseWithTools {
+  text: string;
+  toolCalls: AiToolCall[];
+  stopReason: "end_turn" | "tool_use";
+}
+
 /**
  * Non-streaming AI call. Returns full response text.
  * Uses native API format per provider.
@@ -162,6 +187,124 @@ export async function callAi(params: AiCallParams): Promise<string> {
   }
 
   return content;
+}
+
+/**
+ * AI call with native tool support. Returns structured response with tool calls.
+ */
+export async function callAiWithTools(
+  params: AiCallParams & { tools: AiTool[] }
+): Promise<AiResponseWithTools> {
+  const { apiKey, baseUrl, model, provider, system, messages, tools, max_tokens = 4096, temperature = 0.7 } = params;
+
+  const isAnthropic = baseUrl.includes("/anthropic") || provider === "anthropic";
+
+  // 构建工具定义
+  const toolsPayload = tools.map((t) => {
+    const properties: Record<string, unknown> = {};
+    const required: string[] = [];
+    for (const [name, prop] of Object.entries(t.parameters)) {
+      properties[name] = { type: prop.type, description: prop.description };
+      if (prop.required) required.push(name);
+    }
+    if (isAnthropic) {
+      return {
+        name: t.name,
+        description: t.description,
+        input_schema: { type: "object", properties, required },
+      };
+    }
+    return {
+      type: "function",
+      function: {
+        name: t.name,
+        description: t.description,
+        parameters: { type: "object", properties, required },
+      },
+    };
+  });
+
+  let url: string;
+  let headers: Record<string, string>;
+  let body: Record<string, unknown>;
+
+  if (isAnthropic) {
+    url = `${baseUrl}/v1/messages`;
+    headers = { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" };
+    body = {
+      model,
+      max_tokens,
+      temperature,
+      system,
+      tools: toolsPayload,
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    };
+  } else {
+    url = `${baseUrl}/chat/completions`;
+    headers = { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` };
+    body = {
+      model,
+      max_tokens,
+      temperature,
+      messages: [{ role: "system", content: system }, ...messages.map((m) => ({ role: m.role, content: m.content }))],
+      tools: toolsPayload,
+      tool_choice: "auto",
+    };
+  }
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(120000),
+  });
+
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => "");
+    console.error(`LLM error (${response.status}):`, errBody.slice(0, 500));
+    throw new Error(`AI 服务返回错误 (${response.status})`);
+  }
+
+  const data = await response.json();
+
+  // 解析响应
+  let text = "";
+  const toolCalls: AiToolCall[] = [];
+  let stopReason: "end_turn" | "tool_use" = "end_turn";
+
+  if (isAnthropic) {
+    // Anthropic 格式
+    if (data.content) {
+      for (const block of data.content) {
+        if (block.type === "text") {
+          text += block.text;
+        } else if (block.type === "tool_use") {
+          toolCalls.push({
+            id: block.id,
+            name: block.name,
+            input: block.input,
+          });
+        }
+      }
+    }
+    if (data.stop_reason === "tool_use") stopReason = "tool_use";
+  } else {
+    // OpenAI 格式
+    const msg = data.choices?.[0]?.message;
+    if (msg?.content) text = msg.content;
+    if (msg?.tool_calls) {
+      for (const tc of msg.tool_calls) {
+        toolCalls.push({
+          id: tc.id,
+          name: tc.function.name,
+          input: JSON.parse(tc.function.arguments),
+        });
+      }
+    }
+    if (data.choices?.[0]?.finish_reason === "tool_calls") stopReason = "tool_use";
+  }
+
+  return { text, toolCalls, stopReason };
 }
 
 /**
