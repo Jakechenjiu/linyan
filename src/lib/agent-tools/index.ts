@@ -21,17 +21,23 @@ export interface AgentTool {
 export function createWriteChapterTool(novelId: string): AgentTool {
   return {
     name: "write_chapter",
-    description: "将完整内容写入指定章节。用于续写新内容或整章重写。会覆盖原有内容。",
+    description: "将完整内容写入指定章节。用于续写新内容或整章重写。会覆盖原有内容。可以用章节ID或序号。",
     parameters: {
-      chapterId: { type: "string", description: "章节ID", required: true },
+      chapterId: { type: "string", description: "章节ID或序号", required: true },
       content: { type: "string", description: "要写入的完整内容", required: true },
     },
     execute: async (params) => {
+      let chapter;
+      chapter = await prisma.chapter.findUnique({ where: { id: params.chapterId }, select: { id: true } });
+      if (!chapter) {
+        const orderNum = parseInt(params.chapterId, 10);
+        if (!isNaN(orderNum)) {
+          chapter = await prisma.chapter.findFirst({ where: { novelId, order: orderNum }, select: { id: true } });
+        }
+      }
+      if (!chapter) return { success: false, content: `章节「${params.chapterId}」不存在` };
       const wordCount = params.content.replace(/\s/g, "").length;
-      await prisma.chapter.update({
-        where: { id: params.chapterId },
-        data: { body: params.content, wordCount },
-      });
+      await prisma.chapter.update({ where: { id: chapter.id }, data: { body: params.content, wordCount } });
       return { success: true, content: `已写入 ${wordCount} 字` };
     },
   };
@@ -41,18 +47,22 @@ export function createWriteChapterTool(novelId: string): AgentTool {
 export function createPatchChapterTool(novelId: string): AgentTool {
   return {
     name: "patch_chapter",
-    description: "对章节做局部定点修补。查找目标文本并替换。用于小修改。",
+    description: "对章节做局部定点修补。查找目标文本并替换。用于小修改。可以用章节ID或序号。",
     parameters: {
-      chapterId: { type: "string", description: "章节ID", required: true },
+      chapterId: { type: "string", description: "章节ID或序号", required: true },
       targetText: { type: "string", description: "要查找的原文", required: true },
       replacementText: { type: "string", description: "替换后的文本", required: true },
     },
     execute: async (params) => {
-      const chapter = await prisma.chapter.findUnique({
-        where: { id: params.chapterId },
-        select: { body: true },
-      });
-      if (!chapter) return { success: false, content: "章节不存在" };
+      let chapter;
+      chapter = await prisma.chapter.findUnique({ where: { id: params.chapterId }, select: { body: true } });
+      if (!chapter) {
+        const orderNum = parseInt(params.chapterId, 10);
+        if (!isNaN(orderNum)) {
+          chapter = await prisma.chapter.findFirst({ where: { novelId, order: orderNum }, select: { body: true } });
+        }
+      }
+      if (!chapter) return { success: false, content: `章节「${params.chapterId}」不存在` };
       const count = chapter.body.split(params.targetText).length - 1;
       if (count === 0) return { success: false, content: "未找到目标文本" };
       const newBody = chapter.body.split(params.targetText).join(params.replacementText);
@@ -70,17 +80,29 @@ export function createPatchChapterTool(novelId: string): AgentTool {
 export function createReadChapterTool(novelId: string): AgentTool {
   return {
     name: "read_chapter",
-    description: "读取指定章节的完整内容。",
+    description: "读取指定章节的完整内容。可以用章节ID或章节序号（如1表示第1章）。",
     parameters: {
-      chapterId: { type: "string", description: "章节ID", required: true },
+      chapterId: { type: "string", description: "章节ID或序号（如1表示第1章）", required: true },
     },
     execute: async (params) => {
-      const chapter = await prisma.chapter.findUnique({
+      let chapter;
+      // 尝试按ID查找
+      chapter = await prisma.chapter.findUnique({
         where: { id: params.chapterId },
         select: { id: true, title: true, body: true, wordCount: true, order: true },
       });
-      if (!chapter) return { success: false, content: "章节不存在" };
-      return { success: true, content: `# ${chapter.title}\n\n${chapter.body}` };
+      // 如果没找到，尝试按序号查找
+      if (!chapter) {
+        const orderNum = parseInt(params.chapterId, 10);
+        if (!isNaN(orderNum)) {
+          chapter = await prisma.chapter.findFirst({
+            where: { novelId, order: orderNum },
+            select: { id: true, title: true, body: true, wordCount: true, order: true },
+          });
+        }
+      }
+      if (!chapter) return { success: false, content: `章节「${params.chapterId}」不存在` };
+      return { success: true, content: `# ${chapter.title} (${chapter.wordCount}字)\n\n${chapter.body}` };
     },
   };
 }
