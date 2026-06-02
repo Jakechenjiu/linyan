@@ -61,6 +61,11 @@ export default function StarEditorLayout({
 
   const selectedChapter = chapters.find((ch) => ch.id === selectedId) || null;
 
+  // Debug log
+  if (typeof window !== "undefined" && selectedChapter) {
+    console.log(`[Editor] selectedId=${selectedId}, bodyLen=${selectedChapter.body?.length || 0}`);
+  }
+
   const handleAddChapter = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;

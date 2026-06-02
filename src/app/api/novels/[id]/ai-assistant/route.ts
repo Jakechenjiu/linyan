@@ -26,6 +26,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // 限制正文长度
   const truncatedBody = bodyText ? bodyText.slice(-8000) : "";
 
+  // 调试日志
+  console.log(`[AI Assistant] novel=${novelId}, chapter=${chapterId}, bodyLen=${bodyText?.length || 0}, truncatedLen=${truncatedBody.length}, msg=${message.trim().slice(0, 50)}`);
+
   // SSE 流式输出
   const encoder = new TextEncoder();
   const stream = new ReadableStream({

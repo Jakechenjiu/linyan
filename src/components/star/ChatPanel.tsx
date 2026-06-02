@@ -63,6 +63,7 @@ export default function ChatPanel({
     setCurrentTool(null);
 
     try {
+      console.log(`[ChatPanel] chapterId=${chapterId}, bodyLen=${chapterBody?.length || 0}`);
       const res = await fetch(`/api/novels/${novelId}/ai-assistant`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
