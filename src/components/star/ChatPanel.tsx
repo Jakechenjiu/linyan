@@ -73,12 +73,11 @@ export default function ChatPanel({
         }),
       });
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "请求失败");
-      }
-
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "请求失败");
+      }
 
       const aiMsg: Message = {
         id: Math.random().toString(36).slice(2) + Date.now().toString(36),
