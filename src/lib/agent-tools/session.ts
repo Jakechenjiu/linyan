@@ -2,6 +2,12 @@
 
 import { getAiConfig, callAiWithTools } from "@/lib/ai";
 import { toolDefinitions, executeTool } from "./index";
+import {
+  runChapterPipeline,
+  shouldTriggerPipeline,
+  extractOutlineId,
+} from "./pipeline";
+import { prisma } from "@/lib/db";
 
 interface AgentMessage {
   role: "user" | "assistant";
@@ -39,6 +45,42 @@ export async function runAgentSession(
 ): Promise<AgentTurnResult> {
   const config = await getAiConfig(userId);
   if (!config.hasKey) throw new Error("请先配置 AI API Key");
+
+  // 检查是否应该触发章节生成管线
+  if (shouldTriggerPipeline(userMessage)) {
+    console.log("[Agent] Triggering chapter pipeline");
+
+    // 获取大纲列表
+    const novel = await prisma.novel.findUnique({
+      where: { id: novelId },
+      select: { outlines: { where: { type: "chapter" }, select: { id: true, title: true } } },
+    });
+
+    const outlineId = novel
+      ? extractOutlineId(userMessage, novel.outlines)
+      : null;
+
+    const result = await runChapterPipeline(
+      novelId,
+      userId,
+      userMessage,
+      outlineId || undefined,
+    );
+
+    return {
+      response: result.response,
+      toolCalls: result.chapterId
+        ? [
+            {
+              tool: "chapter_pipeline",
+              input: { outlineId: outlineId || "auto" },
+              result: result.response,
+            },
+          ]
+        : [],
+      modifiedBody: undefined,
+    };
+  }
 
   // 系统 prompt（简洁，不限制 AI）
   const systemPrompt = `你是灵砚的AI写作助手。你聪明、有创意、懂写作。
