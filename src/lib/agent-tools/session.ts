@@ -51,10 +51,11 @@ export async function runAgentSession(
 - search_content: 搜索内容
 - create_chapter: 创建新章节
 
-用户说"继续写"→ 创建新章节或写入新内容
-用户说"改这段"→ 用 patch_chapter 修改
-用户讨论剧情 → 直接回答
-你自主判断该怎么做。
+**重要规则：**
+1. 用户说"写第一章"或"续写"→ 必须用 create_chapter 或 write_chapter 写入完整内容，不能创建空章节
+2. 用户说"改这段"→ 用 patch_chapter 修改
+3. 用户讨论剧情 → 直接回答
+4. 每次工具调用后，必须给出文字回复，解释你做了什么或给出建议
 
 修改正文后，在回复末尾用这个格式输出新正文：
 [MODIFIED_BODY]
