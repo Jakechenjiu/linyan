@@ -1,7 +1,7 @@
-// 灵砚 AI 助手会话 — 使用原生工具调用
+// 灵砚 AI 助手 — 简洁版，直接调用 DeepSeek 工具调用
 
-import { getAiConfig, callAiWithTools, type AiToolCall } from "@/lib/ai";
-import { allTools, executeTool } from "./index";
+import { getAiConfig, callAiWithTools } from "@/lib/ai";
+import { toolDefinitions, executeTool } from "./index";
 
 interface AgentMessage {
   role: "user" | "assistant";
@@ -14,19 +14,19 @@ interface ToolCallRecord {
   result: string;
 }
 
-interface AgentTurnResult {
+export interface AgentTurnResult {
   response: string;
   toolCalls: ToolCallRecord[];
   modifiedBody?: string;
 }
 
-// 从 AI 响应中提取修改后的正文
+// 从文本中提取 [MODIFIED_BODY]
 function extractModifiedBody(text: string): string | undefined {
   const match = text.match(/\[MODIFIED_BODY\]\s*([\s\S]*?)\s*\[\/MODIFIED_BODY\]/);
   return match ? match[1].trim() : undefined;
 }
 
-// Agent 会话主函数
+// 主函数
 export async function runAgentSession(
   novelId: string,
   chapterId: string | null,
@@ -40,28 +40,26 @@ export async function runAgentSession(
   const config = await getAiConfig(userId);
   if (!config.hasKey) throw new Error("请先配置 AI API Key");
 
-  // 简洁的系统 prompt
-  const systemPrompt = `你是灵砚的 AI 写作助手。你聪明、有创意、懂写作。
+  // 系统 prompt（简洁，不限制 AI）
+  const systemPrompt = `你是灵砚的AI写作助手。你聪明、有创意、懂写作。
 
-## 你的行为
-- 用户说"继续写"、"写下一段" → 用 create_chapter 创建新章节，或用 write_chapter 写入新内容
-- 用户说"改这段"、"润色" → 用 patch_chapter 做局部修改
-- 用户说"重写这章" → 用 write_chapter 整章覆盖
-- 用户讨论剧情/角色 → 直接回答
-- 用户问问题 → 先用 read_chapter 读内容，再回答
+你可以用工具操作小说内容：
+- read_chapter: 读取章节
+- write_chapter: 写入/覆盖章节
+- patch_chapter: 局部修改
+- list_chapters: 列出所有章节
+- search_content: 搜索内容
+- create_chapter: 创建新章节
 
-## 修改正文后
-在回复末尾用以下格式输出修改后的完整正文：
+用户说"继续写"→ 创建新章节或写入新内容
+用户说"改这段"→ 用 patch_chapter 修改
+用户讨论剧情 → 直接回答
+你自主判断该怎么做。
+
+修改正文后，在回复末尾用这个格式输出新正文：
 [MODIFIED_BODY]
-完整的新正文
-[/MODIFIED_BODY]
-
-## 规则
-- 你自主判断该怎么做
-- 写新内容时大胆创作，不要只是分析
-- 改内容时直接改，不要先分析再改
-- 不要在回复中加表情符号
-- 回复简洁，不说废话`;
+完整新正文
+[/MODIFIED_BODY]`;
 
   // 构建消息
   const messages: AgentMessage[] = [
@@ -69,23 +67,22 @@ export async function runAgentSession(
     { role: "user", content: userMessage },
   ];
 
-  // 工具调用循环
+  // 工具调用循环（最多5轮）
   const allToolCalls: ToolCallRecord[] = [];
   let finalText = "";
   let modifiedBody: string | undefined;
-  const maxIterations = 5;
 
-  for (let i = 0; i < maxIterations; i++) {
+  for (let i = 0; i < 5; i++) {
     const response = await callAiWithTools({
       ...config,
       system: systemPrompt,
       messages,
-      tools: allTools,
+      tools: toolDefinitions,
       max_tokens: 4096,
       temperature: 0.8,
     });
 
-    // 没有工具调用，这是最终响应
+    // 没有工具调用 = 最终响应
     if (response.toolCalls.length === 0) {
       finalText = response.text;
       modifiedBody = extractModifiedBody(response.text);
@@ -93,30 +90,37 @@ export async function runAgentSession(
     }
 
     // 执行工具调用
-    for (const toolCall of response.toolCalls) {
-      onToolStart?.(toolCall.name);
+    for (const tc of response.toolCalls) {
+      onToolStart?.(tc.name);
+      const result = await executeTool(tc.name, tc.input, novelId);
+      onToolEnd?.(tc.name, result);
+      allToolCalls.push({ tool: tc.name, input: tc.input, result });
 
-      const result = await executeTool(toolCall.name, toolCall.input, novelId);
-
-      onToolEnd?.(toolCall.name, result);
-
-      allToolCalls.push({
-        tool: toolCall.name,
-        input: toolCall.input,
-        result,
-      });
-
-      // 把工具结果加入消息，继续对话
+      // 把工具结果加入消息
       messages.push({ role: "assistant", content: response.text || "" });
-      messages.push({
-        role: "user",
-        content: `[${toolCall.name} 结果]\n${result}\n\n继续。`,
-      });
+      messages.push({ role: "user", content: `[${tc.name}]\n${result}\n\n基于以上信息，请给出你的分析和建议。` });
     }
   }
 
+  // 如果循环结束但没有最终响应，强制生成一次
+  if (!finalText && allToolCalls.length > 0) {
+    const finalResponse = await callAiWithTools({
+      ...config,
+      system: systemPrompt,
+      messages: [
+        ...messages,
+        { role: "user", content: "基于以上工具返回的信息，请给出你的完整回复。" },
+      ],
+      tools: toolDefinitions,
+      max_tokens: 4096,
+      temperature: 0.8,
+    });
+    finalText = finalResponse.text;
+    modifiedBody = extractModifiedBody(finalResponse.text);
+  }
+
   return {
-    response: finalText || "处理完成",
+    response: finalText || "已完成操作，请查看结果。",
     toolCalls: allToolCalls,
     modifiedBody,
   };
