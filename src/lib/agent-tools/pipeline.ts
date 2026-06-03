@@ -37,6 +37,7 @@ export async function runChapterPipeline(
   userId: string,
   userRequest: string,
   outlineId?: string,
+  novelContext?: { title: string; genre?: string; synopsis?: string },
 ): Promise<PipelineResult> {
   const config = await getAiConfig(userId);
   if (!config.hasKey) {
@@ -129,7 +130,10 @@ export async function runChapterPipeline(
       contextParts.push(`\n## 世界铁律\n${novel.worldSetting.rules}`);
     }
 
-    const writerSystem = `你是一位专业网络小说作家。严格按照下面的「章节意图」和「规则栈」写一章完整的小说。
+    const novelTitle = novelContext?.title || novel.title;
+    const writerSystem = `你是一位专业网络小说作家。你正在为小说「${novelTitle}」写作。
+
+严格按照下面的「章节意图」和「规则栈」写一章完整的小说。
 
 ## 写作铁律（Anti-AI）
 - 禁止：缓缓/淡淡/微微/轻轻/蓦然/倏忽/仿若/似是/不知为何/莫名/仿佛

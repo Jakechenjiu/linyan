@@ -12,7 +12,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const novel = await prisma.novel.findUnique({
     where: { id: novelId },
-    select: { userId: true },
+    select: {
+      userId: true,
+      title: true,
+      genre: true,
+      synopsis: true,
+    },
   });
 
   if (!novel || novel.userId !== session.user.id) {
@@ -26,6 +31,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // 限制正文长度
   const truncatedBody = bodyText ? bodyText.slice(-8000) : "";
 
+  // 构建小说上下文
+  const novelContext = {
+    title: novel.title,
+    genre: novel.genre || undefined,
+    synopsis: novel.synopsis || undefined,
+  };
+
   try {
     const result = await runAgentSession(
       novelId,
@@ -34,6 +46,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       truncatedBody,
       history || [],
       session.user.id,
+      undefined,
+      undefined,
+      novelContext,
     );
 
     return NextResponse.json({

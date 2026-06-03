@@ -42,6 +42,7 @@ export async function runAgentSession(
   userId: string,
   onToolStart?: (tool: string) => void,
   onToolEnd?: (tool: string, result: string) => void,
+  novelContext?: { title: string; genre?: string; synopsis?: string },
 ): Promise<AgentTurnResult> {
   const config = await getAiConfig(userId);
   if (!config.hasKey) throw new Error("请先配置 AI API Key");
@@ -65,6 +66,7 @@ export async function runAgentSession(
       userId,
       userMessage,
       outlineId || undefined,
+      novelContext,
     );
 
     return {
@@ -83,7 +85,11 @@ export async function runAgentSession(
   }
 
   // 系统 prompt（简洁，不限制 AI）
-  const systemPrompt = `你是灵砚的AI写作助手。你聪明、有创意、懂写作。
+  const novelInfo = novelContext
+    ? `\n\n## 当前小说\n- 书名：${novelContext.title}${novelContext.genre ? `\n- 类型：${novelContext.genre}` : ""}${novelContext.synopsis ? `\n- 简介：${novelContext.synopsis}` : ""}`
+    : "";
+
+  const systemPrompt = `你是灵砚的AI写作助手。你聪明、有创意、懂写作。${novelInfo}
 
 你可以用工具操作小说内容：
 - read_chapter: 读取章节
@@ -94,10 +100,11 @@ export async function runAgentSession(
 - create_chapter: 创建新章节
 
 **重要规则：**
-1. 用户说"写第一章"或"续写"→ 必须用 create_chapter 或 write_chapter 写入完整内容，不能创建空章节
-2. 用户说"改这段"→ 用 patch_chapter 修改
-3. 用户讨论剧情 → 直接回答
-4. 每次工具调用后，必须给出文字回复，解释你做了什么或给出建议
+1. 你正在操作小说「${novelContext?.title || "未知"}」，所有操作都针对这本小说
+2. 用户说"写第一章"或"续写"→ 必须用 create_chapter 或 write_chapter 写入完整内容，不能创建空章节
+3. 用户说"改这段"→ 用 patch_chapter 修改
+4. 用户讨论剧情 → 直接回答
+5. 每次工具调用后，必须给出文字回复，解释你做了什么或给出建议
 
 修改正文后，在回复末尾用这个格式输出新正文：
 [MODIFIED_BODY]
