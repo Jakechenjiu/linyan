@@ -2,6 +2,18 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getAiConfig, callAi, callAiStream } from "@/lib/ai";
 import { NextResponse } from "next/server";
+import {
+  getAllTruthFiles,
+  buildTruthFileContext,
+  updateTruthFilesFromChapter,
+  initializeTruthFiles,
+  type TruthFileType,
+} from "@/lib/truth-files";
+import {
+  planChapter,
+  composeChapter,
+  buildGovernanceContext,
+} from "@/lib/input-governance";
 
 // Shared anti-AI rules — also used in generate/route.ts
 const ANTI_AI_RULES = `## 写作铁律（Anti-AI）
@@ -75,6 +87,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const wordTarget = outline.wordTarget || 2000;
 
+  // --- Load truth files ---
+  let truthFiles: Record<string, string> = {};
+  try {
+    truthFiles = await getAllTruthFiles(novelId);
+    // 如果没有任何真相文件，先初始化
+    const hasAnyContent = Object.values(truthFiles).some((v) => v.trim().length > 0);
+    if (!hasAnyContent) {
+      await initializeTruthFiles(novelId);
+      truthFiles = await getAllTruthFiles(novelId);
+    }
+  } catch (e) {
+    console.warn("Failed to load truth files:", e);
+  }
+
   // --- Build context for brief ---
   const contextParts: string[] = [];
 
@@ -124,6 +150,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
     }
   }
+
+  // Truth files — inject long-term memory
+  const truthContext = buildTruthFileContext(truthFiles as any, {
+    maxLength: 6000,
+  });
+  if (truthContext.trim()) {
+    contextParts.push(`\n## 长期记忆（真相文件）\n${truthContext}`);
+  }
+
   const prevChapter = novel.chapters[0];
   if (prevChapter) {
     contextParts.push(`\n## 前一章结尾（仅作风格和连续性参考）\n${prevChapter.body.slice(-500)}`);
@@ -137,34 +172,61 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        // === Phase 1: Generate writing brief (non-streaming, low temp) ===
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "status", message: "正在生成写作任务书…" })}\n\n`));
+        // === Phase 1: Plan + Compose (Input Governance) ===
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "status", message: "正在规划章节意图…" })}\n\n`));
 
-        let brief: string;
+        const chapterNumber = novel.chapters.length + 1;
+        let chapterIntent: any;
+        let composed: any;
+        let governanceContext: string;
+
         try {
-          brief = await callAi({
-            ...config,
-            system: BRIEF_SYSTEM,
-            messages: [{ role: "user", content: contextParts.join("\n") }],
-            max_tokens: 2048,
-            temperature: 0.3,
-          });
+          // Plan: 生成章节意图
+          chapterIntent = await planChapter(
+            novelId,
+            outlineId,
+            chapterNumber,
+            undefined // externalContext
+          );
+
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: "intent",
+            goal: chapterIntent.goal,
+            mustKeep: chapterIntent.mustKeep,
+            mustAvoid: chapterIntent.mustAvoid,
+            endState: chapterIntent.endState,
+          })})}\n\n`));
+
+          // Compose: 编译上下文
+          composed = await composeChapter(
+            novelId,
+            chapterIntent,
+            outline.summary || undefined
+          );
+
+          // 构建治理上下文
+          governanceContext = buildGovernanceContext(chapterIntent, composed);
+
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: "status",
+            message: `规划完成，已选择 ${composed.ruleStack.hard.length} 条硬护栏`,
+          })})}\n\n`));
         } catch (e) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", message: `任务书生成失败: ${e instanceof Error ? e.message : "未知错误"}` })}\n\n`));
-          controller.close();
-          return;
+          console.warn("Input governance failed, falling back to legacy:", e);
+          // 降级到旧的写作任务书模式
+          governanceContext = contextParts.join("\n");
         }
 
         // === Phase 2: Draft chapter (streaming, high temp) ===
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "status", message: "正在写作…" })}\n\n`));
 
-        const draftSystem = `你是一位专业网络小说作家。严格按照下面的「写作任务书」写一章完整的小说。
+        const draftSystem = `你是一位专业网络小说作家。严格按照下面的「章节意图」和「规则栈」写一章完整的小说。
 
-角色设定和世界观铁律是必须遵守的约束。前一章结尾仅用于保持风格和连续性。
+角色设定和世界观铁律是必须遵守的约束。硬护栏不可违反，软约束尽量遵守。
 
 ${ANTI_AI_RULES.replace("{wordTarget}", String(wordTarget))}`;
 
-        const draftUser = `## 写作任务书\n${brief}\n\n${contextParts.join("\n")}\n\n请开始写作。`;
+        const draftUser = `${governanceContext}\n\n请开始写作。`;
 
         const aiStream = callAiStream({
           ...config,
@@ -200,6 +262,28 @@ ${ANTI_AI_RULES.replace("{wordTarget}", String(wordTarget))}`;
           return;
         }
 
+        // === Phase 2.5: Post-write AI tell detection (zero LLM cost) ===
+        const { detectAITells, autoFixAITells } = await import("@/lib/ai-tells");
+        const aiTellResult = detectAITells(fullBody);
+
+        if (!aiTellResult.passed) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: "ai_tell_warning",
+            score: aiTellResult.score,
+            issues: aiTellResult.issues.slice(0, 5), // 只发送前 5 个问题
+          })})}\n\n`);
+
+          // 尝试自动修复
+          const { fixed, changes } = autoFixAITells(fullBody);
+          if (changes.length > 0) {
+            fullBody = fixed;
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: "status",
+              message: `已自动修复 ${changes.length} 个 AI 痕迹`,
+            })})}\n\n`));
+          }
+        }
+
         // === Phase 3: Settlement — fact extraction (non-streaming, low temp) ===
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "status", message: "正在结算…" })}\n\n`));
 
@@ -228,88 +312,234 @@ ${ANTI_AI_RULES.replace("{wordTarget}", String(wordTarget))}`;
           factSnapshot = { newFacts: [], stateChanges: [], openHooks: [], characterMoments: {} };
         }
 
-        // === Phase 4: Auto-review ===
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "status", message: "正在审查…" })}\n\n`));
-
-        let review: any = null;
+        // === Phase 3.5: Update truth files ===
         try {
-          const reviewSystem = `你是一位专业的网文编辑，负责审查章节质量。请以严格的JSON格式返回审查结果。
+          const chapterNumber = novel.chapters.length + 1;
+          await updateTruthFilesFromChapter(
+            novelId,
+            chapterNumber,
+            outline.title,
+            fullBody,
+            factSnapshot
+          );
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "status", message: "真相文件已更新" })}\n\n`));
+        } catch (e) {
+          console.warn("Failed to update truth files:", e);
+          // 不阻塞主流程
+        }
 
-## 审查维度
-1. **角色一致性** (character_consistency): 角色行为是否符合已设定的人格、欲望、缺陷？
-2. **设定一致性** (setting_consistency): 是否违反世界观规则、力量体系、世界铁律？
-3. **叙事连贯性** (narrative_coherence): 衔接是否自然？有无逻辑跳跃？
-4. **节奏** (pacing): 是否有停滞感？爽点/信息/情感交付密度如何？
-5. **AI味检测** (ai_flavor): 检查AI写作特征
+        // === Phase 4: Audit + Revision Loop ===
+        const {
+          AUDIT_DIMENSIONS,
+          buildAuditPrompt,
+          buildRevisionPrompt,
+          shouldRevive,
+        } = await import("@/lib/audit-dimensions");
 
-## 输出格式
-严格返回以下JSON（不要包含markdown代码块标记）：
-{
-  "overall": "pass" | "warning" | "fail",
-  "summary": "一句话总评（不超过50字）",
-  "issues": [
-    {
-      "severity": "critical" | "high" | "medium" | "low",
-      "category": "character_consistency" | "setting_consistency" | "narrative_coherence" | "pacing" | "ai_flavor",
-      "location": "具体位置",
-      "description": "问题描述",
-      "fixHint": "修改建议"
-    }
-  ],
-  "strengths": ["亮点"]
-}`;
+        let finalBody = fullBody;
+        let auditResult: any = null;
+        let revisionCount = 0;
+        const MAX_REVISIONS = 2;
 
-          const contextLines: string[] = [];
-          if (novel.characters.length > 0) {
-            contextLines.push("角色设定:");
-            for (const c of novel.characters) {
-              contextLines.push(`- ${c.name}(${c.role}): ${c.personality || ""} | 欲望:${c.desire || ""} | 缺陷:${c.flaw || ""}`);
-            }
-          }
-          if (novel.worldSetting?.rules) contextLines.push(`\n世界铁律:\n${novel.worldSetting.rules}`);
-
-          const reviewResult = await callAi({
-            ...config,
-            system: reviewSystem,
-            messages: [{
-              role: "user",
-              content: `${contextLines.join("\n")}\n\n章节: ${outline.title}\n${fullBody}\n\n请审查以上章节。`,
-            }],
-            max_tokens: 2048,
-            temperature: 0.2,
-          });
+        for (let attempt = 0; attempt <= MAX_REVISIONS; attempt++) {
+          const isRevision = attempt > 0;
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                type: "status",
+                message: isRevision
+                  ? `正在审查（第${attempt}轮修订后）…`
+                  : "正在审查…",
+              })}\n\n`
+            )
+          );
 
           try {
-            review = JSON.parse(reviewResult.replace(/```json\s?|\```/g, "").trim());
-          } catch {
-            review = { overall: "warning", summary: "审查结果解析失败", issues: [], strengths: [] };
+            // 构建审计上下文
+            const contextLines: string[] = [];
+            if (novel.characters.length > 0) {
+              contextLines.push("角色设定:");
+              for (const c of novel.characters) {
+                contextLines.push(
+                  `- ${c.name}(${c.role}): ${c.personality || ""} | 欲望:${c.desire || ""} | 缺陷:${c.flaw || ""}`
+                );
+              }
+            }
+            if (novel.worldSetting?.rules)
+              contextLines.push(`\n世界铁律:\n${novel.worldSetting.rules}`);
+
+            const auditPrompt = buildAuditPrompt(AUDIT_DIMENSIONS);
+
+            const reviewResult = await callAi({
+              ...config,
+              system: auditPrompt,
+              messages: [
+                {
+                  role: "user",
+                  content: `${contextLines.join("\n")}\n\n章节: ${outline.title}\n${finalBody}\n\n请审查以上章节。`,
+                },
+              ],
+              max_tokens: 3000,
+              temperature: 0.2,
+            });
+
+            try {
+              auditResult = JSON.parse(
+                reviewResult.replace(/```json\s?|\```/g, "").trim()
+              );
+            } catch {
+              auditResult = {
+                passed: true,
+                overallScore: 0,
+                issues: [],
+                summary: "审查结果解析失败，默认通过",
+              };
+            }
+
+            // 判断是否需要修订
+            const { shouldRevise, reason } = shouldRevive(
+              auditResult,
+              MAX_REVISIONS,
+              attempt
+            );
+
+            if (!shouldRevise) {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: "status",
+                    message: `审查完成：${auditResult.summary}${reason ? ` (${reason})` : ""}`,
+                  })}\n\n`
+                )
+              );
+              break;
+            }
+
+            // 需要修订
+            if (attempt >= MAX_REVISIONS) {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: "status",
+                    message: `已达到最大修订次数，保留当前版本`,
+                  })}\n\n`
+                )
+              );
+              break;
+            }
+
+            revisionCount++;
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({
+                  type: "status",
+                  message: `发现问题，正在修订（${reason}）…`,
+                })}\n\n`
+              )
+            );
+
+            // 执行修订
+            const criticalIssues = auditResult.issues.filter(
+              (i: any) => i.severity === "critical" || i.severity === "warning"
+            );
+
+            if (criticalIssues.length === 0) {
+              break;
+            }
+
+            const revisionPrompt = buildRevisionPrompt(criticalIssues);
+            const revisionResult = await callAiStream({
+              ...config,
+              system: revisionPrompt.replace("{chapterContent}", ""),
+              messages: [
+                {
+                  role: "user",
+                  content: `请修订以下章节：\n\n${finalBody}`,
+                },
+              ],
+              max_tokens: 8192,
+              temperature: 0.5,
+            });
+
+            const revisionReader = revisionResult.getReader();
+            let revisedBody = "";
+
+            while (true) {
+              const { done, value } = await revisionReader.read();
+              if (done) break;
+
+              const text =
+                typeof value === "string"
+                  ? value
+                  : new TextDecoder().decode(value);
+              revisedBody += text;
+
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: "revision_text",
+                    content: text,
+                    attempt: revisionCount,
+                  })}\n\n`
+                )
+              );
+            }
+
+            if (revisedBody.trim()) {
+              finalBody = revisedBody;
+            }
+          } catch (e) {
+            console.warn(`Audit attempt ${attempt} failed:`, e);
+            if (attempt === 0) {
+              auditResult = {
+                passed: true,
+                overallScore: 0,
+                issues: [],
+                summary: "审查调用失败，默认通过",
+              };
+            }
+            break;
           }
-        } catch {
-          review = { overall: "warning", summary: "审查调用失败", issues: [], strengths: [] };
         }
+
+        // === Phase 5: Final Save ===
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({
+              type: "status",
+              message: "正在保存…",
+            })}\n\n`
+          )
+        );
 
         // --- Create/Update Chapter record ---
         let chapterId: string;
         if (existingChapter) {
           chapterId = existingChapter.id;
           await prisma.chapter.updateMany({
-            where: { id: existingChapter.id, novel: { userId: session.user!.id } },
+            where: {
+              id: existingChapter.id,
+              novel: { userId: session.user!.id },
+            },
             data: {
               title: outline.title,
-              body: fullBody,
-              wordCount: fullBody.trim().length,
+              body: finalBody,
+              wordCount: finalBody.trim().length,
               factSnapshot: JSON.stringify(factSnapshot),
               outlineId: outline.id,
             },
           });
         } else {
-          const maxOrder = novel.chapters.reduce((m, ch) => Math.max(m, ch.order), 0);
+          const maxOrder = novel.chapters.reduce(
+            (m, ch) => Math.max(m, ch.order),
+            0
+          );
           const created = await prisma.chapter.create({
             data: {
               title: outline.title,
-              body: fullBody,
+              body: finalBody,
               order: maxOrder + 1,
-              wordCount: fullBody.trim().length,
+              wordCount: finalBody.trim().length,
               factSnapshot: JSON.stringify(factSnapshot),
               novelId: novel.id,
               outlineId: outline.id,
@@ -323,20 +553,29 @@ ${ANTI_AI_RULES.replace("{wordTarget}", String(wordTarget))}`;
         today.setHours(0, 0, 0, 0);
         await prisma.writingLog.upsert({
           where: { novelId_date: { novelId: novel.id, date: today } },
-          create: { novelId: novel.id, date: today, wordCount: fullBody.trim().length },
-          update: { wordCount: { increment: fullBody.trim().length } },
+          create: {
+            novelId: novel.id,
+            date: today,
+            wordCount: finalBody.trim().length,
+          },
+          update: { wordCount: { increment: finalBody.trim().length } },
         });
 
         // Send done event
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-          type: "done",
-          chapterId,
-          title: outline.title,
-          wordCount: fullBody.trim().length,
-          review,
-          factSnapshot,
-          isRegenerate: !!existingChapter,
-        })}\n\n`));
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({
+              type: "done",
+              chapterId,
+              title: outline.title,
+              wordCount: finalBody.trim().length,
+              review: auditResult,
+              factSnapshot,
+              revisionCount,
+              isRegenerate: !!existingChapter,
+            })}\n\n`
+          )
+        );
 
         controller.close();
       } catch (e) {

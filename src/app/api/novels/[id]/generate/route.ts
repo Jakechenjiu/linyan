@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getAiConfig, callAiStream } from "@/lib/ai";
 import { NextResponse } from "next/server";
+import { getAllTruthFiles, buildTruthFileContext } from "@/lib/truth-files";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -97,6 +98,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
     }
   }
+
+  // Truth files — inject long-term memory
+  try {
+    const truthFiles = await getAllTruthFiles(novelId);
+    const truthContext = buildTruthFileContext(truthFiles, { maxLength: 6000 });
+    if (truthContext.trim()) {
+      parts.push(`\n## 长期记忆（真相文件）\n${truthContext}`);
+    }
+  } catch (e) {
+    console.warn("Failed to load truth files:", e);
+  }
+
   const relevantChapters = novel.chapters
     .filter((ch) => !chapterId || ch.id === chapterId)
     .reverse();

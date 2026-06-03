@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Plus, Trash2, GripVertical, ChevronLeft, ChevronRight, PanelRightClose, PanelRight, BookOpen, Save, Check, Loader2, Shield } from "lucide-react";
+import { Plus, Trash2, GripVertical, ChevronLeft, ChevronRight, PanelRightClose, PanelRight, BookOpen, Save, Check, Loader2, Shield, Database, Target } from "lucide-react";
 import Link from "next/link";
 import AuditPanel from "./AuditPanel";
+import TruthFilesPanel from "./TruthFilesPanel";
+import ChapterIntentPanel from "./ChapterIntentPanel";
 import { toast } from "sonner";
 import ChatPanel from "./ChatPanel";
 
@@ -58,6 +60,9 @@ export default function StarEditorLayout({
   const [editedBody, setEditedBody] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(true);
+  const [rightPanel, setRightPanel] = useState<"audit" | "truth" | "intent">("audit");
+  const [refreshTruthFiles, setRefreshTruthFiles] = useState(0);
+  const [chapterIntent, setChapterIntent] = useState<any>(null);
 
   const selectedChapter = chapters.find((ch) => ch.id === selectedId) || null;
 
@@ -347,17 +352,62 @@ export default function StarEditorLayout({
           </div>
         )}
 
-        {/* AI Audit Panel */}
+        {/* Panel Tabs */}
         {viewerOpen && selectedChapter && (
-          <div className="border-t border-card-border p-3 shrink-0">
-            <AuditPanel
-              novelId={novelId}
-              chapterId={selectedChapter.id}
-              onRewrite={(issues) => {
-                // Switch to chat mode and send rewrite request
-                toast.success("正在修复AI味问题…");
-              }}
-            />
+          <div className="border-t border-card-border shrink-0">
+            <div className="flex border-b border-card-border">
+              <button
+                onClick={() => setRightPanel("audit")}
+                className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 text-[10px] font-medium transition-colors ${
+                  rightPanel === "audit"
+                    ? "text-[var(--cyan)] border-b-2 border-[var(--cyan)]"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Shield size={10} /> AI味审计
+              </button>
+              <button
+                onClick={() => setRightPanel("truth")}
+                className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 text-[10px] font-medium transition-colors ${
+                  rightPanel === "truth"
+                    ? "text-[var(--cyan)] border-b-2 border-[var(--cyan)]"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Database size={10} /> 真相文件
+              </button>
+              <button
+                onClick={() => setRightPanel("intent")}
+                className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 text-[10px] font-medium transition-colors ${
+                  rightPanel === "intent"
+                    ? "text-[var(--cyan)] border-b-2 border-[var(--cyan)]"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Target size={10} /> 章节意图
+              </button>
+            </div>
+
+            <div className="p-3 max-h-[300px] overflow-y-auto">
+              {rightPanel === "audit" && (
+                <AuditPanel
+                  novelId={novelId}
+                  chapterId={selectedChapter.id}
+                  onRewrite={(issues) => {
+                    toast.success("正在修复AI味问题…");
+                  }}
+                />
+              )}
+              {rightPanel === "truth" && (
+                <TruthFilesPanel
+                  novelId={novelId}
+                  refreshTrigger={refreshTruthFiles}
+                />
+              )}
+              {rightPanel === "intent" && (
+                <ChapterIntentPanel intent={chapterIntent} />
+              )}
+            </div>
           </div>
         )}
       </div>

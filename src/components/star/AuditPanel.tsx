@@ -12,12 +12,15 @@ interface AuditIssue {
 
 interface AuditResult {
   overallScore: number;
+  passed: boolean;
   dimensions: Record<string, number>;
   issues: AuditIssue[];
   summary: string;
+  dimensionCount?: number;
 }
 
 const dimensionLabels: Record<string, string> = {
+  // 原有 10 维度
   significance_inflation: "意义膨胀",
   tricolon: "三段式排比",
   paragraph_arc: "段落弧度",
@@ -28,6 +31,17 @@ const dimensionLabels: Record<string, string> = {
   sentence_rhythm: "句式节奏",
   emotional_labeling: "情感标签",
   structural_regularity: "结构规律",
+  // 新增 10 维度
+  character_consistency: "角色一致性",
+  timeline_check: "时间线检查",
+  lore_conflict: "设定冲突",
+  power_scaling: "战力崩坏",
+  hook_check: "伏笔检查",
+  lexical_fatigue: "词汇疲劳",
+  pacing_check: "节奏检查",
+  info_boundary: "信息越界",
+  cliche_density: "套话密度",
+  ending_check: "章末检查",
 };
 
 export default function AuditPanel({
@@ -119,10 +133,23 @@ export default function AuditPanel({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium">AI味评分</p>
-              <p className="text-[10px] text-muted-foreground">越低越好，0=纯人写</p>
+              <p className="text-[10px] text-muted-foreground">
+                越低越好，0=纯人写 • {result.dimensionCount || 20} 维度
+              </p>
             </div>
-            <div className={`text-2xl font-mono font-bold ${getOverallColor(result.overallScore)}`}>
-              {result.overallScore}
+            <div className="flex items-center gap-2">
+              {result.passed ? (
+                <span className="flex items-center gap-1 text-[10px] text-emerald-400">
+                  <Check size={10} /> 通过
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-[10px] text-red-400">
+                  <AlertTriangle size={10} /> 未通过
+                </span>
+              )}
+              <div className={`text-2xl font-mono font-bold ${getOverallColor(result.overallScore)}`}>
+                {result.overallScore}
+              </div>
             </div>
           </div>
 

@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { initializeTruthFiles } from "@/lib/truth-files";
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -83,6 +84,14 @@ export async function POST(req: Request) {
         novelId: novel.id,
       },
     });
+  }
+
+  // Initialize truth files (7 sources of truth)
+  try {
+    await initializeTruthFiles(novel.id);
+  } catch (e) {
+    console.warn("Failed to initialize truth files:", e);
+    // 不阻塞创书流程
   }
 
   return NextResponse.json(novel, { status: 201 });

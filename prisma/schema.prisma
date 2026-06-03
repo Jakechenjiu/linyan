@@ -60,6 +60,7 @@ model Novel {
   codexEntries    CodexEntry[]
   outlines        Outline[]
   writingLogs     WritingLog[]
+  truthFiles      TruthFile[]
   userId          String
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt       DateTime  @default(now())
@@ -156,6 +157,19 @@ model Chapter {
   outline      Outline? @relation(fields: [outlineId], references: [id])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+model TruthFile {
+  id        String   @id @default(cuid())
+  novelId   String
+  novel     Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  type      String   // current_state|particle_ledger|pending_hooks|chapter_summaries|subplot_board|emotional_arcs|character_matrix
+  content   String   @default("")  // Markdown 内容
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([novelId, type])
 }
 
 model Content {
