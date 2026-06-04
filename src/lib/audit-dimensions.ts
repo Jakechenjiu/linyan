@@ -14,9 +14,9 @@ export const AUDIT_DIMENSIONS: AuditDimension[] = [
   {
     id: "significance_inflation",
     name: "意义膨胀",
-    description: "过度使用"标志着"、"象征着"、"反映着"等抽象归因",
+    description: "过度使用'标志着'、'象征着'、'反映着'等抽象归因",
     severity: "warning",
-    promptHint: "检查是否有"标志着""象征着""反映着""意味着"等过度升华",
+    promptHint: "检查是否有'标志着''象征着''反映着''意味着'等过度升华",
   },
   {
     id: "tricolon",
@@ -44,7 +44,7 @@ export const AUDIT_DIMENSIONS: AuditDimension[] = [
     name: "模糊归因",
     description: "专家认为/研究表明等无来源归因",
     severity: "warning",
-    promptHint: "检查是否有"专家认为""研究表明""众所周知"等模糊归因",
+    promptHint: "检查是否有'专家认为''研究表明''众所周知'等模糊归因",
   },
   {
     id: "dialogue_completeness",
@@ -70,9 +70,9 @@ export const AUDIT_DIMENSIONS: AuditDimension[] = [
   {
     id: "emotional_labeling",
     name: "情感标签化",
-    description: "直接说"他感到悲伤"而非用身体反应表达",
+    description: "直接说'他感到悲伤'而非用身体反应表达",
     severity: "critical",
-    promptHint: "检查是否有"他感到X"（愤怒/悲伤/高兴等）的标签化表达，应该用生理反应+微动作替代",
+    promptHint: "检查是否有'他感到X'（愤怒/悲伤/高兴等）的标签化表达，应该用生理反应+微动作替代",
   },
   {
     id: "structural_regularity",
@@ -123,7 +123,7 @@ export const AUDIT_DIMENSIONS: AuditDimension[] = [
     name: "词汇疲劳",
     description: "高频词重复使用",
     severity: "warning",
-    promptHint: "检查词汇疲劳：是否有某个词在短时间内重复出现3次以上？（如：连续使用"不由得""不禁""忍不住"）",
+    promptHint: "检查词汇疲劳：是否有某个词在短时间内重复出现3次以上？（如：连续使用'不由得''不禁''忍不住'）",
   },
   {
     id: "pacing_check",
@@ -144,7 +144,7 @@ export const AUDIT_DIMENSIONS: AuditDimension[] = [
     name: "套话密度",
     description: "陈词滥调和公式化表达",
     severity: "warning",
-    promptHint: "检查套话：是否有"岁月如梭""光阴似箭""不知不觉"等陈词滥调？",
+    promptHint: "检查套话：是否有'岁月如梭''光阴似箭''不知不觉'等陈词滥调？",
   },
   {
     id: "ending_check",

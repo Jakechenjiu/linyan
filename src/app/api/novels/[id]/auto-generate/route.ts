@@ -270,8 +270,8 @@ ${ANTI_AI_RULES.replace("{wordTarget}", String(wordTarget))}`;
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: "ai_tell_warning",
             score: aiTellResult.score,
-            issues: aiTellResult.issues.slice(0, 5), // 只发送前 5 个问题
-          })})}\n\n`);
+            issues: aiTellResult.issues.slice(0, 5),
+          })}\n\n`));
 
           // 尝试自动修复
           const { fixed, changes } = autoFixAITells(fullBody);
