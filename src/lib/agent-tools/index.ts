@@ -1,71 +1,52 @@
 // 灵砚 AI 工具 — 简洁版，直接可用
 
 import { prisma } from "@/lib/db";
+import { AiTool } from "@/lib/ai";
 
 // 工具定义（给 AI 看的）
-export const toolDefinitions = [
+export const toolDefinitions: AiTool[] = [
   {
     name: "read_chapter",
     description: "读取章节内容。参数: chapterId (章节ID或序号如1)",
     parameters: {
-      type: "object",
-      properties: {
-        chapterId: { type: "string", description: "章节ID或序号" },
-      },
-      required: ["chapterId"],
+      chapterId: { type: "string", description: "章节ID或序号", required: true },
     },
   },
   {
     name: "write_chapter",
     description: "写入/覆盖章节内容。用于续写或整章重写。",
     parameters: {
-      type: "object",
-      properties: {
-        chapterId: { type: "string", description: "章节ID或序号" },
-        content: { type: "string", description: "要写入的完整内容" },
-      },
-      required: ["chapterId", "content"],
+      chapterId: { type: "string", description: "章节ID或序号", required: true },
+      content: { type: "string", description: "要写入的完整内容", required: true },
     },
   },
   {
     name: "patch_chapter",
     description: "局部修改章节。查找并替换文本。",
     parameters: {
-      type: "object",
-      properties: {
-        chapterId: { type: "string", description: "章节ID或序号" },
-        targetText: { type: "string", description: "要查找的原文" },
-        replacementText: { type: "string", description: "替换后的文本" },
-      },
-      required: ["chapterId", "targetText", "replacementText"],
+      chapterId: { type: "string", description: "章节ID或序号", required: true },
+      targetText: { type: "string", description: "要查找的原文", required: true },
+      replacementText: { type: "string", description: "替换后的文本", required: true },
     },
   },
   {
     name: "list_chapters",
     description: "列出所有章节",
-    parameters: { type: "object", properties: {} },
+    parameters: {},
   },
   {
     name: "search_content",
     description: "搜索小说内容",
     parameters: {
-      type: "object",
-      properties: {
-        pattern: { type: "string", description: "搜索关键词" },
-      },
-      required: ["pattern"],
+      pattern: { type: "string", description: "搜索关键词", required: true },
     },
   },
   {
     name: "create_chapter",
     description: "创建新章节",
     parameters: {
-      type: "object",
-      properties: {
-        title: { type: "string", description: "章节标题" },
-        body: { type: "string", description: "章节内容" },
-      },
-      required: ["title", "body"],
+      title: { type: "string", description: "章节标题", required: true },
+      body: { type: "string", description: "章节内容", required: true },
     },
   },
 ];
