@@ -195,7 +195,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             mustKeep: chapterIntent.mustKeep,
             mustAvoid: chapterIntent.mustAvoid,
             endState: chapterIntent.endState,
-          })})}\n\n`));
+          })}\n\n`));
 
           // Compose: 编译上下文
           composed = await composeChapter(
@@ -210,7 +210,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: "status",
             message: `规划完成，已选择 ${composed.ruleStack.hard.length} 条硬护栏`,
-          })})}\n\n`));
+          })}\n\n`));
         } catch (e) {
           console.warn("Input governance failed, falling back to legacy:", e);
           // 降级到旧的写作任务书模式
@@ -280,7 +280,7 @@ ${ANTI_AI_RULES.replace("{wordTarget}", String(wordTarget))}`;
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: "status",
               message: `已自动修复 ${changes.length} 个 AI 痕迹`,
-            })})}\n\n`));
+            })}\n\n`));
           }
         }
 
