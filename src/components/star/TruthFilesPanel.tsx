@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Database, Loader2, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
+import { fadeIn, buttonPress } from "@/lib/animations";
 
 interface TruthFile {
   type: string;
@@ -89,7 +90,10 @@ export default function TruthFilesPanel({
           <span className="text-xs font-medium">真相文件</span>
         </div>
         <button
-          onClick={loadTruthFiles}
+          onClick={(e) => {
+            buttonPress(e.currentTarget);
+            loadTruthFiles();
+          }}
           disabled={loading}
           className="p-1 rounded hover:bg-[var(--accent)] transition-colors"
           title="刷新"
@@ -154,7 +158,15 @@ export default function TruthFilesPanel({
 
             {/* Content */}
             {isExpanded && (
-              <div className="px-3 pb-3">
+              <div
+                className="px-3 pb-3"
+                ref={(el) => {
+                  if (el && !el.dataset.animated) {
+                    el.dataset.animated = "true";
+                    fadeIn(el);
+                  }
+                }}
+              >
                 {hasContent ? (
                   <div className="max-h-40 overflow-y-auto">
                     <pre className="text-[10px] text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Shield, Loader2, AlertTriangle, Check, ChevronDown, ChevronRight, Wand2 } from "lucide-react";
+import { scoreReveal, dimensionBarAnimate, fadeIn, buttonPress } from "@/lib/animations";
 
 interface AuditIssue {
   line: string;
@@ -104,7 +105,10 @@ export default function AuditPanel({
     <div className="space-y-3">
       {/* Audit button */}
       <button
-        onClick={handleAudit}
+        onClick={(e) => {
+          buttonPress(e.currentTarget);
+          handleAudit();
+        }}
         disabled={auditing}
         className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-[var(--accent)] border border-card-border text-muted-foreground hover:text-foreground hover:border-[var(--cyan)] transition-all disabled:opacity-50"
       >
@@ -147,7 +151,15 @@ export default function AuditPanel({
                   <AlertTriangle size={10} /> 未通过
                 </span>
               )}
-              <div className={`text-xl font-mono font-bold ${getOverallColor(result.overallScore)}`}>
+              <div
+                className={`text-xl font-mono font-bold ${getOverallColor(result.overallScore)} score-value`}
+                ref={(el) => {
+                  if (el && !el.dataset.animated) {
+                    el.dataset.animated = "true";
+                    scoreReveal(el, result.overallScore);
+                  }
+                }}
+              >
                 {result.overallScore}
               </div>
             </div>
@@ -157,7 +169,13 @@ export default function AuditPanel({
           <p className="text-[11px] text-muted-foreground">{result.summary}</p>
 
           {/* Dimensions */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5" ref={(el) => {
+            if (el && !el.dataset.animated) {
+              el.dataset.animated = "true";
+              const bars = el.querySelectorAll(".dimension-bar");
+              if (bars.length > 0) dimensionBarAnimate(bars);
+            }
+          }}>
             {Object.entries(result.dimensions).map(([key, value]) => (
               <div key={key} className="flex items-center gap-2">
                 <span className="text-[10px] text-muted-foreground w-20 shrink-0">
@@ -165,7 +183,7 @@ export default function AuditPanel({
                 </span>
                 <div className="flex-1 h-1.5 bg-[var(--accent)] rounded-full overflow-hidden">
                   <div
-                    className="h-full rounded-full transition-all"
+                    className="h-full rounded-full dimension-bar origin-left"
                     style={{
                       width: `${(value as number) * 10}%`,
                       background:
@@ -213,7 +231,10 @@ export default function AuditPanel({
 
           {/* Rewrite button */}
           <button
-            onClick={handleRewrite}
+            onClick={(e) => {
+              buttonPress(e.currentTarget);
+              handleRewrite();
+            }}
             className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-[var(--nebula)]/10 text-[var(--nebula)] hover:bg-[var(--nebula)]/20 transition-colors"
           >
             <Wand2 size={12} /> 一键修复AI味

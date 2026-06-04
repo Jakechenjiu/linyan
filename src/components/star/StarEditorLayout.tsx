@@ -12,6 +12,7 @@ import TruthFilesPanel from "./TruthFilesPanel";
 import ChapterIntentPanel from "./ChapterIntentPanel";
 import { toast } from "sonner";
 import ChatPanel from "./ChatPanel";
+import { fadeIn, slideUp, buttonPress } from "@/lib/animations";
 
 interface ChapterItem {
   id: string;
@@ -439,7 +440,13 @@ export default function StarEditorLayout({
             </div>
 
             {/* Panel content */}
-            <div className={`overflow-y-auto p-3 ${panelExpanded ? "flex-1" : "max-h-[350px]"}`}>
+            <div
+              key={rightPanel}
+              className={`overflow-y-auto p-3 ${panelExpanded ? "flex-1" : "max-h-[350px]"}`}
+              ref={(el) => {
+                if (el) slideUp(el, { duration: 250 });
+              }}
+            >
               {rightPanel === "audit" && (
                 <AuditPanel
                   novelId={novelId}

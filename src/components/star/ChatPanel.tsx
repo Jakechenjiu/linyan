@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, Loader2, Sparkles, Shield, Compass, Wand2, MessageSquare, Wrench, Check, Target, Zap } from "lucide-react";
+import { animateMessageIn, animateToolCallIn, typewriter, buttonPress } from "@/lib/animations";
 
 interface ToolCall {
   tool: string;
@@ -185,7 +186,15 @@ export default function ChatPanel({
           <div className="max-w-2xl mx-auto space-y-3">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className="max-w-[85%] space-y-2">
+                <div
+                  className="max-w-[85%] space-y-2 message-bubble"
+                  ref={(el) => {
+                    if (el && !el.dataset.animated) {
+                      el.dataset.animated = "true";
+                      animateMessageIn(el);
+                    }
+                  }}
+                >
                   {/* Message bubble */}
                   <div
                     className={`px-3.5 py-2.5 rounded-2xl text-[13px] leading-relaxed ${
@@ -199,7 +208,7 @@ export default function ChatPanel({
 
                   {/* Tool calls */}
                   {msg.toolCalls && msg.toolCalls.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 ml-1">
+                    <div className="flex flex-wrap gap-1.5 ml-1 tool-calls">
                       {msg.toolCalls.map((tc, i) => (
                         <span
                           key={i}
@@ -208,6 +217,12 @@ export default function ChatPanel({
                               ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                               : "bg-red-500/10 text-red-400 border border-red-500/20"
                           }`}
+                          ref={(el) => {
+                            if (el && !el.dataset.animated) {
+                              el.dataset.animated = "true";
+                              setTimeout(() => animateToolCallIn(el), i * 60);
+                            }
+                          }}
                         >
                           <Wrench size={9} />
                           {tc.tool === "chapter_pipeline" ? "多Agent管线" : tc.tool}
@@ -286,7 +301,10 @@ export default function ChatPanel({
           {quickActions.map((action) => (
             <button
               key={action.id}
-              onClick={() => sendMessage(action.prompt)}
+              onClick={(e) => {
+                buttonPress(e.currentTarget);
+                sendMessage(action.prompt);
+              }}
               disabled={loading || !chapterId}
               className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium bg-[var(--accent)] border border-card-border text-muted-foreground hover:text-foreground hover:border-[var(--cyan)] transition-all disabled:opacity-30"
             >
