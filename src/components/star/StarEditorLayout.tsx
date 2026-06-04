@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Plus, Trash2, GripVertical, ChevronLeft, ChevronRight, PanelRightClose, PanelRight, BookOpen, Save, Check, Loader2, Shield, Database, Target } from "lucide-react";
+import {
+  Plus, Trash2, ChevronLeft, ChevronRight,
+  PanelRightClose, PanelRight, BookOpen,
+  Save, Check, Loader2, Shield, Database, Target,
+  Undo2, Keyboard,
+} from "lucide-react";
 import Link from "next/link";
 import AuditPanel from "./AuditPanel";
 import TruthFilesPanel from "./TruthFilesPanel";
@@ -63,13 +68,10 @@ export default function StarEditorLayout({
   const [rightPanel, setRightPanel] = useState<"audit" | "truth" | "intent">("audit");
   const [refreshTruthFiles, setRefreshTruthFiles] = useState(0);
   const [chapterIntent, setChapterIntent] = useState<any>(null);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [panelExpanded, setPanelExpanded] = useState(false);
 
   const selectedChapter = chapters.find((ch) => ch.id === selectedId) || null;
-
-  // Debug log
-  if (typeof window !== "undefined" && selectedChapter) {
-    console.log(`[Editor] selectedId=${selectedId}, bodyLen=${selectedChapter.body?.length || 0}`);
-  }
 
   const handleAddChapter = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,11 +97,20 @@ export default function StarEditorLayout({
   };
 
   const handleDeleteChapter = async (id: string) => {
+    // 确认删除
+    if (pendingDelete !== id) {
+      setPendingDelete(id);
+      setTimeout(() => setPendingDelete(null), 3000);
+      return;
+    }
+
     await deleteAction(id);
     setChapters((prev) => prev.filter((ch) => ch.id !== id));
     if (selectedId === id) {
       setSelectedId(chapters.find((ch) => ch.id !== id)?.id || null);
     }
+    setPendingDelete(null);
+    toast.success("章节已删除");
   };
 
   const handleBodyChange = useCallback(
@@ -145,9 +156,20 @@ export default function StarEditorLayout({
     toast.success("已保存");
   };
 
+  const handleCancelEdit = () => {
+    setEditingBody(false);
+    setEditedBody("");
+  };
+
+  // 管线意图回调
+  const handlePipelineResult = useCallback((result: any) => {
+    if (result?.intent) setChapterIntent(result.intent);
+    setRefreshTruthFiles((n) => n + 1);
+  }, []);
+
   return (
     <div className="flex-1 flex overflow-hidden">
-      {/* Left: Chapter Sidebar */}
+      {/* ===== Left: Chapter Sidebar ===== */}
       <div
         className={`shrink-0 border-r border-card-border flex flex-col transition-all duration-200 ${
           sidebarCollapsed ? "w-10" : "w-56"
@@ -170,7 +192,7 @@ export default function StarEditorLayout({
         {!sidebarCollapsed && (
           <>
             {/* Add chapter form */}
-            <form onSubmit={handleAddChapter} className="p-2 border-b border-card-border shrink-0">
+            <form onSubmit={handleAddChapter} className="px-2 pt-2 pb-1.5 border-b border-card-border shrink-0">
               <div className="flex gap-1">
                 <input
                   value={newTitle}
@@ -188,28 +210,36 @@ export default function StarEditorLayout({
             </form>
 
             {/* Chapter list */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto py-0.5">
               {chapters.map((ch, idx) => (
                 <div
                   key={ch.id}
-                  onClick={() => setSelectedId(ch.id)}
-                  className={`flex items-center gap-2 px-3 py-2 cursor-pointer group transition-colors ${
+                  onClick={() => {
+                    setSelectedId(ch.id);
+                    setEditingBody(false);
+                  }}
+                  className={`group flex items-center gap-2 px-3 py-1.5 cursor-pointer transition-colors ${
                     selectedId === ch.id
-                      ? "bg-[var(--accent)] border-l-2 border-[var(--cyan)]"
-                      : "hover:bg-[var(--accent)]/50 border-l-2 border-transparent"
+                      ? "bg-[var(--accent)]"
+                      : "hover:bg-[var(--accent)]/50"
                   }`}
                 >
-                  <span className="text-[10px] text-muted-foreground/50 w-4 shrink-0">{idx + 1}</span>
+                  <span className="text-[10px] text-muted-foreground/40 w-4 shrink-0 tabular-nums">{idx + 1}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-medium truncate">{ch.title}</p>
-                    <p className="text-[9px] text-muted-foreground">{ch.wordCount} 字</p>
+                    <p className="text-[9px] text-muted-foreground/60">{ch.wordCount} 字</p>
                   </div>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteChapter(ch.id);
                     }}
-                    className="p-0.5 rounded text-muted-foreground hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                    className={`p-0.5 rounded transition-all ${
+                      pendingDelete === ch.id
+                        ? "text-red-400 bg-red-500/20"
+                        : "text-muted-foreground hover:text-red-400 opacity-0 group-hover:opacity-100"
+                    }`}
+                    title={pendingDelete === ch.id ? "再次点击确认删除" : "删除"}
                   >
                     <Trash2 size={11} />
                   </button>
@@ -218,10 +248,10 @@ export default function StarEditorLayout({
             </div>
 
             {/* Reference notes */}
-            <div className="p-2 border-t border-card-border shrink-0">
+            <div className="px-2 py-1.5 border-t border-card-border shrink-0">
               <Link
                 href="/workspace/notes"
-                className="flex items-center gap-1.5 px-2 py-1.5 rounded text-[10px] text-muted-foreground hover:text-[var(--cyan)] hover:bg-[var(--accent)] transition-colors"
+                className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] text-muted-foreground hover:text-[var(--cyan)] hover:bg-[var(--accent)] transition-colors"
               >
                 <BookOpen size={10} /> 引用笔记
               </Link>
@@ -230,7 +260,7 @@ export default function StarEditorLayout({
         )}
       </div>
 
-      {/* Center: Chat Panel (Primary Interface) */}
+      {/* ===== Center: Chat Panel ===== */}
       <div className="flex-1 min-w-0 flex flex-col">
         <ChatPanel
           novelId={novelId}
@@ -238,16 +268,18 @@ export default function StarEditorLayout({
           chapterBody={selectedChapter?.body || ""}
           onBodyChange={handleBodyChange}
           onSave={handleSave}
+          onPipelineResult={handlePipelineResult}
         />
       </div>
 
-      {/* Right: Chapter Viewer/Editor */}
+      {/* ===== Right: Content + Tools ===== */}
       <div
         className={`shrink-0 border-l border-card-border flex flex-col overflow-hidden transition-all duration-200 ${
-          viewerOpen ? "w-[28rem]" : "w-10"
+          viewerOpen ? "w-[30rem]" : "w-10"
         }`}
       >
-        <div className="flex items-center justify-between px-2 py-2 border-b border-card-border shrink-0">
+        {/* Header */}
+        <div className="flex items-center justify-between px-2.5 py-2 border-b border-card-border shrink-0">
           {!viewerOpen && (
             <button
               onClick={() => setViewerOpen(true)}
@@ -261,12 +293,18 @@ export default function StarEditorLayout({
               <span className="text-[11px] font-medium text-muted-foreground">
                 {selectedChapter ? selectedChapter.title : "章节内容"}
               </span>
-              <button
-                onClick={() => setViewerOpen(false)}
-                className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <PanelRightClose size={14} />
-              </button>
+              <div className="flex items-center gap-1">
+                {/* 快捷键提示 */}
+                <span className="text-[9px] text-muted-foreground/40 mr-1">
+                  Ctrl+S 保存
+                </span>
+                <button
+                  onClick={() => setViewerOpen(false)}
+                  className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <PanelRightClose size={14} />
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -274,49 +312,67 @@ export default function StarEditorLayout({
         {viewerOpen && selectedChapter && (
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Content area */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto px-4 py-3">
               {editingBody ? (
-                <textarea
-                  value={editedBody}
-                  onChange={(e) => setEditedBody(e.target.value)}
-                  className="w-full h-full min-h-[400px] bg-transparent text-sm leading-relaxed resize-none focus:outline-none rounded-lg p-3 border border-card-border focus:border-[var(--cyan)] transition-colors"
-                  placeholder="编辑正文…"
-                />
+                <div className="relative">
+                  {/* 编辑模式视觉标识 */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[10px] font-medium text-[var(--cyan)] px-2 py-0.5 rounded-full bg-[var(--cyan)]/10">
+                      编辑中
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {editedBody.replace(/\s/g, "").length} 字
+                    </span>
+                  </div>
+                  <textarea
+                    value={editedBody}
+                    onChange={(e) => setEditedBody(e.target.value)}
+                    className="w-full h-full min-h-[300px] bg-[var(--accent)]/30 text-sm leading-[1.8] resize-none focus:outline-none rounded-lg p-4 border border-[var(--cyan)]/30 focus:border-[var(--cyan)] transition-colors"
+                    placeholder="编辑正文…"
+                    autoFocus
+                  />
+                </div>
               ) : (
                 <div className="relative group">
                   <div
-                    className="text-sm leading-relaxed whitespace-pre-wrap cursor-text hover:bg-[var(--accent)]/30 rounded-lg p-3 transition-colors min-h-[200px]"
+                    className="text-sm leading-[1.8] whitespace-pre-wrap cursor-text rounded-lg p-4 transition-colors min-h-[200px] hover:bg-[var(--accent)]/20"
                     onClick={handleStartEdit}
                   >
-                    {selectedChapter.body || "（空章节，点击开始写作）"}
-                  </div>
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="px-2 py-1 rounded text-[10px] bg-[var(--accent)] text-muted-foreground">
-                      点击编辑
-                    </span>
+                    {selectedChapter.body || (
+                      <span className="text-muted-foreground/50 italic">
+                        空章节。点击此处编辑，或在左侧对话框中让 AI 写作。
+                      </span>
+                    )}
                   </div>
                 </div>
               )}
             </div>
 
             {/* Bottom bar */}
-            <div className="flex items-center justify-between px-4 py-2.5 border-t border-card-border shrink-0 bg-[var(--background)]">
-              <span className="text-[10px] text-muted-foreground">
-                {selectedChapter.wordCount} 字
-              </span>
+            <div className="flex items-center justify-between px-4 py-2 border-t border-card-border shrink-0">
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] text-muted-foreground tabular-nums">
+                  {selectedChapter.wordCount} 字
+                </span>
+                {editingBody && (
+                  <span className="text-[10px] text-muted-foreground">
+                    Esc 取消
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 {editingBody ? (
                   <>
                     <button
-                      onClick={() => setEditingBody(false)}
-                      className="px-3 py-1.5 rounded-lg text-[11px] text-muted-foreground hover:text-foreground border border-card-border transition-colors"
+                      onClick={handleCancelEdit}
+                      className="px-2.5 py-1 rounded text-[11px] text-muted-foreground hover:text-foreground transition-colors"
                     >
                       取消
                     </button>
                     <button
                       onClick={handleSaveEdit}
                       disabled={saving}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-[var(--cyan)] text-[#0a0e17] hover:opacity-90 transition-all disabled:opacity-50"
+                      className="flex items-center gap-1 px-3 py-1 rounded text-[11px] font-medium bg-[var(--cyan)] text-[#0a0e17] hover:opacity-90 transition-all disabled:opacity-50"
                     >
                       {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
                       保存
@@ -325,13 +381,13 @@ export default function StarEditorLayout({
                 ) : (
                   <>
                     {saved ? (
-                      <span className="flex items-center gap-1 text-[11px] text-emerald-400">
-                        <Check size={11} /> 已保存
+                      <span className="flex items-center gap-1 text-[10px] text-emerald-400/70">
+                        <Check size={10} /> 已保存
                       </span>
                     ) : (
                       <button
                         onClick={handleSaveClick}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-[var(--cyan)] text-[#0a0e17] hover:opacity-90 transition-all"
+                        className="flex items-center gap-1 px-3 py-1 rounded text-[11px] font-medium bg-[var(--cyan)] text-[#0a0e17] hover:opacity-90 transition-all"
                       >
                         <Save size={11} /> 保存
                       </button>
@@ -346,49 +402,45 @@ export default function StarEditorLayout({
         {viewerOpen && !selectedChapter && (
           <div className="flex-1 flex items-center justify-center text-center p-6">
             <div>
-              <BookOpen size={32} className="text-muted-foreground/40 mb-3 mx-auto" />
-              <p className="text-sm text-muted-foreground">选择一个章节查看</p>
+              <BookOpen size={28} className="text-muted-foreground/30 mb-3 mx-auto" />
+              <p className="text-[12px] text-muted-foreground">选择一个章节查看</p>
             </div>
           </div>
         )}
 
-        {/* Panel Tabs */}
+        {/* ===== Tools Panel (Audit / Truth / Intent) ===== */}
         {viewerOpen && selectedChapter && (
-          <div className="border-t border-card-border shrink-0">
-            <div className="flex border-b border-card-border">
+          <div className={`border-t border-card-border shrink-0 flex flex-col ${panelExpanded ? "flex-1" : ""}`}>
+            {/* Tab bar */}
+            <div className="flex border-b border-card-border shrink-0">
+              {[
+                { id: "audit" as const, icon: <Shield size={10} />, label: "AI味审计" },
+                { id: "truth" as const, icon: <Database size={10} />, label: "真相文件" },
+                { id: "intent" as const, icon: <Target size={10} />, label: "章节意图" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setRightPanel(tab.id)}
+                  className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 text-[10px] font-medium transition-colors ${
+                    rightPanel === tab.id
+                      ? "text-[var(--cyan)] border-b-2 border-[var(--cyan)]"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {tab.icon} {tab.label}
+                </button>
+              ))}
               <button
-                onClick={() => setRightPanel("audit")}
-                className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 text-[10px] font-medium transition-colors ${
-                  rightPanel === "audit"
-                    ? "text-[var(--cyan)] border-b-2 border-[var(--cyan)]"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                onClick={() => setPanelExpanded(!panelExpanded)}
+                className="px-2 py-2 text-muted-foreground hover:text-foreground transition-colors"
+                title={panelExpanded ? "收起面板" : "展开面板"}
               >
-                <Shield size={10} /> AI味审计
-              </button>
-              <button
-                onClick={() => setRightPanel("truth")}
-                className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 text-[10px] font-medium transition-colors ${
-                  rightPanel === "truth"
-                    ? "text-[var(--cyan)] border-b-2 border-[var(--cyan)]"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Database size={10} /> 真相文件
-              </button>
-              <button
-                onClick={() => setRightPanel("intent")}
-                className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 text-[10px] font-medium transition-colors ${
-                  rightPanel === "intent"
-                    ? "text-[var(--cyan)] border-b-2 border-[var(--cyan)]"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Target size={10} /> 章节意图
+                <ChevronDown size={10} className={`transition-transform ${panelExpanded ? "rotate-180" : ""}`} />
               </button>
             </div>
 
-            <div className="p-3 max-h-[300px] overflow-y-auto">
+            {/* Panel content */}
+            <div className={`overflow-y-auto p-3 ${panelExpanded ? "flex-1" : "max-h-[350px]"}`}>
               {rightPanel === "audit" && (
                 <AuditPanel
                   novelId={novelId}

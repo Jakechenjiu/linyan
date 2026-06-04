@@ -134,20 +134,20 @@ export default function AuditPanel({
             <div>
               <p className="text-xs font-medium">AI味评分</p>
               <p className="text-[10px] text-muted-foreground">
-                越低越好，0=纯人写 • {result.dimensionCount || 20} 维度
+                {result.dimensionCount || 20} 维度 • {result.overallScore <= 30 ? "优秀" : result.overallScore <= 60 ? "一般" : "需改进"} • 越低越好
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               {result.passed ? (
-                <span className="flex items-center gap-1 text-[10px] text-emerald-400">
+                <span className="flex items-center gap-1 text-[10px] text-emerald-400 px-1.5 py-0.5 rounded-full bg-emerald-500/10">
                   <Check size={10} /> 通过
                 </span>
               ) : (
-                <span className="flex items-center gap-1 text-[10px] text-red-400">
+                <span className="flex items-center gap-1 text-[10px] text-red-400 px-1.5 py-0.5 rounded-full bg-red-500/10">
                   <AlertTriangle size={10} /> 未通过
                 </span>
               )}
-              <div className={`text-2xl font-mono font-bold ${getOverallColor(result.overallScore)}`}>
+              <div className={`text-xl font-mono font-bold ${getOverallColor(result.overallScore)}`}>
                 {result.overallScore}
               </div>
             </div>

@@ -1,12 +1,18 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Sparkles, Shield, Compass, Wand2, MessageSquare, Wrench, Check } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Send, Loader2, Sparkles, Shield, Compass, Wand2, MessageSquare, Wrench, Check, Target, Zap } from "lucide-react";
 
 interface ToolCall {
   tool: string;
   success: boolean;
   summary: string;
+}
+
+interface PipelineProgress {
+  stage: string;
+  message: string;
+  done: boolean;
 }
 
 interface Message {
@@ -15,14 +21,27 @@ interface Message {
   content: string;
   toolCalls?: ToolCall[];
   modifiedBody?: string;
+  pipelineProgress?: PipelineProgress[];
   timestamp: number;
 }
 
 const quickActions = [
-  { id: "review", label: "检查问题", icon: <Shield size={12} />, prompt: "请检查当前章节有没有逻辑漏洞、AI味问题或需要改进的地方。列出具体问题。" },
+  { id: "write", label: "写下一章", icon: <Zap size={12} />, prompt: "写下一章" },
   { id: "suggest", label: "下一步建议", icon: <Compass size={12} />, prompt: "根据当前剧情和大纲，接下来应该怎么写？给我3个具体方向。" },
+  { id: "review", label: "检查问题", icon: <Shield size={12} />, prompt: "请检查当前章节有没有逻辑漏洞、AI味问题或需要改进的地方。列出具体问题。" },
   { id: "rewrite", label: "帮我改这段", icon: <Wand2 size={12} />, prompt: "分析当前正文，找出问题并直接修改。告诉我改了什么。" },
   { id: "character", label: "角色分析", icon: <MessageSquare size={12} />, prompt: "分析当前章节中角色的表现，检查动机、性格一致性。" },
+];
+
+const PIPELINE_STAGES = [
+  { key: "plan", label: "规划意图", icon: "🎯" },
+  { key: "compose", label: "编排上下文", icon: "📋" },
+  { key: "write", label: "写作", icon: "✍️" },
+  { key: "observe", label: "提取事实", icon: "👁️" },
+  { key: "reflect", label: "更新真相", icon: "🔄" },
+  { key: "audit", label: "审计", icon: "🔍" },
+  { key: "revise", label: "修订", icon: "🔧" },
+  { key: "save", label: "保存", icon: "💾" },
 ];
 
 export default function ChatPanel({
@@ -31,16 +50,20 @@ export default function ChatPanel({
   chapterBody,
   onBodyChange,
   onSave,
+  onPipelineResult,
 }: {
   novelId: string;
   chapterId: string | null;
   chapterBody: string;
   onBodyChange: (body: string) => void;
   onSave: (bodyOverride?: string) => Promise<void>;
+  onPipelineResult?: (result: any) => void;
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pipelineStage, setPipelineStage] = useState<string | null>(null);
+  const [lastFailedInput, setLastFailedInput] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -59,7 +82,13 @@ export default function ChatPanel({
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
-    
+
+    // 检测是否是管线触发
+    const triggers = ["写第", "写一章", "续写", "继续写", "生成章节", "创作", "开始写", "帮我写", "写下一章", "下一章"];
+    const isPipeline = triggers.some((t) => text.includes(t));
+    if (isPipeline) {
+      setPipelineStage("plan");
+    }
 
     try {
       const res = await fetch(`/api/novels/${novelId}/ai-assistant`, {
@@ -89,6 +118,13 @@ export default function ChatPanel({
       };
       setMessages((prev) => [...prev, aiMsg]);
 
+      // 通知管线结果
+      if (data.toolCalls?.some((tc: any) => tc.tool === "chapter_pipeline")) {
+        onPipelineResult?.(data);
+      }
+
+      setLastFailedInput(null);
+
       // 自动应用修改后的正文
       if (data.modifiedBody) {
         onBodyChange(data.modifiedBody);
@@ -102,11 +138,26 @@ export default function ChatPanel({
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, errMsg]);
+      // Store the failed message for retry
+      setLastFailedInput(text);
     } finally {
       setLoading(false);
-      
+      setPipelineStage(null);
     }
   };
+
+  // 处理快捷键
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      onSave();
+    }
+  }, [onSave]);
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
   return (
     <div className="flex flex-col h-full">
@@ -125,7 +176,7 @@ export default function ChatPanel({
             </p>
             {chapterId && (
               <div className="text-[10px] text-muted-foreground/60 space-y-1">
-                <p>💡 快捷指令：检查问题 · 下一步建议 · 帮我改这段 · 角色分析</p>
+                <p>💡 快捷指令：写下一章 · 检查问题 · 下一步建议 · 帮我改这段 · 角色分析</p>
                 <p>✏️ 修改正文后，右侧会自动更新并保存</p>
               </div>
             )}
@@ -143,7 +194,7 @@ export default function ChatPanel({
                         : "bg-[var(--accent)] text-foreground rounded-bl-md"
                     }`}
                   >
-                    {msg.content}
+                    <div className="whitespace-pre-wrap">{msg.content}</div>
                   </div>
 
                   {/* Tool calls */}
@@ -154,12 +205,12 @@ export default function ChatPanel({
                           key={i}
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] ${
                             tc.success
-                              ? "bg-emerald-500/10 text-emerald-400"
-                              : "bg-red-500/10 text-red-400"
+                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                              : "bg-red-500/10 text-red-400 border border-red-500/20"
                           }`}
                         >
                           <Wrench size={9} />
-                          {tc.tool}: {tc.summary}
+                          {tc.tool === "chapter_pipeline" ? "多Agent管线" : tc.tool}
                         </span>
                       ))}
                     </div>
@@ -172,16 +223,54 @@ export default function ChatPanel({
                       <span className="text-[11px] text-emerald-400">正文已更新并保存</span>
                     </div>
                   )}
+
+                  {/* Retry button for errors */}
+                  {msg.role === "assistant" && msg.content.startsWith("错误:") && lastFailedInput && (
+                    <button
+                      onClick={() => sendMessage(lastFailedInput)}
+                      className="ml-1 flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] text-[var(--cyan)] bg-[var(--cyan)]/10 hover:bg-[var(--cyan)]/20 transition-colors"
+                    >
+                      重试
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
 
-            {/* Loading indicator */}
-            {loading && (
+            {/* Pipeline progress indicator */}
+            {loading && pipelineStage && (
+              <div className="flex justify-start">
+                <div className="px-4 py-3 rounded-2xl bg-[var(--accent)] border border-card-border rounded-bl-md max-w-[85%]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Loader2 size={12} className="animate-spin text-[var(--cyan)]" />
+                    <span className="text-[11px] font-medium">多 Agent 管线执行中</span>
+                  </div>
+                  <div className="space-y-1">
+                    {PIPELINE_STAGES.map((stage, i) => {
+                      const currentIdx = PIPELINE_STAGES.findIndex((s) => s.key === pipelineStage);
+                      const stageIdx = PIPELINE_STAGES.indexOf(stage);
+                      const isActive = stage.key === pipelineStage;
+                      const isDone = stageIdx < currentIdx;
+                      return (
+                        <div key={stage.key} className={`flex items-center gap-2 text-[10px] ${isActive ? "text-foreground" : isDone ? "text-emerald-400/70" : "text-muted-foreground/40"}`}>
+                          <span className="w-4 text-center">{isDone ? "✓" : isActive ? "●" : "○"}</span>
+                          <span>{stage.icon}</span>
+                          <span>{stage.label}</span>
+                          {isActive && <Loader2 size={9} className="animate-spin ml-auto" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Simple loading indicator (non-pipeline) */}
+            {loading && !pipelineStage && (
               <div className="flex justify-start">
                 <div className="px-3.5 py-2.5 rounded-2xl bg-[var(--accent)] text-foreground rounded-bl-md text-[13px]">
                   <span className="flex items-center gap-1.5">
-                    <Loader2 size={12} className="animate-spin" /> 思考中…
+                    <Loader2 size={12} className="animate-spin text-[var(--cyan)]" /> 思考中…
                   </span>
                 </div>
               </div>
@@ -191,27 +280,25 @@ export default function ChatPanel({
         )}
       </div>
 
-      {/* Quick Actions */}
-      {messages.length === 0 && (
-        <div className="px-4 pb-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            {quickActions.map((action) => (
-              <button
-                key={action.id}
-                onClick={() => sendMessage(action.prompt)}
-                disabled={loading}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium bg-[var(--accent)] border border-card-border text-muted-foreground hover:text-foreground hover:border-[var(--cyan)] transition-all disabled:opacity-40"
-              >
-                {action.icon} {action.label}
-              </button>
-            ))}
-          </div>
+      {/* Quick Actions — always visible */}
+      <div className="px-4 pb-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {quickActions.map((action) => (
+            <button
+              key={action.id}
+              onClick={() => sendMessage(action.prompt)}
+              disabled={loading || !chapterId}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium bg-[var(--accent)] border border-card-border text-muted-foreground hover:text-foreground hover:border-[var(--cyan)] transition-all disabled:opacity-30"
+            >
+              {action.icon} {action.label}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
 
       {/* Input */}
       <div className="px-4 pb-3">
-        <div className="flex items-end gap-2 p-2.5 rounded-2xl bg-[var(--accent)] border border-card-border focus-within:border-[var(--cyan)] transition-colors">
+        <div className="flex items-end gap-2 p-2 rounded-xl bg-[var(--accent)] border border-card-border focus-within:border-[var(--cyan)] transition-colors">
           <textarea
             ref={inputRef}
             value={input}
@@ -224,7 +311,7 @@ export default function ChatPanel({
             }}
             placeholder={chapterId ? "讨论剧情、分析角色、修改正文…" : "先选择一个章节…"}
             rows={1}
-            className="flex-1 bg-transparent text-[13px] resize-none focus:outline-none placeholder:text-muted-foreground min-h-[24px] max-h-[100px] px-1"
+            className="flex-1 bg-transparent text-[13px] resize-none focus:outline-none placeholder:text-muted-foreground/50 min-h-[24px] max-h-[100px] px-1"
             style={{ height: "auto" }}
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement;
@@ -234,7 +321,7 @@ export default function ChatPanel({
           />
           {loading ? (
             <button
-              className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-red-500/20 text-red-400"
+              className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--accent)] text-muted-foreground"
               disabled
             >
               <Loader2 size={14} className="animate-spin" />
@@ -243,7 +330,7 @@ export default function ChatPanel({
             <button
               onClick={() => sendMessage(input)}
               disabled={!input.trim() || !chapterId}
-              className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-[var(--cyan)] text-[#0a0e17] hover:opacity-90 transition-all disabled:opacity-40"
+              className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--cyan)] text-[#0a0e17] hover:opacity-90 transition-all disabled:opacity-30"
             >
               <Send size={14} />
             </button>
