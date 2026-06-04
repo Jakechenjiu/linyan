@@ -2,10 +2,9 @@
 
 import { useState, useCallback } from "react";
 import {
-  Plus, Trash2, ChevronLeft, ChevronRight,
+  Plus, Trash2, ChevronLeft, ChevronRight, ChevronDown,
   PanelRightClose, PanelRight, BookOpen,
   Save, Check, Loader2, Shield, Database, Target,
-  Undo2, Keyboard,
 } from "lucide-react";
 import Link from "next/link";
 import AuditPanel from "./AuditPanel";
