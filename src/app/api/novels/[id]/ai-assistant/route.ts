@@ -38,14 +38,25 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     synopsis: novel.synopsis || undefined,
   };
 
-  // SSE 流式响应
+  // SSE 流式响应（5 分钟超时）
+  const SSE_TIMEOUT_MS = 5 * 60 * 1000;
   const userId = session.user.id;
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
       const send = (event: string, data: any) => {
-        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+        try {
+          controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+        } catch {
+          // controller 可能已关闭
+        }
       };
+
+      // 超时定时器
+      const timeout = setTimeout(() => {
+        send("error", { message: "请求超时（5分钟），请重试" });
+        try { controller.close(); } catch {}
+      }, SSE_TIMEOUT_MS);
 
       try {
         send("start", { message: "开始处理..." });
@@ -87,12 +98,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             summary: tc.result.slice(0, 100),
           })),
           modifiedBody: result.modifiedBody,
+          pipelineData: result.pipelineData,
         });
 
+        clearTimeout(timeout);
         controller.close();
       } catch (e: unknown) {
         console.error(`[AI Assistant] Error:`, e);
         send("error", { message: e instanceof Error ? e.message : "AI 调用失败" });
+        clearTimeout(timeout);
         controller.close();
       }
     },

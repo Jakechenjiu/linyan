@@ -23,8 +23,20 @@ interface PipelineResult {
   title?: string;
   wordCount?: number;
   response: string;
-  intent?: any;
-  auditResult?: any;
+  intent?: {
+    goal: string;
+    mustKeep: string[];
+    mustAvoid: string[];
+    endState: string;
+    openingMandate?: string;
+    characterFocus?: string;
+  };
+  auditResult?: {
+    passed: boolean;
+    overallScore: number;
+    issues: Array<{ severity: string; category: string; description: string }>;
+    summary: string;
+  };
   revisionCount?: number;
 }
 

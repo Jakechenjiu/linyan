@@ -68,8 +68,12 @@ export default function ChatPanel({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // 节流滚动，避免频繁触发
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const timer = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+    return () => clearTimeout(timer);
   }, [messages]);
 
   const sendMessage = async (text: string) => {
@@ -126,6 +130,7 @@ export default function ChatPanel({
       let buffer = "";
       let finalToolCalls: any[] = [];
       let finalModifiedBody: string | undefined;
+      let finalPipelineData: any = undefined;
       let accumulatedText = "";
 
       while (true) {
@@ -193,6 +198,7 @@ export default function ChatPanel({
                 case "done":
                   finalToolCalls = parsed.toolCalls || [];
                   finalModifiedBody = parsed.modifiedBody;
+                  finalPipelineData = parsed.pipelineData;
                   break;
 
                 case "error":
@@ -221,7 +227,13 @@ export default function ChatPanel({
 
       // 通知管线结果
       if (finalToolCalls.some((tc: any) => tc.tool === "chapter_pipeline")) {
-        onPipelineResult?.({ toolCalls: finalToolCalls, modifiedBody: finalModifiedBody });
+        onPipelineResult?.({
+          toolCalls: finalToolCalls,
+          modifiedBody: finalModifiedBody,
+          intent: finalPipelineData?.intent,
+          auditResult: finalPipelineData?.auditResult,
+          chapterId: finalPipelineData?.chapterId,
+        });
       }
 
       setLastFailedInput(null);

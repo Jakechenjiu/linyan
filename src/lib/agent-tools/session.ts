@@ -25,6 +25,11 @@ export interface AgentTurnResult {
   response: string;
   toolCalls: ToolCallRecord[];
   modifiedBody?: string;
+  pipelineData?: {
+    intent?: any;
+    auditResult?: any;
+    chapterId?: string;
+  };
 }
 
 // 从文本中提取 [MODIFIED_BODY]
@@ -51,7 +56,7 @@ export async function runAgentSession(
 
   // 检查是否应该触发章节生成管线
   if (shouldTriggerPipeline(userMessage)) {
-    console.log("[Agent] Triggering chapter pipeline");
+    // 管线触发
 
     // 获取大纲列表
     const novel = await prisma.novel.findUnique({
@@ -84,6 +89,11 @@ export async function runAgentSession(
           ]
         : [],
       modifiedBody: undefined,
+      pipelineData: {
+        intent: result.intent,
+        auditResult: result.auditResult,
+        chapterId: result.chapterId,
+      },
     };
   }
 

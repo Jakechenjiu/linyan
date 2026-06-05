@@ -10,39 +10,39 @@ export const FATIGUE_WORDS = [
   "猛地", "陡然", "骤然", "霍然", "遽然",
 ];
 
-/** 禁用句式模式 */
+/** 禁用句式模式（不含 g 标志，避免 lastIndex 状态问题） */
 export const FORBIDDEN_PATTERNS: Array<{
   pattern: RegExp;
   description: string;
   fix: string;
 }> = [
   {
-    pattern: /他知道[，,].*[。]/g,
+    pattern: /他知道[，,].*[。]/,
     description: "「他知道，…」总结反思句",
     fix: "删除或改为动作/对话",
   },
   {
-    pattern: /这一刻[，,].*[。]/g,
+    pattern: /这一刻[，,].*[。]/,
     description: "「这一刻，…」总结反思句",
     fix: "删除或改为具体描写",
   },
   {
-    pattern: /从此以后.*[。]/g,
+    pattern: /从此以后.*[。]/,
     description: "「从此以后…」总结句",
     fix: "删除，让读者自己体会",
   },
   {
-    pattern: /他感到(愤怒|悲伤|高兴|紧张|恐惧|惊讶|厌恶|羞耻|内疚|骄傲|嫉妒|孤独|绝望|希望|平静|焦虑|烦躁|安心|感动|震撼)/g,
+    pattern: /他感到(愤怒|悲伤|高兴|紧张|恐惧|惊讶|厌恶|羞耻|内疚|骄傲|嫉妒|孤独|绝望|希望|平静|焦虑|烦躁|安心|感动|震撼)/,
     description: "标签化情绪表达",
     fix: "用生理反应+微动作替代",
   },
   {
-    pattern: /仿佛.*一般/g,
+    pattern: /仿佛.*一般/,
     description: "「仿佛…一般」比喻句式",
     fix: "换用更具体的比喻或直接描写",
   },
   {
-    pattern: /宛如.*似的/g,
+    pattern: /宛如.*似的/,
     description: "「宛如…似的」比喻句式",
     fix: "换用更具体的比喻或直接描写",
   },
@@ -158,7 +158,9 @@ function detectForbiddenPatterns(content: string): AITellIssue[] {
   const issues: AITellIssue[] = [];
 
   for (const { pattern, description, fix } of FORBIDDEN_PATTERNS) {
-    const matches = content.match(pattern);
+    // 用新 RegExp 实例避免 lastIndex 状态问题
+    const globalRegex = new RegExp(pattern.source, "g");
+    const matches = content.match(globalRegex);
     if (matches && matches.length > 0) {
       const firstIndex = content.search(pattern);
       const location = content.slice(
