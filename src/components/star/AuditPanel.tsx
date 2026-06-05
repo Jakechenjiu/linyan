@@ -172,7 +172,7 @@ export default function AuditPanel({
           <div className="space-y-1.5" ref={(el) => {
             if (el && !el.dataset.animated) {
               el.dataset.animated = "true";
-              const bars = el.querySelectorAll(".dimension-bar");
+              const bars = Array.from(el.querySelectorAll(".dimension-bar"));
               if (bars.length > 0) dimensionBarAnimate(bars);
             }
           }}>
