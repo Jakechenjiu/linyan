@@ -6,6 +6,7 @@ import {
   runChapterPipeline,
   shouldTriggerPipeline,
   extractOutlineId,
+  type PipelineProgress,
 } from "./pipeline";
 import { prisma } from "@/lib/db";
 
@@ -43,6 +44,7 @@ export async function runAgentSession(
   onToolStart?: (tool: string) => void,
   onToolEnd?: (tool: string, result: string) => void,
   novelContext?: { title: string; genre?: string; synopsis?: string },
+  onPipelineProgress?: (progress: PipelineProgress) => void,
 ): Promise<AgentTurnResult> {
   const config = await getAiConfig(userId);
   if (!config.hasKey) throw new Error("请先配置 AI API Key");
@@ -67,6 +69,7 @@ export async function runAgentSession(
       userMessage,
       outlineId || undefined,
       novelContext,
+      onPipelineProgress,
     );
 
     return {

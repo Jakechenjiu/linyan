@@ -38,33 +38,71 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     synopsis: novel.synopsis || undefined,
   };
 
-  try {
-    const result = await runAgentSession(
-      novelId,
-      chapterId || null,
-      message.trim(),
-      truncatedBody,
-      history || [],
-      session.user.id,
-      undefined,
-      undefined,
-      novelContext,
-    );
+  // SSE 流式响应
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (event: string, data: any) => {
+        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+      };
 
-    return NextResponse.json({
-      response: result.response,
-      toolCalls: result.toolCalls.map((tc) => ({
-        tool: tc.tool,
-        success: true,
-        summary: tc.result.slice(0, 100),
-      })),
-      modifiedBody: result.modifiedBody,
-    });
-  } catch (e: unknown) {
-    console.error(`[AI Assistant] Error:`, e);
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "AI 调用失败" },
-      { status: 500 }
-    );
-  }
+      try {
+        send("start", { message: "开始处理..." });
+
+        const result = await runAgentSession(
+          novelId,
+          chapterId || null,
+          message.trim(),
+          truncatedBody,
+          history || [],
+          session.user.id,
+          // onToolStart
+          (tool: string) => {
+            send("tool-start", { tool });
+          },
+          // onToolEnd
+          (tool: string, toolResult: string) => {
+            send("tool-end", { tool, summary: toolResult.slice(0, 100) });
+          },
+          novelContext,
+          // onPipelineProgress
+          (progress) => {
+            send("pipeline", progress);
+          },
+        );
+
+        // 流式输出最终响应
+        const responseText = result.response || "处理完成";
+        const words = responseText.split(/(?<=[。，！？、；\n])/);
+        for (const word of words) {
+          send("text", { content: word });
+          await new Promise((r) => setTimeout(r, 30));
+        }
+
+        send("done", {
+          toolCalls: result.toolCalls.map((tc) => ({
+            tool: tc.tool,
+            success: true,
+            summary: tc.result.slice(0, 100),
+          })),
+          modifiedBody: result.modifiedBody,
+        });
+
+        controller.close();
+      } catch (e: unknown) {
+        console.error(`[AI Assistant] Error:`, e);
+        send("error", { message: e instanceof Error ? e.message : "AI 调用失败" });
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
 }

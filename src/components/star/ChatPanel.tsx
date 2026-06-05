@@ -91,6 +91,16 @@ export default function ChatPanel({
       setPipelineStage("plan");
     }
 
+    // 创建 AI 消息占位符
+    const aiMsgId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    setMessages((prev) => [...prev, {
+      id: aiMsgId,
+      role: "assistant" as const,
+      content: isPipeline ? "⏳ 准备中..." : "",
+      toolCalls: [],
+      timestamp: Date.now(),
+    }]);
+
     try {
       const res = await fetch(`/api/novels/${novelId}/ai-assistant`, {
         method: "POST",
@@ -103,43 +113,132 @@ export default function ChatPanel({
         }),
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
-        throw new Error(data.error || "请求失败");
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "请求失败");
       }
 
-      const aiMsg: Message = {
-        id: Math.random().toString(36).slice(2) + Date.now().toString(36),
-        role: "assistant",
-        content: data.response || "处理完成",
-        toolCalls: data.toolCalls || [],
-        modifiedBody: data.modifiedBody,
-        timestamp: Date.now(),
-      };
-      setMessages((prev) => [...prev, aiMsg]);
+      // 消费 SSE 事件流
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("无法读取响应流");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let finalToolCalls: any[] = [];
+      let finalModifiedBody: string | undefined;
+      let accumulatedText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        let currentEvent = "";
+        for (const line of lines) {
+          if (line.startsWith("event: ")) {
+            currentEvent = line.slice(7).trim();
+          } else if (line.startsWith("data: ")) {
+            const dataStr = line.slice(6).trim();
+            if (!dataStr) continue;
+
+            try {
+              const parsed = JSON.parse(dataStr);
+
+              switch (currentEvent) {
+                case "pipeline":
+                  setPipelineStage(parsed.stage);
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === aiMsgId
+                        ? { ...m, content: `⏳ ${parsed.message}` }
+                        : m
+                    )
+                  );
+                  break;
+
+                case "tool-start":
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === aiMsgId
+                        ? { ...m, toolCalls: [...(m.toolCalls || []), { tool: parsed.tool, success: true, summary: "执行中..." }] }
+                        : m
+                    )
+                  );
+                  break;
+
+                case "tool-end":
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === aiMsgId
+                        ? { ...m, toolCalls: (m.toolCalls || []).map((tc: any) => tc.tool === parsed.tool ? { ...tc, summary: parsed.summary } : tc) }
+                        : m
+                    )
+                  );
+                  break;
+
+                case "text":
+                  accumulatedText += parsed.content;
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === aiMsgId
+                        ? { ...m, content: accumulatedText }
+                        : m
+                    )
+                  );
+                  break;
+
+                case "done":
+                  finalToolCalls = parsed.toolCalls || [];
+                  finalModifiedBody = parsed.modifiedBody;
+                  break;
+
+                case "error":
+                  throw new Error(parsed.message);
+              }
+            } catch (parseErr) {
+              // 忽略解析错误
+            }
+          }
+        }
+      }
+
+      // 完成 — 更新最终状态
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === aiMsgId
+            ? {
+                ...m,
+                content: accumulatedText || "处理完成",
+                toolCalls: finalToolCalls.length > 0 ? finalToolCalls : m.toolCalls,
+                modifiedBody: finalModifiedBody,
+              }
+            : m
+        )
+      );
 
       // 通知管线结果
-      if (data.toolCalls?.some((tc: any) => tc.tool === "chapter_pipeline")) {
-        onPipelineResult?.(data);
+      if (finalToolCalls.some((tc: any) => tc.tool === "chapter_pipeline")) {
+        onPipelineResult?.({ toolCalls: finalToolCalls, modifiedBody: finalModifiedBody });
       }
 
       setLastFailedInput(null);
 
       // 自动应用修改后的正文
-      if (data.modifiedBody) {
-        onBodyChange(data.modifiedBody);
-        await onSave(data.modifiedBody);
+      if (finalModifiedBody) {
+        onBodyChange(finalModifiedBody);
+        await onSave(finalModifiedBody);
       }
     } catch (e: unknown) {
-      const errMsg: Message = {
-        id: Math.random().toString(36).slice(2) + Date.now().toString(36),
-        role: "assistant",
-        content: `错误: ${e instanceof Error ? e.message : "未知错误"}`,
-        timestamp: Date.now(),
-      };
-      setMessages((prev) => [...prev, errMsg]);
-      // Store the failed message for retry
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === aiMsgId
+            ? { ...m, content: `错误: ${e instanceof Error ? e.message : "未知错误"}` }
+            : m
+        )
+      );
       setLastFailedInput(text);
     } finally {
       setLoading(false);

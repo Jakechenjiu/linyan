@@ -28,6 +28,12 @@ interface PipelineResult {
   revisionCount?: number;
 }
 
+export interface PipelineProgress {
+  stage: "plan" | "compose" | "write" | "observe" | "reflect" | "audit" | "revise" | "save";
+  message: string;
+  done?: boolean;
+}
+
 /**
  * 执行完整的章节生成管线
  * 用户只需要说"写第一章"，内部自动调用多个 Agent
@@ -38,7 +44,11 @@ export async function runChapterPipeline(
   userRequest: string,
   outlineId?: string,
   novelContext?: { title: string; genre?: string; synopsis?: string },
+  onProgress?: (progress: PipelineProgress) => void,
 ): Promise<PipelineResult> {
+  const progress = (stage: PipelineProgress["stage"], message: string) => {
+    onProgress?.({ stage, message });
+  };
   const config = await getAiConfig(userId);
   if (!config.hasKey) {
     return { success: false, response: "请先配置 AI API Key" };
@@ -86,6 +96,7 @@ export async function runChapterPipeline(
 
   try {
     // ========== Phase 1: Plan（规划意图）==========
+    progress("plan", "正在规划章节意图...");
     console.log(`[Pipeline] Phase 1: Planning chapter ${chapterNumber}`);
 
     const intent = await planChapter(
@@ -96,6 +107,7 @@ export async function runChapterPipeline(
     );
 
     // ========== Phase 2: Compose（编排上下文）==========
+    progress("compose", "正在编排上下文...");
     console.log(`[Pipeline] Phase 2: Composing context`);
 
     const composed = await composeChapter(
@@ -107,6 +119,7 @@ export async function runChapterPipeline(
     const governanceContext = buildGovernanceContext(intent, composed);
 
     // ========== Phase 3: Writer（写正文）==========
+    progress("write", "正在写作...");
     console.log(`[Pipeline] Phase 3: Writing chapter`);
 
     const contextParts: string[] = [];
@@ -179,6 +192,7 @@ ${contextParts.join("\n")}
     }
 
     // ========== Phase 4: Observer（提取事实）==========
+    progress("observe", "正在提取关键事实...");
     console.log(`[Pipeline] Phase 4: Observing facts`);
 
     let factSnapshot: any = null;
@@ -219,6 +233,7 @@ ${contextParts.join("\n")}
     }
 
     // ========== Phase 5: Reflector（更新真相文件）==========
+    progress("reflect", "正在更新真相文件...");
     console.log(`[Pipeline] Phase 5: Updating truth files`);
 
     try {
@@ -234,6 +249,7 @@ ${contextParts.join("\n")}
     }
 
     // ========== Phase 6: Auditor（审计）==========
+    progress("audit", "正在审计...");
     console.log(`[Pipeline] Phase 6: Auditing`);
 
     let auditResult: any = null;
@@ -308,6 +324,7 @@ ${contextParts.join("\n")}
       }
 
       revisionCount++;
+      progress("revise", `修订中（第${revisionCount}轮：${reason}）...`);
       console.log(
         `[Pipeline] Revision ${revisionCount}: ${reason}`
       );
@@ -359,6 +376,7 @@ ${issueList}
     }
 
     // ========== Phase 8: 保存章节 ==========
+    progress("save", "正在保存...");
     console.log(`[Pipeline] Phase 8: Saving chapter`);
 
     const maxOrder = novel.chapters.reduce(
