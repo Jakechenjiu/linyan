@@ -39,6 +39,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   };
 
   // SSE 流式响应
+  const userId = session.user.id;
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -55,7 +56,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           message.trim(),
           truncatedBody,
           history || [],
-          session.user.id,
+          userId,
           // onToolStart
           (tool: string) => {
             send("tool-start", { tool });
