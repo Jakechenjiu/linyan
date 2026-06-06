@@ -86,7 +86,7 @@ export async function recallMemories(
   // 关键词过滤
   if (keywords && keywords.length > 0) {
     results = results.filter((m) =>
-      keywords.some((kw) => m.content.includes(kw) || m.tags.some((t) => t.includes(kw)))
+      keywords.some((kw) => m.content.includes(kw) || m.tags.some((t: string) => t.includes(kw)))
     );
   }
 
