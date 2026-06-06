@@ -108,8 +108,64 @@ model Character {
   goldenFinger  String?  // 金手指
   relationships String?  // 人际关系（JSON）
   sortOrder     Int      @default(0)
+
+  // ===== 角色 Agent 字段 =====
+  // 大五人格向量（0-10，null 表示未设定）
+  openness          Float?   // 开放性：好奇心、想象力
+  conscientiousness Float?   // 尽责性：自律、计划性
+  extraversion      Float?   // 外向性：社交能量
+  agreeableness     Float?   // 宜人性：合作、同理心
+  neuroticism       Float?   // 神经质：情绪波动性
+
+  // 语言指纹（JSON）
+  languageFingerprint String? @default("{}")
+  // 结构: { avgSentenceLength, vocabComplexity, dialectMarkers, forbiddenWords,
+  //         signaturePhrases, punctuationStyle, narrativeVoice }
+
+  // 当前状态（JSON，随章节更新）
+  agentState        String? @default("{}")
+  // 结构: { location, emotionalState, primaryMotivation, activeFear, energyLevel }
+
+  // 行为约束（JSON）
+  behaviorConstraints String? @default("{}")
+  // 结构: { hardLimits, softLimits, triggers, speechPatterns: { formality, verbosity, humor } }
+
+  // 关系
+  memories          CharacterMemory[]
+  knowledge         CharacterKnowledge[]
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model CharacterMemory {
+  id          String   @id @default(cuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  chapterId   String?
+  type        String   @default("experience") // experience|observation|emotion|knowledge
+  content     String
+  importance  Float    @default(0.5) // 0-1
+  emotionTag  String?  // 情感标签
+  tags        String   @default("[]") // JSON array
+  createdAt   DateTime @default(now())
+
+  @@index([characterId, type])
+  @@index([characterId, importance(sort: Desc)])
+}
+
+model CharacterKnowledge {
+  id          String   @id @default(cuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  type        String   // event|secret|relationship|world_fact
+  content     String
+  source      String?  // 从哪里知道的
+  acquiredAt  String?  // 第几章获得
+  isSecret    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([characterId, type])
 }
 
 model CodexEntry {
@@ -291,4 +347,53 @@ model Report {
   status      String   @default("pending")  // pending|reviewed|resolved|dismissed
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model EditorialReview {
+  id          String   @id @default(cuid())
+  novelId     String
+  novel       Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  chapterId   String
+  chapter     Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  // 5 个角色的独立评审
+  authorReview    String?  @default("{}")
+  editorReview    String?  @default("{}")
+  chiefReview     String?  @default("{}")
+  readerReview    String?  @default("{}")
+  continuityReview String? @default("{}")
+
+  // 辩论记录
+  debateLog       String?  @default("[]")
+
+  // 投票结果
+  votes           String?  @default("{}")
+  finalDecision   String?
+  chiefRuling     String?
+
+  createdAt       DateTime @default(now())
+
+  @@unique([novelId, chapterId])
+}
+
+model EmotionalCurve {
+  id          String   @id @default(cuid())
+  novelId     String
+  novel       Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  chapterId   String?
+
+  // 目标曲线
+  targetCurve String
+
+  // 实际曲线
+  actualCurve String?
+
+  // 叙事手段建议
+  narrativeTechniques String? @default("[]")
+
+  // 验证结果
+  validationScore     Float?
+  validationDetails   String?
+
+  createdAt   DateTime @default(now())
 }
