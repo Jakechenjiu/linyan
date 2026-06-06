@@ -61,6 +61,8 @@ model Novel {
   outlines        Outline[]
   writingLogs     WritingLog[]
   truthFiles      TruthFile[]
+  editorialReviews EditorialReview[]
+  emotionalCurves  EmotionalCurve[]
   userId          String
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt       DateTime  @default(now())
@@ -211,6 +213,7 @@ model Chapter {
   novel        Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
   outlineId    String?
   outline      Outline? @relation(fields: [outlineId], references: [id])
+  editorialReviews EditorialReview[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
