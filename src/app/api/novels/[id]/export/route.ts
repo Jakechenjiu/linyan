@@ -42,7 +42,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (format === "epub") {
     try {
       const buffer = await exportEpub(exportData);
-      return new NextResponse(buffer, {
+      return new NextResponse(new Uint8Array(buffer), {
         headers: {
           "Content-Type": "application/epub+zip",
           "Content-Disposition": `attachment; filename="${encodeURIComponent(novel.title)}.epub"`,
