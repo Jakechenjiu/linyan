@@ -48,6 +48,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "没有选中文字" }, { status: 400 });
   }
 
+  if (selectedText.length > 5000) {
+    return NextResponse.json({ error: "选中文字过长（最多 5000 字）" }, { status: 400 });
+  }
+
   if (!ACTION_PROMPTS[action]) {
     return NextResponse.json({ error: "不支持的操作" }, { status: 400 });
   }
@@ -75,11 +79,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     });
     if (chapter) {
       // 取选中文字前后各 500 字作为上下文
-      const idx = chapter.body.indexOf(selectedText);
+      const normalizedBody = chapter.body.replace(/\r\n/g, "\n");
+      const normalizedText = selectedText.replace(/\r\n/g, "\n");
+      const idx = normalizedBody.indexOf(normalizedText);
       if (idx >= 0) {
         const start = Math.max(0, idx - 500);
-        const end = Math.min(chapter.body.length, idx + selectedText.length + 500);
-        chapterContext = chapter.body.slice(start, end);
+        const end = Math.min(normalizedBody.length, idx + normalizedText.length + 500);
+        chapterContext = normalizedBody.slice(start, end);
       }
     }
   }

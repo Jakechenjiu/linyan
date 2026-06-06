@@ -11,6 +11,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const url = new URL(req.url);
   const format = url.searchParams.get("format") || "txt"; // txt | epub
 
+  if (!["txt", "epub"].includes(format)) {
+    return NextResponse.json({ error: "不支持的格式，可选：txt, epub" }, { status: 400 });
+  }
+
   const novel = await prisma.novel.findUnique({
     where: { id: novelId },
     include: { chapters: { orderBy: { order: "asc" } } },

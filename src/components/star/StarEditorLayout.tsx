@@ -374,19 +374,22 @@ export default function StarEditorLayout({
                   <div
                     className="text-sm leading-[1.8] whitespace-pre-wrap cursor-text rounded-lg p-4 transition-colors min-h-[200px] hover:bg-[var(--accent)]/20 chapter-body"
                     onClick={handleStartEdit}
-                    onMouseUp={(e) => {
-                      const selection = window.getSelection();
-                      const text = selection?.toString().trim();
-                      if (text && text.length > 5 && text.length < 2000) {
-                        const range = selection?.getRangeAt(0);
-                        const rect = range?.getBoundingClientRect();
-                        if (rect) {
-                          setInlineAI({
-                            selectedText: text,
-                            position: { x: rect.left + rect.width / 2 - 160, y: rect.bottom + 8 },
-                          });
+                    onMouseUp={() => {
+                      // 延迟检测，避免快速选择时多次触发
+                      setTimeout(() => {
+                        const selection = window.getSelection();
+                        const text = selection?.toString().trim();
+                        if (text && text.length > 5 && text.length < 2000) {
+                          const range = selection?.getRangeAt(0);
+                          const rect = range?.getBoundingClientRect();
+                          if (rect) {
+                            setInlineAI({
+                              selectedText: text,
+                              position: { x: rect.left + rect.width / 2 - 160, y: rect.bottom + 8 },
+                            });
+                          }
                         }
-                      }
+                      }, 10);
                     }}
                   >
                     {selectedChapter.body || (

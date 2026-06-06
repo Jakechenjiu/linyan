@@ -15,7 +15,7 @@ interface InlineAIToolbarProps {
   chapterId: string;
 }
 
-type ActionMode = "rewrite" | "expand" | "compress" | "translate" | "describe" | null;
+type ActionMode = "rewrite" | "expand" | "compress" | "describe" | null;
 
 const ACTIONS = [
   { id: "rewrite" as const, label: "改写", icon: Wand2, desc: "保持意思，换种说法" },
