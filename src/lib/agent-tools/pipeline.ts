@@ -8,7 +8,6 @@ import {
   buildGovernanceContext,
 } from "@/lib/input-governance";
 import {
-  getAllTruthFiles,
   updateTruthFilesFromChapter,
 } from "@/lib/truth-files";
 import {
@@ -21,6 +20,7 @@ import { buildGenreWritingGuidance } from "@/lib/genre-prompts";
 import { filterRelevantContext } from "@/lib/smart-context";
 import { analyzeRhythm } from "@/lib/rhythm-detector";
 import { analyzeRootCauses, formatRootCauseForPrompt } from "@/lib/audit-root-cause";
+import { getCachedTruthFiles, invalidateTruthFileCache } from "@/lib/cache";
 
 interface PipelineResult {
   success: boolean;
@@ -71,19 +71,22 @@ export async function runChapterPipeline(
     return { success: false, response: "请先配置 AI API Key" };
   }
 
-  // 加载小说数据
-  const novel = await prisma.novel.findUnique({
-    where: { id: novelId },
-    include: {
-      worldSetting: true,
-      characters: { orderBy: { sortOrder: "asc" } },
-      outlines: {
-        where: { type: "chapter" },
-        orderBy: { sortOrder: "asc" },
+  // 并行加载小说数据和真相文件
+  const [novel, truthFiles] = await Promise.all([
+    prisma.novel.findUnique({
+      where: { id: novelId },
+      include: {
+        worldSetting: true,
+        characters: { orderBy: { sortOrder: "asc" } },
+        outlines: {
+          where: { type: "chapter" },
+          orderBy: { sortOrder: "asc" },
+        },
+        chapters: { orderBy: { order: "desc" }, take: 5 },
       },
-      chapters: { orderBy: { order: "desc" }, take: 5 },
-    },
-  });
+    }),
+    getCachedTruthFiles(novelId),
+  ]);
 
   if (!novel) {
     return { success: false, response: "小说不存在" };
@@ -111,20 +114,20 @@ export async function runChapterPipeline(
 
   const chapterNumber = novel.chapters.length + 1;
 
-  // 加载真相文件
-  const truthFiles = await getAllTruthFiles(novelId);
-
   try {
-    // ========== Phase 1: Plan（规划意图）==========
+    // ========== Phase 1: Plan + 预处理（并行）==========
     progress("plan", "正在规划章节意图...");
     console.log(`[Pipeline] Phase 1: Planning chapter ${chapterNumber}`);
 
-    const intent = await planChapter(
-      novelId,
-      targetOutline.id,
-      chapterNumber,
-      userRequest,
-    );
+    // 并行：Plan + 声音指纹提取 + 节奏分析
+    const [intent, voiceFingerprints, rhythm] = await Promise.all([
+      planChapter(novelId, targetOutline.id, chapterNumber, userRequest),
+      Promise.resolve(extractDialogueFingerprints(
+        novel.chapters,
+        novel.characters.map((c) => c.name)
+      )),
+      Promise.resolve(analyzeRhythm(novel.chapters)),
+    ]);
 
     // ========== Phase 2: Compose（编排上下文）==========
     progress("compose", "正在编排上下文...");
@@ -142,11 +145,7 @@ export async function runChapterPipeline(
     progress("write", "正在写作...");
     console.log(`[Pipeline] Phase 3: Writing chapter`);
 
-    // 提取角色声音指纹
-    const voiceFingerprints = extractDialogueFingerprints(
-      novel.chapters,
-      novel.characters.map((c) => c.name)
-    );
+    // 使用已并行提取的声音指纹和节奏分析
     const fingerprintText = formatFingerprintsForPrompt(voiceFingerprints);
 
     // 题材专属写作指导
@@ -159,9 +158,7 @@ export async function runChapterPipeline(
       recentChapters: novel.chapters.slice(0, 3).map((ch) => ch.body),
     });
 
-    // 节奏分析
-    const rhythm = analyzeRhythm(novel.chapters);
-
+    // 使用已并行提取的节奏分析
     const contextParts: string[] = [];
 
     // 角色设定
@@ -310,6 +307,8 @@ ${contextParts.join("\n")}
         body,
         factSnapshot,
       );
+      // 更新后清除缓存
+      invalidateTruthFileCache(novelId);
     } catch (e) {
       console.warn("[Pipeline] Failed to update truth files:", e);
     }

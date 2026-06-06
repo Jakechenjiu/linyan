@@ -16,7 +16,17 @@ const providerDefaults: Record<string, { baseUrl: string; model: string }> = {
   google: { baseUrl: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.0-flash" },
 };
 
+// 缓存层
+const configCache = new Map<string, { config: any; ts: number }>();
+const CONFIG_TTL = 5 * 60_000; // 5 分钟
+
 export async function getAiConfig(userId: string) {
+  // 检查缓存
+  const cached = configCache.get(userId);
+  if (cached && Date.now() - cached.ts < CONFIG_TTL) {
+    return cached.config;
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { apiKey: true, apiProvider: true },
@@ -27,13 +37,18 @@ export async function getAiConfig(userId: string) {
 
   const apiKey = user?.apiKey || DEFAULT_API_KEY;
 
-  return {
+  const config = {
     apiKey,
     baseUrl: defaults.baseUrl,
     model: defaults.model,
     hasKey: !!apiKey,
     provider,
   };
+
+  // 写入缓存
+  configCache.set(userId, { config, ts: Date.now() });
+
+  return config;
 }
 
 export function getDefaultAiConfig() {

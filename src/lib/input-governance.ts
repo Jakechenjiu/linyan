@@ -1,9 +1,9 @@
 import { prisma } from "./db";
 import {
-  getAllTruthFiles,
   buildTruthFileContext,
   type TruthFileType,
 } from "./truth-files";
+import { getCachedTruthFiles } from "./cache";
 
 // ============ 类型定义 ============
 
@@ -54,7 +54,7 @@ export async function planChapter(
   if (!outline) throw new Error("Outline not found");
 
   // 读取真相文件
-  const truthFiles = await getAllTruthFiles(novelId);
+  const truthFiles = await getCachedTruthFiles(novelId);
   const truthContext = buildTruthFileContext(truthFiles, {
     maxLength: 4000,
     includeTypes: ["current_state", "pending_hooks", "chapter_summaries", "emotional_arcs"],
@@ -172,7 +172,7 @@ export async function composeChapter(
   outlineSummary?: string
 ): Promise<ContextPackage> {
   // 读取真相文件
-  const truthFiles = await getAllTruthFiles(novelId);
+  const truthFiles = await getCachedTruthFiles(novelId);
 
   // 根据意图选择相关真相文件
   const selectedTypes = selectRelevantTruthFiles(chapterIntent);
