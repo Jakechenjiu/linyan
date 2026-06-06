@@ -67,12 +67,14 @@ export default function ChatPanel({
   const [lastFailedInput, setLastFailedInput] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const textBufferRef = useRef<string>("");
+  const flushTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // 节流滚动，避免频繁触发
   useEffect(() => {
     const timer = setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
+    }, 300);
     return () => clearTimeout(timer);
   }, [messages]);
 
@@ -133,6 +135,20 @@ export default function ChatPanel({
       let finalPipelineData: any = undefined;
       let accumulatedText = "";
 
+      // 批量刷新文本，避免每次 SSE 事件都重渲染
+      textBufferRef.current = "";
+      flushTimerRef.current = setInterval(() => {
+        if (textBufferRef.current) {
+          accumulatedText += textBufferRef.current;
+          textBufferRef.current = "";
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === aiMsgId ? { ...m, content: accumulatedText } : m
+            )
+          );
+        }
+      }, 100);
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -185,14 +201,7 @@ export default function ChatPanel({
                   break;
 
                 case "text":
-                  accumulatedText += parsed.content;
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === aiMsgId
-                        ? { ...m, content: accumulatedText }
-                        : m
-                    )
-                  );
+                  textBufferRef.current += parsed.content;
                   break;
 
                 case "done":
@@ -209,6 +218,16 @@ export default function ChatPanel({
             }
           }
         }
+      }
+
+      // 清除刷新定时器，刷完剩余缓冲
+      if (flushTimerRef.current) {
+        clearInterval(flushTimerRef.current);
+        flushTimerRef.current = null;
+      }
+      if (textBufferRef.current) {
+        accumulatedText += textBufferRef.current;
+        textBufferRef.current = "";
       }
 
       // 完成 — 更新最终状态
@@ -244,6 +263,10 @@ export default function ChatPanel({
         await onSave(finalModifiedBody);
       }
     } catch (e: unknown) {
+      if (flushTimerRef.current) {
+        clearInterval(flushTimerRef.current);
+        flushTimerRef.current = null;
+      }
       setMessages((prev) =>
         prev.map((m) =>
           m.id === aiMsgId
@@ -297,15 +320,7 @@ export default function ChatPanel({
           <div className="max-w-2xl mx-auto space-y-3">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div
-                  className="max-w-[85%] space-y-2 message-bubble"
-                  ref={(el) => {
-                    if (el && !el.dataset.animated) {
-                      el.dataset.animated = "true";
-                      animateMessageIn(el);
-                    }
-                  }}
-                >
+                <div className="max-w-[85%] space-y-2 message-bubble">
                   {/* Message bubble */}
                   <div
                     className={`px-3.5 py-2.5 rounded-2xl text-[13px] leading-relaxed ${
