@@ -111,6 +111,9 @@ export async function runChapterPipeline(
 
   const chapterNumber = novel.chapters.length + 1;
 
+  // 加载真相文件
+  const truthFiles = await getAllTruthFiles(novelId);
+
   try {
     // ========== Phase 1: Plan（规划意图）==========
     progress("plan", "正在规划章节意图...");
