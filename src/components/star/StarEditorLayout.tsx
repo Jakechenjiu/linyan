@@ -10,6 +10,7 @@ import Link from "next/link";
 import AuditPanel from "./AuditPanel";
 import TruthFilesPanel from "./TruthFilesPanel";
 import ChapterIntentPanel from "./ChapterIntentPanel";
+import InlineAIToolbar from "./InlineAIToolbar";
 import { toast } from "sonner";
 import ChatPanel from "./ChatPanel";
 import { fadeIn, slideUp, buttonPress } from "@/lib/animations";
@@ -70,6 +71,10 @@ export default function StarEditorLayout({
   const [chapterIntent, setChapterIntent] = useState<any>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [panelExpanded, setPanelExpanded] = useState(false);
+  const [inlineAI, setInlineAI] = useState<{
+    selectedText: string;
+    position: { x: number; y: number };
+  } | null>(null);
 
   const selectedChapter = chapters.find((ch) => ch.id === selectedId) || null;
 
@@ -367,8 +372,22 @@ export default function StarEditorLayout({
               ) : (
                 <div className="relative group">
                   <div
-                    className="text-sm leading-[1.8] whitespace-pre-wrap cursor-text rounded-lg p-4 transition-colors min-h-[200px] hover:bg-[var(--accent)]/20"
+                    className="text-sm leading-[1.8] whitespace-pre-wrap cursor-text rounded-lg p-4 transition-colors min-h-[200px] hover:bg-[var(--accent)]/20 chapter-body"
                     onClick={handleStartEdit}
+                    onMouseUp={(e) => {
+                      const selection = window.getSelection();
+                      const text = selection?.toString().trim();
+                      if (text && text.length > 5 && text.length < 2000) {
+                        const range = selection?.getRangeAt(0);
+                        const rect = range?.getBoundingClientRect();
+                        if (rect) {
+                          setInlineAI({
+                            selectedText: text,
+                            position: { x: rect.left + rect.width / 2 - 160, y: rect.bottom + 8 },
+                          });
+                        }
+                      }
+                    }}
                   >
                     {selectedChapter.body || (
                       <span className="text-muted-foreground/50 italic">
@@ -501,6 +520,29 @@ export default function StarEditorLayout({
           </div>
         )}
       </div>
+
+      {/* 内联 AI 工具栏 */}
+      {inlineAI && selectedId && (
+        <InlineAIToolbar
+          selectedText={inlineAI.selectedText}
+          position={inlineAI.position}
+          novelId={novelId}
+          chapterId={selectedId}
+          onApply={(newText) => {
+            // 替换正文中的选中文字
+            if (selectedChapter) {
+              const newBody = selectedChapter.body.replace(
+                inlineAI.selectedText,
+                newText
+              );
+              handleBodyChange(newBody);
+              handleSave(newBody);
+              toast.success("已应用修改");
+            }
+          }}
+          onCancel={() => setInlineAI(null)}
+        />
+      )}
     </div>
   );
 }
