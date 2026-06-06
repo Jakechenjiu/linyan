@@ -4,13 +4,14 @@ import { useState, useCallback } from "react";
 import {
   Plus, Trash2, ChevronLeft, ChevronRight, ChevronDown,
   PanelRightClose, PanelRight, BookOpen,
-  Save, Check, Loader2, Shield, Database, Target, RefreshCw,
+  Save, Check, Loader2, Shield, Database, Target, RefreshCw, Users,
 } from "lucide-react";
 import Link from "next/link";
 import AuditPanel from "./AuditPanel";
 import TruthFilesPanel from "./TruthFilesPanel";
 import ChapterIntentPanel from "./ChapterIntentPanel";
 import InlineAIToolbar from "./InlineAIToolbar";
+import CharacterAgentPanel from "./CharacterAgentPanel";
 import { toast } from "sonner";
 import ChatPanel from "./ChatPanel";
 import { fadeIn, slideUp, buttonPress } from "@/lib/animations";
@@ -66,7 +67,7 @@ export default function StarEditorLayout({
   const [editedBody, setEditedBody] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(true);
-  const [rightPanel, setRightPanel] = useState<"audit" | "truth" | "intent">("audit");
+  const [rightPanel, setRightPanel] = useState<"audit" | "truth" | "intent" | "agents">("audit");
   const [refreshTruthFiles, setRefreshTruthFiles] = useState(0);
   const [chapterIntent, setChapterIntent] = useState<any>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
@@ -471,6 +472,7 @@ export default function StarEditorLayout({
                 { id: "audit" as const, icon: <Shield size={10} />, label: "AI味审计" },
                 { id: "truth" as const, icon: <Database size={10} />, label: "真相文件" },
                 { id: "intent" as const, icon: <Target size={10} />, label: "章节意图" },
+                { id: "agents" as const, icon: <Users size={10} />, label: "角色Agent" },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -518,6 +520,9 @@ export default function StarEditorLayout({
               )}
               {rightPanel === "intent" && (
                 <ChapterIntentPanel intent={chapterIntent} />
+              )}
+              {rightPanel === "agents" && (
+                <CharacterAgentPanel novelId={novelId} />
               )}
             </div>
           </div>
