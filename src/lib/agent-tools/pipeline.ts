@@ -16,6 +16,11 @@ import {
   buildAuditPrompt,
   shouldRevive,
 } from "@/lib/audit-dimensions";
+import { extractDialogueFingerprints, formatFingerprintsForPrompt } from "@/lib/voice-fingerprint";
+import { buildGenreWritingGuidance } from "@/lib/genre-prompts";
+import { filterRelevantContext } from "@/lib/smart-context";
+import { analyzeRhythm } from "@/lib/rhythm-detector";
+import { analyzeRootCauses, formatRootCauseForPrompt } from "@/lib/audit-root-cause";
 
 interface PipelineResult {
   success: boolean;
@@ -134,6 +139,26 @@ export async function runChapterPipeline(
     progress("write", "正在写作...");
     console.log(`[Pipeline] Phase 3: Writing chapter`);
 
+    // 提取角色声音指纹
+    const voiceFingerprints = extractDialogueFingerprints(
+      novel.chapters,
+      novel.characters.map((c) => c.name)
+    );
+    const fingerprintText = formatFingerprintsForPrompt(voiceFingerprints);
+
+    // 题材专属写作指导
+    const genreGuidance = buildGenreWritingGuidance(novel.genre || "other");
+
+    // 智能上下文筛选
+    const filteredTruthFiles = filterRelevantContext(truthFiles, {
+      chapterGoal: intent.goal,
+      characterFocus: intent.characterFocus,
+      recentChapters: novel.chapters.slice(0, 3).map((ch) => ch.body),
+    });
+
+    // 节奏分析
+    const rhythm = analyzeRhythm(novel.chapters);
+
     const contextParts: string[] = [];
 
     // 角色设定
@@ -150,9 +175,33 @@ export async function runChapterPipeline(
       }
     }
 
+    // 角色声音指纹
+    if (fingerprintText) {
+      contextParts.push(`\n## 角色对话风格\n${fingerprintText}`);
+    }
+
     // 世界铁律
     if (novel.worldSetting?.rules) {
       contextParts.push(`\n## 世界铁律\n${novel.worldSetting.rules}`);
+    }
+
+    // 筛选后的真相文件
+    const truthContextParts: string[] = [];
+    for (const [type, content] of Object.entries(filteredTruthFiles)) {
+      if (content.trim()) {
+        truthContextParts.push(`### ${type}\n${content}`);
+      }
+    }
+    if (truthContextParts.length > 0) {
+      contextParts.push(`\n## 相关记忆\n${truthContextParts.join("\n\n")}`);
+    }
+
+    // 节奏提示
+    if (rhythm.issues.length > 0) {
+      const rhythmWarnings = rhythm.issues
+        .map((i) => `- ${i.description}`)
+        .join("\n");
+      contextParts.push(`\n## 节奏提醒\n${rhythmWarnings}`);
     }
 
     const novelTitle = novelContext?.title || novel.title;
@@ -170,6 +219,8 @@ export async function runChapterPipeline(
 - 禁止：章末平稳落地——必须留下未解决的张力、悬念或新问题
 - 对话要像活人说话：不同角色用不同的节奏、词汇量、句式
 - 直接从正文开始，禁止"好的，以下是…"、"让我来写…"等开场白
+
+${genreGuidance}
 
 输出格式：
 1. 先输出 CHAPTER_TITLE: 标题
@@ -348,6 +399,14 @@ ${contextParts.join("\n")}
 
       if (criticalIssues.length === 0) break;
 
+      // 根因分析
+      const rootCauseAnalyses = analyzeRootCauses(
+        criticalIssues,
+        finalBody,
+        novel.chapters.slice(0, 3).map((ch) => ch.body)
+      );
+      const rootCauseText = formatRootCauseForPrompt(rootCauseAnalyses);
+
       const issueList = criticalIssues
         .map(
           (issue: any, i: number) =>
@@ -366,6 +425,7 @@ ${contextParts.join("\n")}
 ## 需要修复的问题
 ${issueList}
 
+${rootCauseText ? `## 根因分析\n${rootCauseText}\n` : ""}
 ## 修订规则
 1. 修复所有 critical 和 warning 级别的问题
 2. 不要改变剧情、角色发展或故事方向
