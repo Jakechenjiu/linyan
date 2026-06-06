@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import {
   Plus, Trash2, ChevronLeft, ChevronRight, ChevronDown,
   PanelRightClose, PanelRight, BookOpen,
-  Save, Check, Loader2, Shield, Database, Target,
+  Save, Check, Loader2, Shield, Database, Target, RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import AuditPanel from "./AuditPanel";
@@ -167,6 +167,30 @@ export default function StarEditorLayout({
     setRefreshTruthFiles((n) => n + 1);
   }, []);
 
+  // 刷新当前章节内容
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefreshChapter = useCallback(async () => {
+    if (!selectedId || refreshing) return;
+    setRefreshing(true);
+    try {
+      const res = await fetch(`/api/novels/${novelId}/chapters/${selectedId}`);
+      if (!res.ok) throw new Error("加载失败");
+      const data = await res.json();
+      setChapters((prev) =>
+        prev.map((ch) =>
+          ch.id === selectedId
+            ? { ...ch, body: data.body, wordCount: data.wordCount || data.body.replace(/\s/g, "").length }
+            : ch
+        )
+      );
+      toast.success("已刷新");
+    } catch {
+      toast.error("刷新失败");
+    } finally {
+      setRefreshing(false);
+    }
+  }, [novelId, selectedId, refreshing]);
+
   return (
     <div className="flex-1 flex overflow-hidden">
       {/* ===== Left: Chapter Sidebar ===== */}
@@ -298,6 +322,14 @@ export default function StarEditorLayout({
                 <span className="text-[9px] text-muted-foreground/40 mr-1">
                   Ctrl+S 保存
                 </span>
+                <button
+                  onClick={handleRefreshChapter}
+                  disabled={refreshing}
+                  className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                  title="刷新章节内容"
+                >
+                  <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
+                </button>
                 <button
                   onClick={() => setViewerOpen(false)}
                   className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
