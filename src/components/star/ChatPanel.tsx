@@ -331,7 +331,7 @@ export default function ChatPanel({
                           ref={(el) => {
                             if (el && !el.dataset.animated) {
                               el.dataset.animated = "true";
-                              setTimeout(() => animateToolCallIn(el), i * 60);
+                              setTimeout(() => animateToolCallIn([el]), i * 60);
                             }
                           }}
                         >
