@@ -30,7 +30,7 @@ const videoProviders = [
 ];
 
 const providerEndpoints: Record<string, string> = {
-  xiaomimimo: "https://token-plan-cn.xiaomimimo.com/anthropic",
+  xiaomimimo: "https://token-plan-cn.xiaomimimo.com/v1",
   deepseek: "https://api.deepseek.com/v1",
   qwen: "https://dashscope.aliyuncs.com/compatible-mode/v1",
   zhipu: "https://open.bigmodel.cn/api/paas/v4",

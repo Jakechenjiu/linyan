@@ -4,15 +4,15 @@ const DEFAULT_BASE_URL = process.env.ANTHROPIC_BASE_URL || "https://api.deepseek
 const DEFAULT_API_KEY = process.env.ANTHROPIC_AUTH_TOKEN || "";
 const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL || "deepseek-v4-pro";
 
-const providerDefaults: Record<string, { baseUrl: string; model: string }> = {
-  xiaomimimo: { baseUrl: "https://token-plan-cn.xiaomimimo.com/anthropic", model: "mimo-v2.5-pro" },
+const providerDefaults: Record<string, { baseUrl: string; model: string; format?: "openai" | "anthropic" }> = {
+  xiaomimimo: { baseUrl: "https://token-plan-cn.xiaomimimo.com/v1", model: "mimo-v2.5-pro" },
   deepseek: { baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
   qwen: { baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus" },
   zhipu: { baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash" },
   moonshot: { baseUrl: "https://api.moonshot.cn/v1", model: "moonshot-v1-8k" },
   spark: { baseUrl: "https://spark-api-open.xf-yun.com/v1", model: "generalv3.5" },
   openai: { baseUrl: "https://api.openai.com/v1", model: "gpt-4o" },
-  anthropic: { baseUrl: "https://api.anthropic.com", model: "claude-sonnet-4-6" },
+  anthropic: { baseUrl: "https://api.anthropic.com", model: "claude-sonnet-4-6", format: "anthropic" },
   google: { baseUrl: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.0-flash" },
 };
 
@@ -43,6 +43,7 @@ export async function getAiConfig(userId: string) {
     model: defaults.model,
     hasKey: !!apiKey,
     provider,
+    format: defaults.format, // 可选：强制指定格式
   };
 
   // 写入缓存
@@ -75,6 +76,7 @@ interface AiCallParams {
   messages: AiMessage[];
   max_tokens?: number;
   temperature?: number;
+  format?: "openai" | "anthropic"; // 可选：强制指定格式
 }
 
 // 工具调用类型
@@ -107,10 +109,10 @@ export interface AiResponseWithTools {
  * Uses native API format per provider.
  */
 export async function callAi(params: AiCallParams): Promise<string> {
-  const { apiKey, baseUrl, model, provider, system, messages, max_tokens = 4096, temperature = 0.8 } = params;
+  const { apiKey, baseUrl, model, provider, system, messages, max_tokens = 4096, temperature = 0.8, format } = params;
 
-  // Auto-detect format: if baseUrl contains "/anthropic", use Anthropic format
-  const isAnthropic = baseUrl.includes("/anthropic") || provider === "anthropic";
+  // 格式检测：优先使用显式指定的格式，否则自动检测
+  const isAnthropic = format === "anthropic" || (!format && (baseUrl.includes("/anthropic") || provider === "anthropic"));
 
   const url = isAnthropic
     ? `${baseUrl}/v1/messages`
@@ -210,9 +212,10 @@ export async function callAi(params: AiCallParams): Promise<string> {
 export async function callAiWithTools(
   params: AiCallParams & { tools: AiTool[] }
 ): Promise<AiResponseWithTools> {
-  const { apiKey, baseUrl, model, provider, system, messages, tools, max_tokens = 4096, temperature = 0.7 } = params;
+  const { apiKey, baseUrl, model, provider, system, messages, tools, max_tokens = 4096, temperature = 0.7, format } = params;
 
-  const isAnthropic = baseUrl.includes("/anthropic") || provider === "anthropic";
+  // 格式检测：优先使用显式指定的格式，否则自动检测
+  const isAnthropic = format === "anthropic" || (!format && (baseUrl.includes("/anthropic") || provider === "anthropic"));
 
   // 构建工具定义
   const toolsPayload = tools.map((t) => {
