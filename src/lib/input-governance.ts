@@ -43,16 +43,27 @@ export async function planChapter(
     include: {
       worldSetting: true,
       characters: { orderBy: { sortOrder: "asc" } },
-      outlines: { where: { type: "volume" }, orderBy: { sortOrder: "asc" } },
+      outlines: { orderBy: { sortOrder: "asc" } },
       chapters: { orderBy: { order: "desc" }, take: 5 },
     },
   });
   if (!novel) throw new Error("Novel not found");
 
-  const outline = await prisma.outline.findUnique({
-    where: { id: outlineId },
-  });
-  if (!outline) throw new Error("Outline not found");
+  // 处理虚拟大纲（自动续写）
+  let outline: { id: string; title: string; summary: string | null; wordTarget: number | null } | null = null;
+  if (outlineId === "auto") {
+    outline = {
+      id: "auto",
+      title: `第${chapterNumber}章`,
+      summary: "基于前文自动续写",
+      wordTarget: novel.chapterWordCount || 2000,
+    };
+  } else {
+    outline = await prisma.outline.findUnique({
+      where: { id: outlineId },
+    });
+    if (!outline) throw new Error("Outline not found");
+  }
 
   // 读取真相文件
   const truthFiles = await getCachedTruthFiles(novelId);

@@ -76,8 +76,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const outline = novel.outlines.find((o) => o.id === outlineId);
-  if (!outline || outline.type !== "chapter") {
-    return NextResponse.json({ error: "Outline not found or not a chapter" }, { status: 400 });
+  if (!outline) {
+    return NextResponse.json({ error: "Outline not found" }, { status: 400 });
   }
 
   const config = await getAiConfig(session.user!.id);

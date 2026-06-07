@@ -58,10 +58,10 @@ export async function runAgentSession(
   if (shouldTriggerPipeline(userMessage)) {
     // 管线触发
 
-    // 获取大纲列表
+    // 获取大纲列表（所有类型）
     const novel = await prisma.novel.findUnique({
       where: { id: novelId },
-      select: { outlines: { where: { type: "chapter" }, select: { id: true, title: true } } },
+      select: { outlines: { select: { id: true, title: true, type: true } } },
     });
 
     const outlineId = novel
