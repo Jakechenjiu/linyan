@@ -4,6 +4,7 @@ import {
   type TruthFileType,
 } from "./truth-files";
 import { getCachedTruthFiles } from "./cache";
+import { buildMultiCharacterContext } from "./character-agent/context-builder";
 
 // ============ 类型定义 ============
 
@@ -178,17 +179,46 @@ export async function composeChapter(
   const selectedTypes = selectRelevantTruthFiles(chapterIntent);
   const selectedContext = buildTruthFileContext(truthFiles, {
     includeTypes: selectedTypes,
-    maxLength: 6000,
+    maxLength: 4000, // 减少真相文件空间，给角色 Agent 留空间
   });
+
+  // 注入角色 Agent 上下文
+  let characterContext = "";
+  try {
+    // 找到本章出场的角色
+    const characters = await prisma.character.findMany({
+      where: { novelId },
+      select: { id: true, name: true, role: true, openness: true },
+    });
+
+    // 筛选焦点角色（有 Agent 数据的主角/反派）
+    const focusCharacters = characters.filter(
+      (c) => c.openness != null && (c.role === "protagonist" || c.role === "antagonist" || c.name === chapterIntent.characterFocus)
+    );
+
+    if (focusCharacters.length > 0) {
+      characterContext = await buildMultiCharacterContext(
+        focusCharacters.map((c) => c.id),
+        "zh"
+      );
+    }
+  } catch (e) {
+    // 角色 Agent 数据不存在，跳过
+  }
+
+  // 合并上下文
+  const fullContext = characterContext
+    ? `${selectedContext}\n\n${characterContext}`
+    : selectedContext;
 
   // 构建规则栈
   const ruleStack = buildRuleStack(chapterIntent);
 
   // 估算 token 数
-  const tokenEstimate = estimateTokens(selectedContext);
+  const tokenEstimate = estimateTokens(fullContext);
 
   return {
-    selectedContext,
+    selectedContext: fullContext,
     ruleStack,
     tokenEstimate,
   };

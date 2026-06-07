@@ -21,6 +21,8 @@ import { filterRelevantContext } from "@/lib/smart-context";
 import { analyzeRhythm } from "@/lib/rhythm-detector";
 import { analyzeRootCauses, formatRootCauseForPrompt } from "@/lib/audit-root-cause";
 import { getCachedTruthFiles, invalidateTruthFileCache } from "@/lib/cache";
+import { buildMultiCharacterContext, loadCharacterAgent } from "@/lib/character-agent/context-builder";
+import { doesCharacterKnow } from "@/lib/character-agent/knowledge";
 
 interface PipelineResult {
   success: boolean;
@@ -178,6 +180,24 @@ export async function runChapterPipeline(
     // 角色声音指纹
     if (fingerprintText) {
       contextParts.push(`\n## 角色对话风格\n${fingerprintText}`);
+    }
+
+    // 角色 Agent 上下文（大五人格 + 信息边界 + 行为约束）
+    try {
+      const focusCharacters = novel.characters.filter(
+        (c) => c.role === "protagonist" || c.role === "antagonist"
+      );
+      if (focusCharacters.length > 0) {
+        const agentContext = await buildMultiCharacterContext(
+          focusCharacters.map((c) => c.id),
+          "zh"
+        );
+        if (agentContext.trim()) {
+          contextParts.push(`\n## 角色 Agent 深度设定\n${agentContext}`);
+        }
+      }
+    } catch {
+      // 角色 Agent 数据不存在，跳过
     }
 
     // 世界铁律
@@ -338,6 +358,27 @@ ${contextParts.join("\n")}
         auditContext.push(`\n世界铁律:\n${novel.worldSetting.rules}`);
       }
 
+      // 注入角色信息边界（OOC 检查）
+      try {
+        const focusCharacters = novel.characters.filter(
+          (c) => c.role === "protagonist" || c.role === "antagonist"
+        );
+        for (const c of focusCharacters) {
+          const agent = await loadCharacterAgent(c.id);
+          if (agent && agent.knowledge.length > 0) {
+            const knownFacts = agent.knowledge
+              .filter((k) => !k.isSecret)
+              .map((k) => k.content)
+              .slice(0, 10);
+            if (knownFacts.length > 0) {
+              auditContext.push(`\n${c.name}知道的事（信息边界）:\n${knownFacts.map((f) => `- ${f}`).join("\n")}`);
+            }
+          }
+        }
+      } catch {
+        // 角色 Agent 数据不存在，跳过
+      }
+
       try {
         const auditResultStr = await callAi({
           ...config,
@@ -371,6 +412,35 @@ ${contextParts.join("\n")}
           issues: [],
           summary: "审查调用失败，默认通过",
         };
+      }
+
+      // 情感曲线验证（如果有目标曲线）
+      try {
+        const curves = await prisma.emotionalCurve.findMany({
+          where: { novelId },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        });
+        if (curves.length > 0 && curves[0].targetCurve) {
+          const { analyzeActualCurve, validateCurve } = await import("@/lib/emotional-curve/curve-validator");
+          const targetCurve = JSON.parse(curves[0].targetCurve);
+          const actualCurve = await analyzeActualCurve(finalBody, (system, user) =>
+            callAi({ ...config, system, messages: [{ role: "user", content: user }], max_tokens: 1024, temperature: 0.2 })
+          );
+          if (actualCurve.length > 0) {
+            const validation = validateCurve(targetCurve, actualCurve);
+            if (validation.overallMatch < 60) {
+              auditResult.issues.push({
+                severity: "warning",
+                category: "emotional_curve",
+                description: `情感曲线匹配度低（${validation.overallMatch}%）`,
+                suggestion: "调整叙事手段以更好地达到情感目标",
+              });
+            }
+          }
+        }
+      } catch {
+        // 情感曲线验证失败，跳过
       }
 
       // 判断是否需要修订
