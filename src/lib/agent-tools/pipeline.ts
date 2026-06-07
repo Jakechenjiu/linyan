@@ -105,14 +105,18 @@ export async function runChapterPipeline(
       novel.chapters.map((ch) => ch.outlineId).filter(Boolean)
     );
     targetOutline = novel.outlines.find((o) => !usedOutlineIds.has(o.id));
-
-    if (!targetOutline) {
-      return {
-        success: false,
-        response: "没有找到待写的大纲。请先创建大纲，或者指定要写哪一章。",
-      };
-    }
   }
+
+  // 如果没有大纲，创建一个虚拟大纲（基于前文续写）
+  const hasOutline = !!targetOutline;
+  const virtualOutline = !targetOutline ? {
+    id: "auto",
+    title: `第${novel.chapters.length + 1}章`,
+    summary: `基于前文自动续写`,
+    wordTarget: novel.chapterWordCount || 2000,
+  } : null;
+
+  const effectiveOutline = targetOutline || virtualOutline!;
 
   const chapterNumber = novel.chapters.length + 1;
 
@@ -123,7 +127,7 @@ export async function runChapterPipeline(
 
     // 并行：Plan + 声音指纹提取 + 节奏分析
     const [intent, voiceFingerprints, rhythm] = await Promise.all([
-      planChapter(novelId, targetOutline.id, chapterNumber, userRequest),
+      planChapter(novelId, effectiveOutline.id, chapterNumber, userRequest),
       Promise.resolve(extractDialogueFingerprints(
         novel.chapters,
         novel.characters.map((c) => c.name)
@@ -138,7 +142,7 @@ export async function runChapterPipeline(
     const composed = await composeChapter(
       novelId,
       intent,
-      targetOutline.summary || undefined,
+      effectiveOutline.summary || undefined,
     );
 
     const governanceContext = buildGovernanceContext(intent, composed);
@@ -262,7 +266,7 @@ ${contextParts.join("\n")}
 
     // 解析标题和正文
     const titleMatch = writerResult.match(/CHAPTER_TITLE:\s*(.+)/);
-    const title = titleMatch ? titleMatch[1].trim() : targetOutline.title;
+    const title = titleMatch ? titleMatch[1].trim() : effectiveOutline.title;
     const body = titleMatch
       ? writerResult.slice(titleMatch[0].length).trim()
       : writerResult;
@@ -537,7 +541,7 @@ ${rootCauseText ? `## 根因分析\n${rootCauseText}\n` : ""}
         body: finalBody,
         order: maxOrder + 1,
         wordCount,
-        outlineId: targetOutline.id,
+        outlineId: hasOutline ? effectiveOutline.id : null,
         factSnapshot: factSnapshot ? JSON.stringify(factSnapshot) : null,
       },
     });
@@ -559,7 +563,7 @@ ${rootCauseText ? `## 根因分析\n${rootCauseText}\n` : ""}
     const response = [
       `## 已创建「${title}」`,
       `📊 字数：${wordCount}`,
-      `📝 大纲：${targetOutline.title}`,
+      `📝 ${hasOutline ? "大纲：" + effectiveOutline.title : "自动续写"}`,
       "",
       "### 本章意图",
       `- 目标：${intent.goal}`,
