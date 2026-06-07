@@ -81,7 +81,6 @@ export async function runChapterPipeline(
         worldSetting: true,
         characters: { orderBy: { sortOrder: "asc" } },
         outlines: {
-          where: { type: "chapter" },
           orderBy: { sortOrder: "asc" },
         },
         chapters: { orderBy: { order: "desc" }, take: 5 },
@@ -100,11 +99,22 @@ export async function runChapterPipeline(
     : null;
 
   if (!targetOutline) {
-    // 找到第一个没有对应章节的大纲
+    // 找到第一个没有对应章节的叶子大纲（chapter 类型，或没有 children 的 volume）
     const usedOutlineIds = new Set(
       novel.chapters.map((ch) => ch.outlineId).filter(Boolean)
     );
-    targetOutline = novel.outlines.find((o) => !usedOutlineIds.has(o.id));
+
+    // 优先找 chapter 类型的大纲
+    targetOutline = novel.outlines.find(
+      (o) => o.type === "chapter" && !usedOutlineIds.has(o.id)
+    );
+
+    // 如果没有 chapter 类型，找没有 children 的 volume（当作单章大纲用）
+    if (!targetOutline) {
+      targetOutline = novel.outlines.find(
+        (o) => o.type === "volume" && !usedOutlineIds.has(o.id)
+      );
+    }
   }
 
   // 如果没有大纲，创建一个虚拟大纲（基于前文续写）
