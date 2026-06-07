@@ -189,12 +189,21 @@ export default function TruthFilesPanel({
         );
       })}
 
-      {/* Stats */}
+      {/* Stats or guide */}
       {files.length > 0 && (
-        <div className="text-[10px] text-muted-foreground text-center">
-          {files.filter((f) => f.content.trim().length > 0).length} /{" "}
-          {Object.keys(TRUTH_FILE_LABELS).length} 个文件有内容
-        </div>
+        <>
+          <div className="text-[10px] text-muted-foreground text-center">
+            {files.filter((f) => f.content.trim().length > 0).length} /{" "}
+            {Object.keys(TRUTH_FILE_LABELS).length} 个文件有内容
+          </div>
+          {files.every((f) => f.content.trim().length === 0) && (
+            <div className="rounded-lg border border-[var(--accent)] bg-[var(--accent)]/30 p-3">
+              <p className="text-[10px] text-muted-foreground">
+                真相文件在生成章节时自动更新，无需手动操作。
+              </p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

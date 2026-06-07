@@ -173,6 +173,26 @@ export default function CharacterAgentPanel({ novelId }: { novelId: string }) {
           暂无角色。先在"角色"页面创建角色。
         </p>
       )}
+
+      {/* 引导：未初始化的角色 */}
+      {!loading && agents.length > 0 && agents.some((a) => !a.hasAgentData) && (
+        <div className="rounded-lg border border-[var(--cyan)]/30 bg-[var(--cyan)]/5 p-3 space-y-2">
+          <p className="text-[11px] text-foreground">
+            有 {agents.filter((a) => !a.hasAgentData).length} 个角色未初始化 Agent
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            角色 Agent 让每个角色有独立人格，写作时 AI 会参考角色性格。
+          </p>
+          <button
+            onClick={handleInitialize}
+            disabled={initializing}
+            className="w-full flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[var(--cyan)] text-[#0a0e17] hover:opacity-90 transition-all disabled:opacity-50"
+          >
+            {initializing ? <Loader2 size={11} className="animate-spin" /> : <Brain size={11} />}
+            一键初始化
+          </button>
+        </div>
+      )}
     </div>
   );
 }

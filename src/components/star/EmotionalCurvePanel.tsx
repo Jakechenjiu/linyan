@@ -165,11 +165,23 @@ export default function EmotionalCurvePanel({ novelId }: { novelId: string }) {
         </div>
       )}
 
-      {/* Empty state */}
+      {/* Empty state with guide */}
       {!curve && !loading && (
-        <p className="text-[10px] text-muted-foreground text-center py-4">
-          输入情感目标，或直接点击"生成曲线"获取默认曲线
-        </p>
+        <div className="rounded-lg border border-[var(--star)]/30 bg-[var(--star)]/5 p-3 space-y-2">
+          <p className="text-[11px] text-foreground">
+            还没有设置情感曲线
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            情感曲线帮助 AI 控制本章的情绪节奏（紧张/悬念/愉悦/悲伤/反转）。
+          </p>
+          <button
+            onClick={handleGenerate}
+            className="w-full flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[var(--star)] text-[#0a0e17] hover:opacity-90 transition-all"
+          >
+            <Sparkles size={11} />
+            生成默认曲线
+          </button>
+        </div>
       )}
     </div>
   );

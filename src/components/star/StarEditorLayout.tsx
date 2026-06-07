@@ -70,6 +70,7 @@ export default function StarEditorLayout({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(true);
   const [rightPanel, setRightPanel] = useState<"audit" | "truth" | "intent" | "agents" | "curve" | "editorial">("audit");
+  const [expandedAccordion, setExpandedAccordion] = useState<string | null>(null);
   const [refreshTruthFiles, setRefreshTruthFiles] = useState(0);
   const [chapterIntent, setChapterIntent] = useState<any>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
@@ -465,75 +466,82 @@ export default function StarEditorLayout({
           </div>
         )}
 
-        {/* ===== Tools Panel (Audit / Truth / Intent) ===== */}
+        {/* ===== Tools Panel ===== */}
         {viewerOpen && selectedChapter && (
-          <div className={`border-t border-card-border shrink-0 flex flex-col ${panelExpanded ? "flex-1" : ""}`}>
-            {/* Tab bar */}
-            <div className="flex border-b border-card-border shrink-0">
-              {[
-                { id: "audit" as const, icon: <Shield size={10} />, label: "AI味审计" },
-                { id: "truth" as const, icon: <Database size={10} />, label: "真相文件" },
-                { id: "intent" as const, icon: <Target size={10} />, label: "章节意图" },
-                { id: "agents" as const, icon: <Users size={10} />, label: "角色Agent" },
-                { id: "curve" as const, icon: <TrendingUp size={10} />, label: "情感曲线" },
-                { id: "editorial" as const, icon: <Users size={10} />, label: "编辑部" },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setRightPanel(tab.id)}
-                  className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 text-[10px] font-medium transition-colors ${
-                    rightPanel === tab.id
-                      ? "text-[var(--cyan)] border-b-2 border-[var(--cyan)]"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {tab.icon} {tab.label}
-                </button>
-              ))}
+          <div className="border-t border-card-border shrink-0 flex flex-col">
+            {/* Quick action buttons (高频) */}
+            <div className="flex gap-1.5 p-2 border-b border-card-border">
               <button
-                onClick={() => setPanelExpanded(!panelExpanded)}
-                className="px-2 py-2 text-muted-foreground hover:text-foreground transition-colors"
-                title={panelExpanded ? "收起面板" : "展开面板"}
+                onClick={() => setRightPanel("audit")}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-medium transition-all ${
+                  rightPanel === "audit"
+                    ? "bg-[var(--cyan)] text-[#0a0e17]"
+                    : "bg-[var(--accent)] text-muted-foreground hover:text-foreground"
+                }`}
               >
-                <ChevronDown size={10} className={`transition-transform ${panelExpanded ? "rotate-180" : ""}`} />
+                <Shield size={12} /> AI味审计
+              </button>
+              <button
+                onClick={() => setRightPanel("editorial")}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-medium transition-all ${
+                  rightPanel === "editorial"
+                    ? "bg-[var(--nebula)] text-[#0a0e17]"
+                    : "bg-[var(--accent)] text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Users size={12} /> 编辑部
               </button>
             </div>
 
-            {/* Panel content */}
-            <div
-              key={rightPanel}
-              className={`overflow-y-auto p-3 ${panelExpanded ? "flex-1" : "max-h-[350px]"}`}
-              ref={(el) => {
-                if (el) slideUp(el, { duration: 250 });
-              }}
-            >
-              {rightPanel === "audit" && (
-                <AuditPanel
-                  novelId={novelId}
-                  chapterId={selectedChapter.id}
-                  onRewrite={(issues) => {
-                    toast.success("正在修复AI味问题…");
-                  }}
-                />
-              )}
-              {rightPanel === "truth" && (
-                <TruthFilesPanel
-                  novelId={novelId}
-                  refreshTrigger={refreshTruthFiles}
-                />
-              )}
-              {rightPanel === "intent" && (
-                <ChapterIntentPanel intent={chapterIntent} />
-              )}
-              {rightPanel === "agents" && (
-                <CharacterAgentPanel novelId={novelId} />
-              )}
-              {rightPanel === "curve" && (
-                <EmotionalCurvePanel novelId={novelId} />
-              )}
-              {rightPanel === "editorial" && (
-                <EditorialBoardPanel novelId={novelId} chapterId={selectedId} />
-              )}
+            {/* Active panel content */}
+            {(rightPanel === "audit" || rightPanel === "editorial") && (
+              <div className="overflow-y-auto p-3 max-h-[400px]">
+                {rightPanel === "audit" && (
+                  <AuditPanel
+                    novelId={novelId}
+                    chapterId={selectedChapter.id}
+                    onRewrite={(issues) => toast.success("正在修复AI味问题…")}
+                  />
+                )}
+                {rightPanel === "editorial" && (
+                  <EditorialBoardPanel novelId={novelId} chapterId={selectedId} />
+                )}
+              </div>
+            )}
+
+            {/* Accordion panels (中低频) */}
+            <div className="border-t border-card-border">
+              {[
+                { id: "agents", label: "角色Agent", icon: <Users size={10} /> },
+                { id: "curve", label: "情感曲线", icon: <TrendingUp size={10} /> },
+                { id: "truth", label: "真相文件", icon: <Database size={10} /> },
+                { id: "intent", label: "章节意图", icon: <Target size={10} /> },
+              ].map((item) => (
+                <div key={item.id} className="border-b border-card-border last:border-b-0">
+                  <button
+                    onClick={() => {
+                      setExpandedAccordion(expandedAccordion === item.id ? null : item.id);
+                      setRightPanel(item.id as any);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-[var(--accent)]/50 transition-colors"
+                  >
+                    {item.icon}
+                    <span className="flex-1 text-left">{item.label}</span>
+                    <ChevronDown
+                      size={10}
+                      className={`transition-transform ${expandedAccordion === item.id ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {expandedAccordion === item.id && (
+                    <div className="px-3 pb-3 border-t border-card-border/50">
+                      {item.id === "agents" && <CharacterAgentPanel novelId={novelId} />}
+                      {item.id === "curve" && <EmotionalCurvePanel novelId={novelId} />}
+                      {item.id === "truth" && <TruthFilesPanel novelId={novelId} refreshTrigger={refreshTruthFiles} />}
+                      {item.id === "intent" && <ChapterIntentPanel intent={chapterIntent} />}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
