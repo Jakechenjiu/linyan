@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import type { CharacterMemoryEntry } from "./types";
 
 /**
- * 存储一条记忆
+ * 存储一条记忆（自动去重）
  */
 export async function storeMemory(
   characterId: string,
@@ -17,6 +17,36 @@ export async function storeMemory(
     chapterId?: string;
   }
 ): Promise<CharacterMemoryEntry> {
+  // 检查是否已存在相同内容的记忆
+  const existing = await prisma.characterMemory.findFirst({
+    where: {
+      characterId,
+      content: data.content,
+    },
+  });
+
+  if (existing) {
+    // 已存在，更新重要性（取较高值）
+    const updated = await prisma.characterMemory.update({
+      where: { id: existing.id },
+      data: {
+        importance: Math.max(existing.importance, data.importance ?? 0.5),
+        emotionTag: data.emotionTag || existing.emotionTag,
+      },
+    });
+    return {
+      id: updated.id,
+      characterId: updated.characterId,
+      type: updated.type as CharacterMemoryEntry["type"],
+      content: updated.content,
+      importance: updated.importance,
+      emotionTag: updated.emotionTag || undefined,
+      tags: JSON.parse(updated.tags || "[]"),
+      chapterId: updated.chapterId || undefined,
+      createdAt: updated.createdAt.toISOString(),
+    };
+  }
+
   const memory = await prisma.characterMemory.create({
     data: {
       characterId,

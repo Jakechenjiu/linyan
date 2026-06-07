@@ -4,6 +4,17 @@ import { getAiConfig, callAi } from "@/lib/ai";
 import { NextResponse } from "next/server";
 import { runEditorialReview } from "@/lib/editorial-board/board";
 
+// 简单速率限制（每用户每 5 分钟 1 次）
+const rateLimitMap = new Map<string, number>();
+const RATE_LIMIT_MS = 5 * 60_000;
+
+function checkRateLimit(userId: string): boolean {
+  const last = rateLimitMap.get(userId);
+  if (last && Date.now() - last < RATE_LIMIT_MS) return false;
+  rateLimitMap.set(userId, Date.now());
+  return true;
+}
+
 // GET: 获取编辑部评审结果
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -69,6 +80,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const config = await getAiConfig(session.user.id);
   if (!config.hasKey) {
     return NextResponse.json({ error: "请先配置 AI API Key" }, { status: 400 });
+  }
+
+  // 速率限制
+  if (!checkRateLimit(session.user.id)) {
+    return NextResponse.json({ error: "请等待 5 分钟后再试（编辑部评审消耗较多 token）" }, { status: 429 });
   }
 
   try {

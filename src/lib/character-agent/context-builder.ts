@@ -7,10 +7,31 @@ import { queryKnowledge, formatKnowledgeForPrompt } from "./knowledge";
 import { parsePersonality, parseFingerprint, parseState, parseConstraints } from "./parsers";
 import type { CharacterAgentData, PersonalityVector, LanguageFingerprint, CharacterAgentState, BehaviorConstraints } from "./types";
 
+// 角色 Agent 缓存
+const agentCache = new Map<string, { data: CharacterAgentData | null; ts: number }>();
+const AGENT_CACHE_TTL = 60_000; // 1 分钟
+
 /**
- * 加载角色 Agent 完整数据
+ * 加载角色 Agent 完整数据（带缓存）
  */
 export async function loadCharacterAgent(
+  characterId: string
+): Promise<CharacterAgentData | null> {
+  // 检查缓存
+  const cached = agentCache.get(characterId);
+  if (cached && Date.now() - cached.ts < AGENT_CACHE_TTL) {
+    return cached.data;
+  }
+
+  const data = await loadCharacterAgentFromDb(characterId);
+  agentCache.set(characterId, { data, ts: Date.now() });
+  return data;
+}
+
+/**
+ * 从数据库加载角色 Agent 完整数据
+ */
+async function loadCharacterAgentFromDb(
   characterId: string
 ): Promise<CharacterAgentData | null> {
   const character = await prisma.character.findUnique({

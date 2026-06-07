@@ -5,6 +5,17 @@ import { NextResponse } from "next/server";
 import { generateDefaultCurve, generateCurveFromDescription, formatCurveForPrompt } from "@/lib/emotional-curve/curve-designer";
 import { selectTechniques } from "@/lib/emotional-curve/dimensions";
 
+// 简单速率限制（每用户每 2 分钟 1 次）
+const rateLimitMap = new Map<string, number>();
+const RATE_LIMIT_MS = 2 * 60_000;
+
+function checkRateLimit(userId: string): boolean {
+  const last = rateLimitMap.get(userId);
+  if (last && Date.now() - last < RATE_LIMIT_MS) return false;
+  rateLimitMap.set(userId, Date.now());
+  return true;
+}
+
 // GET: 获取小说的情感曲线
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -50,6 +61,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const config = await getAiConfig(session.user.id);
   if (!config.hasKey) {
     return NextResponse.json({ error: "请先配置 AI API Key" }, { status: 400 });
+  }
+
+  // 速率限制
+  if (!checkRateLimit(session.user.id)) {
+    return NextResponse.json({ error: "请等待 2 分钟后再试" }, { status: 429 });
   }
 
   let design;

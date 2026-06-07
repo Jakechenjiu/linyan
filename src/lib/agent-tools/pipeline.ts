@@ -358,13 +358,14 @@ ${contextParts.join("\n")}
         auditContext.push(`\n世界铁律:\n${novel.worldSetting.rules}`);
       }
 
-      // 注入角色信息边界（OOC 检查）
+      // 注入角色信息边界（OOC 检查）— 使用缓存
       try {
+        const { loadCharacterAgent: loadAgentCached } = await import("@/lib/character-agent/context-builder");
         const focusCharacters = novel.characters.filter(
           (c) => c.role === "protagonist" || c.role === "antagonist"
         );
         for (const c of focusCharacters) {
-          const agent = await loadCharacterAgent(c.id);
+          const agent = await loadAgentCached(c.id);
           if (agent && agent.knowledge.length > 0) {
             const knownFacts = agent.knowledge
               .filter((k) => !k.isSecret)

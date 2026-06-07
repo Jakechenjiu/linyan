@@ -176,41 +176,43 @@ async function runDebate(
 ): Promise<DebateEntry[]> {
   const debate: DebateEntry[] = [];
 
-  // 只对第一个分歧进行辩论（避免太长）
-  const mainDisagreement = disagreements[0];
-  if (!mainDisagreement) return debate;
+  // 对所有分歧进行辩论（最多 3 个，避免太长）
+  const maxDebates = Math.min(disagreements.length, 3);
 
-  const involvedReviewers = REVIEWERS.filter((r) =>
-    mainDisagreement.disagreeing.includes(r.id as ReviewerRole)
-  );
+  for (let i = 0; i < maxDebates; i++) {
+    const disagreement = disagreements[i];
+    const involvedReviewers = REVIEWERS.filter((r) =>
+      disagreement.disagreeing.includes(r.id as ReviewerRole)
+    );
 
-  // 收集各方立场
-  const positions = involvedReviewers.map((r) => ({
-    role: r.id,
-    point: assessments[r.id as ReviewerRole].reasoning,
-  }));
+    // 收集各方立场
+    const positions = involvedReviewers.map((r) => ({
+      role: r.id,
+      point: assessments[r.id as ReviewerRole].reasoning,
+    }));
 
-  // 第 1 轮辩论
-  const round1Results = await Promise.all(
-    involvedReviewers.map(async (reviewer) => {
-      try {
-        const prompt = buildDebatePrompt(reviewer, mainDisagreement.topic, positions);
-        const result = await llmCall(prompt, `章节内容：\n${chapterBody.slice(0, 3000)}`, reviewer.temperature);
-        const parsed = JSON.parse(result.replace(/```json\s?|\```/g, "").trim());
-        return {
-          speaker: reviewer.id as ReviewerRole,
-          target: "all" as const,
-          point: parsed.position || "",
-          type: parsed.agrees_with?.length > 0 ? "agree" as const : "disagree" as const,
-        };
-      } catch {
-        return null;
-      }
-    })
-  );
+    // 辩论
+    const roundResults = await Promise.all(
+      involvedReviewers.map(async (reviewer) => {
+        try {
+          const prompt = buildDebatePrompt(reviewer, disagreement.topic, positions);
+          const result = await llmCall(prompt, `章节内容：\n${chapterBody.slice(0, 3000)}`, reviewer.temperature);
+          const parsed = JSON.parse(result.replace(/```json\s?|\```/g, "").trim());
+          return {
+            speaker: reviewer.id as ReviewerRole,
+            target: "all" as const,
+            point: parsed.position || "",
+            type: parsed.agrees_with?.length > 0 ? "agree" as const : "disagree" as const,
+          };
+        } catch {
+          return null;
+        }
+      })
+    );
 
-  for (const entry of round1Results) {
-    if (entry) debate.push(entry);
+    for (const entry of roundResults) {
+      if (entry) debate.push(entry);
+    }
   }
 
   return debate;
