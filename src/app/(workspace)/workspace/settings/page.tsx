@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { User, Brain, Video, Crown, ExternalLink, CheckCircle2, AlertCircle, Key } from "lucide-react";
+import { User, Brain, Video, Crown, ExternalLink, CheckCircle2, AlertCircle, Key, Zap, BookOpen, Sparkles, TrendingUp, Users, Shield, FileText } from "lucide-react";
 import { checkMembership, FREE_LIMITS } from "@/lib/membership";
 import MembershipCodeInput from "@/components/shared/MembershipCodeInput";
 import ProviderSelector from "@/components/settings/ProviderSelector";
@@ -10,15 +10,15 @@ import ApiTestButton from "@/components/settings/ApiTestButton";
 
 // AI 文本 Provider
 const aiProviders = [
-  { value: "xiaomimimo", label: "小米 MiMo", desc: "小米百亿tokens，免费额度", region: "国内" },
-  { value: "deepseek", label: "DeepSeek", desc: "性价比最高，推荐", region: "国内" },
-  { value: "qwen", label: "通义千问", desc: "阿里云，能力强", region: "国内" },
-  { value: "zhipu", label: "智谱 GLM", desc: "清华系，中文优秀", region: "国内" },
-  { value: "moonshot", label: "月之暗面", desc: "Kimi，长文本强", region: "国内" },
-  { value: "spark", label: "讯飞星火", desc: "科大讯飞，语音强", region: "国内" },
-  { value: "openai", label: "OpenAI", desc: "GPT-4o 等模型", region: "海外" },
-  { value: "anthropic", label: "Anthropic", desc: "Claude 系列模型", region: "海外" },
-  { value: "google", label: "Google", desc: "Gemini 系列模型", region: "海外" },
+  { value: "xiaomimimo", label: "小米 MiMo", desc: "免费额度，适合入门", region: "国内", features: "AI对话 · 基础写作" },
+  { value: "deepseek", label: "DeepSeek", desc: "性价比最高，推荐", region: "国内", features: "AI对话 · 多Agent管线 · 审计 · 角色Agent · 编辑部" },
+  { value: "qwen", label: "通义千问", desc: "阿里云，能力强", region: "国内", features: "AI对话 · 多Agent管线 · 审计 · 角色Agent" },
+  { value: "zhipu", label: "智谱 GLM", desc: "清华系，中文优秀", region: "国内", features: "AI对话 · 基础写作" },
+  { value: "moonshot", label: "月之暗面", desc: "Kimi，长文本强", region: "国内", features: "AI对话 · 长文分析" },
+  { value: "spark", label: "讯飞星火", desc: "科大讯飞，语音强", region: "国内", features: "AI对话 · 基础写作" },
+  { value: "openai", label: "OpenAI", desc: "GPT-4o 等模型", region: "海外", features: "全部功能" },
+  { value: "anthropic", label: "Anthropic", desc: "Claude 系列模型", region: "海外", features: "全部功能" },
+  { value: "google", label: "Google", desc: "Gemini 系列模型", region: "海外", features: "全部功能" },
 ];
 
 // 视频 Provider
@@ -126,6 +126,66 @@ export default async function SettingsPage() {
         <p className="text-sm text-muted-foreground mt-1">管理账户与 API 接入</p>
       </div>
 
+      {/* ===== 快速开始 ===== */}
+      <div className="space-card rounded-2xl p-6">
+        <h2 className="font-mono text-lg font-bold mb-4 flex items-center gap-2">
+          <Zap size={20} className="text-[var(--star)]" />
+          快速开始
+        </h2>
+        <div className="flex items-center gap-3">
+          {[
+            { step: 1, label: "配置 API Key", done: hasTextKey },
+            { step: 2, label: "创建小说", done: false },
+            { step: 3, label: "开始写作", done: false },
+          ].map((s, i) => (
+            <div key={s.step} className="flex items-center gap-3 flex-1">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                s.done
+                  ? "bg-emerald-500/20 text-emerald-400"
+                  : i === 0
+                  ? "bg-[var(--cyan)]/20 text-[var(--cyan)]"
+                  : "bg-[var(--accent)] text-muted-foreground"
+              }`}>
+                {s.done ? <CheckCircle2 size={16} /> : s.step}
+              </div>
+              <div className="flex-1">
+                <p className={`text-[11px] font-medium ${s.done ? "text-emerald-400" : ""}`}>{s.label}</p>
+                {s.done && <p className="text-[9px] text-muted-foreground">已完成</p>}
+              </div>
+              {i < 2 && <div className="w-8 h-px bg-card-border" />}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ===== 功能指南 ===== */}
+      <div className="space-card rounded-2xl p-6">
+        <h2 className="font-mono text-lg font-bold mb-4 flex items-center gap-2">
+          <BookOpen size={20} className="text-[var(--cyan)]" />
+          星图核心功能
+        </h2>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { icon: <Shield size={14} />, label: "AI味审计", desc: "20维度检测AI痕迹", color: "var(--cyan)" },
+            { icon: <Users size={14} />, label: "编辑部评审", desc: "5位虚拟专家审稿", color: "var(--nebula)" },
+            { icon: <Sparkles size={14} />, label: "角色Agent", desc: "大五人格独立记忆", color: "var(--star)" },
+            { icon: <TrendingUp size={14} />, label: "情感曲线", desc: "5维度情绪可视化", color: "var(--star)" },
+            { icon: <FileText size={14} />, label: "内联AI编辑", desc: "选中文字即时改写", color: "var(--cyan)" },
+            { icon: <Zap size={14} />, label: "多Agent管线", desc: "7阶段自动写作", color: "var(--cyan)" },
+          ].map((f) => (
+            <div key={f.label} className="flex items-center gap-2.5 p-2.5 rounded-lg bg-[var(--background)] border border-card-border">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${f.color}15`, color: f.color }}>
+                {f.icon}
+              </div>
+              <div>
+                <p className="text-[11px] font-medium">{f.label}</p>
+                <p className="text-[9px] text-muted-foreground">{f.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* ===== 会员状态 ===== */}
       <div id="membership" className="space-card rounded-2xl p-6 scroll-mt-24">
         <h2 className="font-mono text-lg font-bold mb-4 flex items-center gap-2">
@@ -224,6 +284,12 @@ export default async function SettingsPage() {
               defaultValue={user?.apiProvider || "deepseek"}
               name="apiProvider"
             />
+            {/* Provider 功能说明 */}
+            <div className="mt-2 p-2.5 rounded-lg bg-[var(--background)] border border-card-border">
+              <p className="text-[10px] text-muted-foreground">
+                <span className="font-medium text-foreground">推荐：</span>DeepSeek 性价比最高，支持全部功能。小米 MiMo 免费额度适合入门，但不支持多Agent管线和编辑部评审。
+              </p>
+            </div>
           </div>
 
           {/* API Key */}
