@@ -56,7 +56,7 @@ export async function planChapter(
       id: "auto",
       title: `第${chapterNumber}章`,
       summary: "基于前文自动续写",
-      wordTarget: novel.chapterWordCount || 2000,
+      wordTarget: 2000,
     };
   } else {
     outline = await prisma.outline.findUnique({
