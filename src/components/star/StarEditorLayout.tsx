@@ -13,6 +13,7 @@ import ChapterIntentPanel from "./ChapterIntentPanel";
 import InlineAIToolbar from "./InlineAIToolbar";
 import CharacterAgentPanel from "./CharacterAgentPanel";
 import EmotionalCurvePanel from "./EmotionalCurvePanel";
+import EditorialBoardPanel from "./EditorialBoardPanel";
 import { toast } from "sonner";
 import ChatPanel from "./ChatPanel";
 import { fadeIn, slideUp, buttonPress } from "@/lib/animations";
@@ -68,7 +69,7 @@ export default function StarEditorLayout({
   const [editedBody, setEditedBody] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(true);
-  const [rightPanel, setRightPanel] = useState<"audit" | "truth" | "intent" | "agents" | "curve">("audit");
+  const [rightPanel, setRightPanel] = useState<"audit" | "truth" | "intent" | "agents" | "curve" | "editorial">("audit");
   const [refreshTruthFiles, setRefreshTruthFiles] = useState(0);
   const [chapterIntent, setChapterIntent] = useState<any>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
@@ -475,6 +476,7 @@ export default function StarEditorLayout({
                 { id: "intent" as const, icon: <Target size={10} />, label: "章节意图" },
                 { id: "agents" as const, icon: <Users size={10} />, label: "角色Agent" },
                 { id: "curve" as const, icon: <TrendingUp size={10} />, label: "情感曲线" },
+                { id: "editorial" as const, icon: <Users size={10} />, label: "编辑部" },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -528,6 +530,9 @@ export default function StarEditorLayout({
               )}
               {rightPanel === "curve" && (
                 <EmotionalCurvePanel novelId={novelId} />
+              )}
+              {rightPanel === "editorial" && (
+                <EditorialBoardPanel novelId={novelId} chapterId={selectedId} />
               )}
             </div>
           </div>
