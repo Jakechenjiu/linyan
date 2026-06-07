@@ -66,7 +66,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   // 获取角色和世界观
-  const [characters, worldSetting] = await Promise.all([
+  const [charactersRaw, worldSetting] = await Promise.all([
     prisma.character.findMany({
       where: { novelId },
       select: { name: true, role: true, personality: true },
@@ -76,6 +76,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       select: { rules: true },
     }),
   ]);
+
+  const characters = charactersRaw.map((c) => ({
+    name: c.name,
+    role: c.role,
+    personality: c.personality || undefined,
+  }));
 
   const config = await getAiConfig(session.user.id);
   if (!config.hasKey) {
