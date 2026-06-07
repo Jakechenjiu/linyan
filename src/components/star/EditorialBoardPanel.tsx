@@ -226,7 +226,7 @@ export default function EditorialBoardPanel({
       {/* Empty state */}
       {!result && !loading && !error && (
         <p className="text-[10px] text-muted-foreground text-center py-4">
-          {chapterId ? "点击"开始评审"让 5 位专家审阅本章" : "请先选择一个章节"}
+          {chapterId ? "点击「开始评审」让 5 位专家审阅本章" : "请先选择一个章节"}
         </p>
       )}
     </div>
