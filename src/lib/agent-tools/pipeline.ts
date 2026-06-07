@@ -123,7 +123,7 @@ export async function runChapterPipeline(
     id: "auto",
     title: `第${novel.chapters.length + 1}章`,
     summary: `基于前文自动续写`,
-    wordTarget: novel.chapterWordCount || 2000,
+    wordTarget: 2000,
   } : null;
 
   const effectiveOutline = targetOutline || virtualOutline!;
