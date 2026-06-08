@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { User, Brain, Video, Crown, ExternalLink, CheckCircle2, AlertCircle, Key, Zap, BookOpen, Sparkles, TrendingUp, Users, Shield, FileText } from "lucide-react";
+import { invalidateAiConfigCache } from "@/lib/ai";
 import { checkMembership, FREE_LIMITS } from "@/lib/membership";
 import MembershipCodeInput from "@/components/shared/MembershipCodeInput";
 import ProviderSelector from "@/components/settings/ProviderSelector";
@@ -108,6 +109,9 @@ export default async function SettingsPage() {
       data.apiProvider = apiProvider || "deepseek";
 
       await prisma.user.update({ where: { id: s.user.id }, data });
+
+      // 清除配置缓存，让新配置立即生效
+      invalidateAiConfigCache(s.user.id);
     } catch (e) {
       console.error("Failed to save settings:", e);
     }

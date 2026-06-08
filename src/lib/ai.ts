@@ -20,6 +20,11 @@ const providerDefaults: Record<string, { baseUrl: string; model: string; format?
 const configCache = new Map<string, { config: any; ts: number }>();
 const CONFIG_TTL = 5 * 60_000; // 5 分钟
 
+/** 清除用户的配置缓存（保存设置后调用） */
+export function invalidateAiConfigCache(userId: string): void {
+  configCache.delete(userId);
+}
+
 export async function getAiConfig(userId: string) {
   // 检查缓存
   const cached = configCache.get(userId);
