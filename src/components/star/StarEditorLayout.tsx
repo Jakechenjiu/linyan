@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Plus, Trash2, ChevronLeft, ChevronRight, ChevronDown,
   PanelRightClose, PanelRight, BookOpen,
-  Save, Check, Loader2, Shield, Database, Target, RefreshCw, Users, TrendingUp,
+  Save, Check, Loader2, Shield, Database, Target, RefreshCw, Users, TrendingUp, Menu,
 } from "lucide-react";
 import Link from "next/link";
 import AuditPanel from "./AuditPanel";
@@ -17,6 +17,7 @@ import EditorialBoardPanel from "./EditorialBoardPanel";
 import { toast } from "sonner";
 import ChatPanel from "./ChatPanel";
 import { fadeIn, slideUp, buttonPress } from "@/lib/animations";
+import { getDeviceType, getLayoutConfig } from "@/lib/performance";
 
 interface ChapterItem {
   id: string;
@@ -79,6 +80,26 @@ export default function StarEditorLayout({
     selectedText: string;
     position: { x: number; y: number };
   } | null>(null);
+
+  // 响应式状态
+  const [deviceType, setDeviceType] = useState<"mobile" | "tablet" | "desktop">("desktop");
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+
+  // 检测设备类型
+  useEffect(() => {
+    const updateDeviceType = () => {
+      const type = getDeviceType();
+      setDeviceType(type);
+      // 移动端默认折叠侧边栏
+      if (type === "mobile") {
+        setSidebarCollapsed(true);
+        setViewerOpen(false);
+      }
+    };
+    updateDeviceType();
+    window.addEventListener("resize", updateDeviceType);
+    return () => window.removeEventListener("resize", updateDeviceType);
+  }, []);
 
   const selectedChapter = chapters.find((ch) => ch.id === selectedId) || null;
 
@@ -202,10 +223,20 @@ export default function StarEditorLayout({
 
   return (
     <div className="flex-1 flex overflow-hidden">
+      {/* Mobile sidebar overlay */}
+      {deviceType === "mobile" && showMobileSidebar && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40"
+          onClick={() => setShowMobileSidebar(false)}
+        />
+      )}
+
       {/* ===== Left: Chapter Sidebar ===== */}
       <div
         className={`shrink-0 border-r border-card-border flex flex-col transition-all duration-200 ${
-          sidebarCollapsed ? "w-10" : "w-56"
+          deviceType === "mobile"
+            ? showMobileSidebar ? "fixed inset-y-0 left-0 z-50 w-64 bg-[var(--background)]" : "w-0"
+            : sidebarCollapsed ? "w-10" : "w-56"
         }`}
       >
         <div className="flex items-center justify-between px-2 py-2 border-b border-card-border shrink-0">
@@ -308,11 +339,23 @@ export default function StarEditorLayout({
       {/* ===== Right: Content + Tools ===== */}
       <div
         className={`shrink-0 border-l border-card-border flex flex-col overflow-hidden transition-all duration-200 ${
-          viewerOpen ? "w-[30rem]" : "w-10"
+          deviceType === "mobile"
+            ? viewerOpen ? "fixed inset-y-0 right-0 z-50 w-full bg-[var(--background)]" : "w-0"
+            : viewerOpen ? (deviceType === "tablet" ? "w-[24rem]" : "w-[30rem]") : "w-10"
         }`}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-2.5 py-2 border-b border-card-border shrink-0">
+          {/* Mobile menu button */}
+          {deviceType === "mobile" && (
+            <button
+              onClick={() => setShowMobileSidebar(true)}
+              className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors mr-2"
+            >
+              <Menu size={16} />
+            </button>
+          )}
+
           {!viewerOpen && (
             <button
               onClick={() => setViewerOpen(true)}
@@ -323,7 +366,7 @@ export default function StarEditorLayout({
           )}
           {viewerOpen && (
             <>
-              <span className="text-[11px] font-medium text-muted-foreground">
+              <span className="text-[11px] font-medium text-muted-foreground truncate flex-1">
                 {selectedChapter ? selectedChapter.title : "章节内容"}
               </span>
               <div className="flex items-center gap-1">

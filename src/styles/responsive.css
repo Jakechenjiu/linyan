@@ -1,0 +1,131 @@
+/* 响应式设计 CSS */
+
+/* 移动端适配 */
+@media (max-width: 767px) {
+  /* 隐藏桌面端元素 */
+  .desktop-only {
+    display: none !important;
+  }
+
+  /* 移动端全屏 */
+  .mobile-fullscreen {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* 移动端字体调整 */
+  .mobile-text-sm {
+    font-size: 12px;
+  }
+
+  /* 移动端按钮调整 */
+  .mobile-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* 移动端输入框调整 */
+  .mobile-input {
+    font-size: 16px; /* 防止 iOS 缩放 */
+  }
+}
+
+/* 平板适配 */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .tablet-sidebar {
+    width: 12rem;
+  }
+
+  .tablet-panel {
+    width: 24rem;
+  }
+}
+
+/* 桌面适配 */
+@media (min-width: 1024px) {
+  .desktop-sidebar {
+    width: 14rem;
+  }
+
+  .desktop-panel {
+    width: 30rem;
+  }
+}
+
+/* 暗色模式适配 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0e17;
+    --foreground: #e1e4e8;
+    --accent: #1a1e2e;
+    --card-border: #2a2e3e;
+  }
+}
+
+/* 打印样式 */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+  /* 增大触摸目标 */
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* 移除 hover 效果 */
+  .hover-effect:hover {
+    background-color: transparent;
+  }
+}
+
+/* 高分辨率屏幕优化 */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* 使用更高分辨率的图片 */
+  .high-res-img {
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
+
+/* 减少动画（用户偏好） */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 隐藏滚动条 */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* 平滑滚动 */
+.smooth-scroll {
+  scroll-behavior: smooth;
+}
+
+/* 优化触摸滚动 */
+.touch-scroll {
+  -webkit-overflow-scrolling: touch;
+}

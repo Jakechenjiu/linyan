@@ -423,7 +423,7 @@ export default function ChatPanel({
 
       {/* Quick Actions — always visible */}
       <div className="px-4 pb-1.5">
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
           {quickActions.map((action) => (
             <button
               key={action.id}
@@ -432,7 +432,7 @@ export default function ChatPanel({
                 sendMessage(action.prompt);
               }}
               disabled={loading || !chapterId}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium bg-[var(--accent)] border border-card-border text-muted-foreground hover:text-foreground hover:border-[var(--cyan)] transition-all disabled:opacity-30"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium bg-[var(--accent)] border border-card-border text-muted-foreground hover:text-foreground hover:border-[var(--cyan)] transition-all disabled:opacity-30 whitespace-nowrap"
             >
               {action.icon} {action.label}
             </button>
