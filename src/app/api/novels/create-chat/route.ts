@@ -51,21 +51,90 @@ JSON 字段说明：
 
 如果用户说"开始创建吧"但信息不够，告知缺什么。信息足够时直接输出 FINALIZE 块。`;
 
+// GET: 获取保存的对话进度
+export async function GET(req: Request) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // 从数据库读取保存的对话（如果有）
+  const saved = await (prisma as any).creationDraft?.findUnique?.({
+    where: { userId: session.user.id },
+  }) || null;
+
+  return NextResponse.json({
+    messages: saved?.messages ? JSON.parse(saved.messages) : [],
+    data: saved?.wizardData ? JSON.parse(saved.wizardData) : null,
+  });
+}
+
+// POST: 发送消息或保存进度
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { messages }: { messages: { role: "user" | "assistant"; content: string }[] } = await req.json();
+  const { messages, action, wizardData } = await req.json();
 
+  // 保存对话进度
+  if (action === "save") {
+    try {
+      await (prisma as any).creationDraft?.upsert?.({
+        where: { userId: session.user.id },
+        create: {
+          userId: session.user.id,
+          messages: JSON.stringify(messages || []),
+          wizardData: JSON.stringify(wizardData || null),
+        },
+        update: {
+          messages: JSON.stringify(messages || []),
+          wizardData: JSON.stringify(wizardData || null),
+          updatedAt: new Date(),
+        },
+      });
+      return NextResponse.json({ saved: true });
+    } catch {
+      return NextResponse.json({ saved: false });
+    }
+  }
+
+  // 清除保存的进度
+  if (action === "clear") {
+    try {
+      await (prisma as any).creationDraft?.deleteMany?.({
+        where: { userId: session.user.id },
+      });
+    } catch {
+      // ignore
+    }
+    return NextResponse.json({ cleared: true });
+  }
+
+  // 正常 AI 对话
   if (!messages?.length) return NextResponse.json({ error: "Messages required" }, { status: 400 });
 
   const config = await getAiConfig(session.user.id);
 
   if (!config.hasKey) {
     return NextResponse.json({
-      error: "请先在设置中配置您的 AI API Key",
+      message: "请先在设置中配置您的 AI API Key",
       code: "NO_API_KEY",
     }, { status: 400 });
+  }
+
+  // 自动保存对话进度
+  try {
+    await (prisma as any).creationDraft?.upsert?.({
+      where: { userId: session.user.id },
+      create: {
+        userId: session.user.id,
+        messages: JSON.stringify(messages),
+      },
+      update: {
+        messages: JSON.stringify(messages),
+        updatedAt: new Date(),
+      },
+    });
+  } catch {
+    // 不阻塞主流程
   }
 
   let content: string;
@@ -73,7 +142,7 @@ export async function POST(req: Request) {
     content = await callAi({
       ...config,
       system: systemPrompt,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      messages: messages.map((m: { role: string; content: string }) => ({ role: m.role, content: m.content })),
       max_tokens: 4096,
       temperature: 0.8,
     });
@@ -85,7 +154,7 @@ export async function POST(req: Request) {
     });
   }
 
-  // Check for FINALIZE block — lenient matching
+  // Check for FINALIZE block
   const finalizeMatch = content.match(/```FINALIZE\s*([\s\S]*?)```/i);
   if (finalizeMatch) {
     try {
@@ -160,6 +229,15 @@ export async function POST(req: Request) {
             novelId: novel.id,
           },
         });
+      }
+
+      // 清除保存的进度
+      try {
+        await (prisma as any).creationDraft?.deleteMany?.({
+          where: { userId: session.user.id },
+        });
+      } catch {
+        // ignore
       }
 
       const cleanContent = content.replace(/```FINALIZE[\s\S]*?```/i, "").trim();
