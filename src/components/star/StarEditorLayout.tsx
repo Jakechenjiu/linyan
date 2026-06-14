@@ -14,6 +14,7 @@ import InlineAIToolbar from "./InlineAIToolbar";
 import CharacterAgentPanel from "./CharacterAgentPanel";
 import EmotionalCurvePanel from "./EmotionalCurvePanel";
 import EditorialBoardPanel from "./EditorialBoardPanel";
+import FeatureGuide from "./FeatureGuide";
 import { toast } from "sonner";
 import ChatPanel from "./ChatPanel";
 import { fadeIn, slideUp, buttonPress } from "@/lib/animations";
@@ -612,6 +613,25 @@ export default function StarEditorLayout({
           onCancel={() => setInlineAI(null)}
         />
       )}
+
+      {/* 功能引导 */}
+      <FeatureGuide
+        onAction={(action) => {
+          switch (action) {
+            case "character-agent":
+              setRightPanel("agents");
+              setExpandedAccordion("agents");
+              break;
+            case "emotional-curve":
+              setRightPanel("curve");
+              setExpandedAccordion("curve");
+              break;
+            case "editorial-board":
+              setRightPanel("editorial");
+              break;
+          }
+        }}
+      />
     </div>
   );
 }
