@@ -41,18 +41,34 @@ export async function storeKnowledge(
 
 /**
  * 检查角色是否知道某件事
+ * 最小长度保护 + 全词边界匹配，减少子串误命中
  */
 export async function doesCharacterKnow(
   characterId: string,
   fact: string
 ): Promise<boolean> {
-  const count = await prisma.characterKnowledge.count({
+  // 最小长度保护：短关键词容易误匹配（如"死"匹配"死亡""死因"等）
+  if (fact.length < 2) return false
+
+  // 第一轮：快速子串筛选
+  const candidates = await prisma.characterKnowledge.findMany({
     where: {
       characterId,
       content: { contains: fact },
     },
-  });
-  return count > 0;
+    select: { content: true },
+    take: 10,
+  })
+
+  if (candidates.length === 0) return false
+
+  // 第二轮：全词边界验证（中文标点 + 空格作为边界）
+  const escaped = fact.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const wordBoundaryRegex = new RegExp(
+    `(^|[\\s，。！？、；：""''（）\\[\\]~—])${escaped}($|[\\s，。！？、；：""''（）\\[\\]~—])`
+  )
+
+  return candidates.some((c) => wordBoundaryRegex.test(c.content))
 }
 
 /**

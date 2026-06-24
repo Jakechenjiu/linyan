@@ -202,25 +202,31 @@ export function buildTruthFileContext(
   options?: {
     includeTypes?: TruthFileType[];
     maxLength?: number;
+    currentChapter?: number;
   }
 ): string {
   const types = options?.includeTypes || TRUTH_FILE_TYPES;
   const maxLength = options?.maxLength || 8000;
+  const currentChapter = options?.currentChapter;
 
   const parts: string[] = [];
   let totalLength = 0;
 
   for (const type of types) {
-    const content = truthFiles[type];
+    let content = truthFiles[type];
     if (!content || content.trim().length === 0) continue;
+
+    // chapter_summaries 使用滑动窗口：超过 15 章时压缩早期摘要
+    if (type === "chapter_summaries" && currentChapter && currentChapter > 15) {
+      content = slidingWindowSummaries(content, 15);
+    }
 
     const label = TRUTH_FILE_LABELS[type];
     const section = `## ${label}\n${content}`;
 
     if (totalLength + section.length > maxLength) {
-      // 超出长度限制，截断
       const remaining = maxLength - totalLength;
-      if (remaining > 100) {
+      if (remaining > 20) {
         parts.push(section.slice(0, remaining) + "\n...(已截断)");
       }
       break;
@@ -231,6 +237,44 @@ export function buildTruthFileContext(
   }
 
   return parts.join("\n\n");
+}
+
+/** 滑动窗口：保留最近 N 章的完整摘要，早期章节压缩为一行概述 */
+function slidingWindowSummaries(content: string, windowSize: number): string {
+  const lines = content.split("\n");
+  const headerLines: string[] = [];
+  const dataLines: string[] = [];
+
+  for (const line of lines) {
+    // 表格数据行以 | 开头且包含数字章节号
+    if (line.startsWith("|") && /\|\s*\d+\s*\|/.test(line)) {
+      dataLines.push(line);
+    } else {
+      headerLines.push(line);
+    }
+  }
+
+  if (dataLines.length <= windowSize) return content;
+
+  const earlyCount = dataLines.length - windowSize;
+  const earlyLines = dataLines.slice(0, earlyCount);
+  const recentLines = dataLines.slice(earlyCount);
+
+  // 提取早期章节的关键伏笔（简化：取所有 openHooks 列）
+  const earlyHooks: string[] = [];
+  for (const line of earlyLines) {
+    const cols = line.split("|").map((c) => c.trim());
+    // 格式: | 章节 | 标题 | 出场人物 | 关键事件 | 状态变化 | 伏笔动态 | 情绪基调 |
+    if (cols.length >= 6 && cols[5] && cols[5] !== "-" && cols[5] !== "伏笔动态") {
+      earlyHooks.push(cols[5]);
+    }
+  }
+
+  const earlySummary = earlyHooks.length > 0
+    ? `| - | (第1-${earlyCount}章压缩摘要) | - | 共${earlyCount}章 | - | ${earlyHooks.slice(0, 3).join("；")} | - |`
+    : `| - | (第1-${earlyCount}章压缩摘要) | - | 共${earlyCount}章 | - | - | - |`;
+
+  return [...headerLines, earlySummary, ...recentLines].join("\n");
 }
 
 // ============ 内部工具函数 ============

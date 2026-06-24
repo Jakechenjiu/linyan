@@ -317,10 +317,17 @@ export async function callAiWithTools(
     if (msg?.content) text = msg.content;
     if (msg?.tool_calls) {
       for (const tc of msg.tool_calls) {
+        let parsedInput: Record<string, string> = {};
+        try {
+          parsedInput = JSON.parse(tc.function.arguments);
+        } catch {
+          console.warn(`Failed to parse tool arguments for ${tc.function.name}:`, tc.function.arguments);
+          parsedInput = {};
+        }
         toolCalls.push({
           id: tc.id,
           name: tc.function.name,
-          input: JSON.parse(tc.function.arguments),
+          input: parsedInput,
         });
       }
     }
@@ -440,7 +447,17 @@ export function callAiStream(params: AiCallParams): ReadableStream {
         controller.close();
       } catch (e) {
         console.error("Stream error:", e);
-        controller.enqueue(encoder.encode(`[ERROR] 流式请求失败: ${e instanceof Error ? e.message : "未知错误"}`));
+        const isRetryable = e instanceof Error && (
+          e.message.includes('timeout') || e.message.includes('ECONNRESET') ||
+          e.message.includes('503') || e.message.includes('429')
+        );
+        const errorPayload = JSON.stringify({
+          type: 'error',
+          code: e instanceof Error ? e.name : 'UNKNOWN',
+          message: e instanceof Error ? e.message : '未知错误',
+          retryable: isRetryable,
+        });
+        controller.enqueue(encoder.encode(`[STREAM_ERROR]${errorPayload}`));
         controller.close();
       }
     },

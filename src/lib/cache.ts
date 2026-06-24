@@ -1,24 +1,20 @@
-// 灵砚缓存层 — 请求级 + TTL 缓存
+// 灵砚缓存层 — LRU + TTL 缓存，防止无限膨胀
 
 import { getAllTruthFiles, type TruthFileType } from "./truth-files";
+import { LRUCache } from "./cache-lru";
 
-// ============ 真相文件缓存 ============
+// ============ 真相文件缓存 (1分钟TTL, 最多200条) ============
 
-const truthFileCache = new Map<
-  string,
-  { data: Record<TruthFileType, string>; ts: number }
->();
-const TRUTH_FILE_TTL = 60_000; // 1 分钟
+const truthFileCache = new LRUCache<string, Record<TruthFileType, string>>(200, 60_000);
 
 export async function getCachedTruthFiles(
   novelId: string
 ): Promise<Record<TruthFileType, string>> {
   const cached = truthFileCache.get(novelId);
-  if (cached && Date.now() - cached.ts < TRUTH_FILE_TTL) {
-    return cached.data;
-  }
+  if (cached) return cached;
+
   const data = await getAllTruthFiles(novelId);
-  truthFileCache.set(novelId, { data, ts: Date.now() });
+  truthFileCache.set(novelId, data);
   return data;
 }
 
@@ -26,7 +22,7 @@ export function invalidateTruthFileCache(novelId: string): void {
   truthFileCache.delete(novelId);
 }
 
-// ============ 用户配置缓存 ============
+// ============ 用户配置缓存 (5分钟TTL, 最多500条) ============
 
 interface AiConfigCache {
   hasKey: boolean;
@@ -42,75 +38,43 @@ interface AiConfigCache {
   stream?: boolean;
 }
 
-const configCache = new Map<
-  string,
-  { config: AiConfigCache; ts: number }
->();
-const CONFIG_TTL = 5 * 60_000; // 5 分钟
+const configCache = new LRUCache<string, AiConfigCache>(500, 5 * 60_000);
 
 export function getCachedAiConfig(userId: string): AiConfigCache | null {
-  const cached = configCache.get(userId);
-  if (cached && Date.now() - cached.ts < CONFIG_TTL) {
-    return cached.config;
-  }
-  return null;
+  return configCache.get(userId) ?? null;
 }
 
 export function setCachedAiConfig(
   userId: string,
   config: AiConfigCache
 ): void {
-  configCache.set(userId, { config, ts: Date.now() });
+  configCache.set(userId, config);
 }
 
 export function invalidateAiConfigCache(userId: string): void {
   configCache.delete(userId);
 }
 
-// ============ 小说数据缓存 ============
+// ============ 小说数据缓存 (30秒TTL, 最多100条) ============
 
-const novelCache = new Map<
-  string,
-  { data: any; ts: number }
->();
-const NOVEL_TTL = 30_000; // 30 秒
+const novelCache = new LRUCache<string, any>(100, 30_000);
 
 export function getCachedNovel(novelId: string): any | null {
-  const cached = novelCache.get(novelId);
-  if (cached && Date.now() - cached.ts < NOVEL_TTL) {
-    return cached.data;
-  }
-  return null;
+  return novelCache.get(novelId) ?? null;
 }
 
 export function setCachedNovel(novelId: string, data: any): void {
-  novelCache.set(novelId, { data, ts: Date.now() });
+  novelCache.set(novelId, data);
 }
 
 export function invalidateNovelCache(novelId: string): void {
   novelCache.delete(novelId);
 }
 
-// ============ 清理过期缓存 ============
+// ============ 定期清理（LRU 自带 TTL 淘汰，这里做额外清理） ============
 
 setInterval(() => {
-  const now = Date.now();
-
-  for (const [key, cached] of truthFileCache) {
-    if (now - cached.ts > TRUTH_FILE_TTL * 2) {
-      truthFileCache.delete(key);
-    }
-  }
-
-  for (const [key, cached] of configCache) {
-    if (now - cached.ts > CONFIG_TTL * 2) {
-      configCache.delete(key);
-    }
-  }
-
-  for (const [key, cached] of novelCache) {
-    if (now - cached.ts > NOVEL_TTL * 2) {
-      novelCache.delete(key);
-    }
-  }
-}, 60_000); // 每分钟清理一次
+  truthFileCache.cleanup();
+  configCache.cleanup();
+  novelCache.cleanup();
+}, 60_000);

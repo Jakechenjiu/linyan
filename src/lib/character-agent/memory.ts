@@ -72,8 +72,14 @@ export async function storeMemory(
   };
 }
 
+// 记忆衰减常数 — 10 章半衰期
+const DECAY_HALF_LIFE = 10
+const DECAY_LAMBDA = Math.LN2 / DECAY_HALF_LIFE
+
 /**
- * 检索角色记忆（基于重要性 + 时间衰减）
+ * 检索角色记忆（基于重要性 + 章节衰减）
+ * 使用 Stanford Generative Agents 的衰减模型：
+ * effectiveScore = exp(-λ * chaptersAgo) * (0.3 + 0.7 * importance)
  */
 export async function recallMemories(
   characterId: string,
@@ -81,10 +87,11 @@ export async function recallMemories(
     type?: CharacterMemoryEntry["type"];
     keywords?: string[];
     minImportance?: number;
+    currentChapter?: number;
     limit?: number;
   } = {}
 ): Promise<CharacterMemoryEntry[]> {
-  const { type, keywords, minImportance = 0.3, limit = 20 } = options;
+  const { type, keywords, minImportance = 0.3, currentChapter, limit = 10 } = options;
 
   const where: any = {
     characterId,
@@ -95,10 +102,12 @@ export async function recallMemories(
     where.type = type;
   }
 
+  // 多取一些，衰减后裁剪
+  const fetchLimit = currentChapter ? limit * 3 : limit
   const memories = await prisma.characterMemory.findMany({
     where,
     orderBy: { importance: "desc" },
-    take: limit,
+    take: fetchLimit,
   });
 
   let results = memories.map((m) => ({
@@ -120,7 +129,30 @@ export async function recallMemories(
     );
   }
 
-  return results;
+  // 章节衰减排序
+  if (currentChapter) {
+    const scored = results.map((m) => {
+      // 从 chapterId 推断章节号（简化：用 createdAt 的时间顺序近似）
+      const chaptersAgo = estimateChaptersAgo(m.createdAt, currentChapter)
+      const recencyFactor = Math.exp(-DECAY_LAMBDA * chaptersAgo)
+      const importanceFactor = m.importance / 10
+      const effectiveScore = recencyFactor * (0.3 + 0.7 * importanceFactor)
+      return { ...m, effectiveScore }
+    })
+    scored.sort((a, b) => b.effectiveScore - a.effectiveScore)
+    return scored.slice(0, limit)
+  }
+
+  return results.slice(0, limit)
+}
+
+/** 估算记忆距今多少章（基于 createdAt 的天数差近似） */
+function estimateChaptersAgo(createdAt: string, currentChapter: number): number {
+  const created = new Date(createdAt).getTime()
+  const now = Date.now()
+  const daysAgo = (now - created) / (1000 * 60 * 60 * 24)
+  // 假设每天写 1-2 章，保守估计
+  return Math.max(0, Math.round(daysAgo * 1.5))
 }
 
 /**

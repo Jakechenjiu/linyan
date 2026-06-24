@@ -635,12 +635,28 @@ export function extractOutlineId(
   message: string,
   outlines: Array<{ id: string; title: string }>
 ): string | null {
-  // 尝试匹配"第X章"
+  // 尝试匹配"第X章" — 优先匹配 chapter 类型
   const chapterMatch = message.match(/第(\d+)章/);
   if (chapterMatch) {
     const num = parseInt(chapterMatch[1], 10);
+    // 先找 chapter 类型的精确匹配
+    const chapterOutline = outlines.find(
+      (o) => o.title.includes(`第${num}章`)
+    );
+    if (chapterOutline) return chapterOutline.id;
+    // 再找 volume 类型
+    const volumeOutline = outlines.find(
+      (o) => o.title.includes(`第${num}卷`)
+    );
+    if (volumeOutline) return volumeOutline.id;
+  }
+
+  // 尝试匹配"第X卷"
+  const volumeMatch = message.match(/第(\d+)卷/);
+  if (volumeMatch) {
+    const num = parseInt(volumeMatch[1], 10);
     const outline = outlines.find(
-      (o) => o.title.includes(`第${num}章`) || o.title.includes(`第${num}卷`)
+      (o) => o.title.includes(`第${num}卷`)
     );
     if (outline) return outline.id;
   }
