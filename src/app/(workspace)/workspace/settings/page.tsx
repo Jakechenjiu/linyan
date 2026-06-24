@@ -2,10 +2,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { User, Brain, Video, Crown, ExternalLink, CheckCircle2, AlertCircle, Key, Zap, BookOpen, Sparkles, TrendingUp, Users, Shield, FileText } from "lucide-react";
+import { User, Brain, Video, ExternalLink, CheckCircle2, AlertCircle, Key, Zap, BookOpen, Sparkles, TrendingUp, Users, Shield, FileText } from "lucide-react";
 import { invalidateAiConfigCache } from "@/lib/ai";
-import { checkMembership, FREE_LIMITS } from "@/lib/membership";
-import MembershipCodeInput from "@/components/shared/MembershipCodeInput";
 import ProviderSelector from "@/components/settings/ProviderSelector";
 import ApiTestButton from "@/components/settings/ApiTestButton";
 
@@ -79,16 +77,11 @@ export default async function SettingsPage() {
       select: {
         id: true, name: true, email: true,
         apiKey: true, apiProvider: true, dashscopeApiKey: true,
-        membership: true, membershipId: true, membershipExpiresAt: true,
       },
     });
   } catch {
     user = null;
   }
-
-  const membership = session.user.id
-    ? await checkMembership(session.user.id)
-    : { tier: "free" as const, isActive: false };
 
   async function saveSettings(formData: FormData) {
     "use server";
@@ -188,59 +181,6 @@ export default async function SettingsPage() {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* ===== 会员状态 ===== */}
-      <div id="membership" className="space-card rounded-2xl p-6 scroll-mt-24">
-        <h2 className="font-mono text-lg font-bold mb-4 flex items-center gap-2">
-          <Crown size={20} className="text-[var(--star)]" />
-          会员状态
-        </h2>
-
-        {membership.isActive ? (
-          <div className="flex items-center gap-4 p-4 rounded-xl bg-[var(--star)]/5 border border-[var(--star)]/20">
-            <div className="w-12 h-12 rounded-xl bg-[var(--star)]/10 flex items-center justify-center">
-              <Crown size={24} className="text-[var(--star)]" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-[var(--star)]">Pro 会员</p>
-              {user?.membershipId && <p className="text-[11px] text-muted-foreground">会员号: {user.membershipId}</p>}
-              {user?.membershipExpiresAt
-                ? <p className="text-[11px] text-muted-foreground">有效期至: {user.membershipExpiresAt.toLocaleDateString("zh-CN")}</p>
-                : <p className="text-[11px] text-muted-foreground">永久有效</p>
-              }
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center gap-4 p-4 rounded-xl bg-[var(--accent)] border border-card-border">
-              <div className="w-12 h-12 rounded-xl bg-muted-foreground/10 flex items-center justify-center">
-                <User size={24} className="text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-sm font-bold">免费版</p>
-                <p className="text-[11px] text-muted-foreground">
-                  最多 {FREE_LIMITS.maxNovels} 本小说 · 每本 {FREE_LIMITS.maxChaptersPerNovel} 章 · 无 AI 对话编辑
-                </p>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-xl bg-[var(--star)]/5 border border-[var(--star)]/20">
-              <p className="text-sm font-bold text-[var(--star)] mb-2">解锁全部功能</p>
-              <ul className="text-[11px] text-muted-foreground space-y-1 mb-4">
-                <li>• 无限小说和章节数</li>
-                <li>• AI 对话编辑（实时协作改写）</li>
-                <li>• 灵思笔记 · 知识图谱</li>
-                <li>• 万象推演 · 多智能体模拟</li>
-                <li>• 导出 EPUB / PDF</li>
-              </ul>
-              <div className="space-y-2">
-                <p className="text-[11px] text-muted-foreground">输入会员码激活：</p>
-                <MembershipCodeInput />
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ===== 账户信息 ===== */}

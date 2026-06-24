@@ -13,9 +13,6 @@ model User {
   password   String?
   avatar     String?
   bio        String?
-  membership      String    @default("free")  // free|pro
-  membershipId    String?   @unique            // 会员号，如 PRO-20260527-001
-  membershipExpiresAt DateTime?  // 会员到期时间，null为永久
   apiKey           String?   // 用户自己的 AI API Key
   apiProvider       String?  @default("deepseek")  // deepseek|openai|anthropic
   dashscopeApiKey   String?   // 用户自己的 DashScope 通义万相 API Key
@@ -28,21 +25,7 @@ model User {
   notes        Note[]
   simulations  Simulation[]
   reports      Report[]
-  membershipCode MembershipCode? @relation("CodeUser")
   creationDrafts CreationDraft?
-}
-
-model MembershipCode {
-  id          String    @id @default(cuid())
-  codeHash    String    @unique    // SHA-256 hash of the code
-  tier        String    @default("pro")  // pro
-  duration    Int?                 // days, null = permanent
-  usedBy      String?   @unique    // user ID who used it
-  usedAt      DateTime?            // when it was used
-  expiresAt   DateTime?            // code expiration date (before use)
-  createdBy   String               // admin who created it
-  createdAt   DateTime @default(now())
-  user        User?    @relation("CodeUser", fields: [usedBy], references: [id])
 }
 
 model Novel {

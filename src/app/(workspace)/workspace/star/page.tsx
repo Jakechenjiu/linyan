@@ -1,11 +1,10 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
-import { Plus, BookOpen, BarChart3, Trash2, Clock, Edit3, Target, Crown, Lock } from "lucide-react";
+import { Plus, BookOpen, BarChart3, Trash2, Clock, Edit3, Target } from "lucide-react";
 import ImportButton from "@/components/shared/ImportButton";
 import { revalidatePath } from "next/cache";
 import { genrePresets } from "@/data/genre-presets";
-import { checkMembership, FREE_LIMITS } from "@/lib/membership";
 
 async function deleteNovel(id: string) {
   "use server";
@@ -33,13 +32,6 @@ export default async function StarPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let novels: any[] = [];
   let fetchError: string | null = null;
-
-  // Check membership
-  let membership: { tier: string; isActive: boolean } = { tier: "free", isActive: false };
-  if (session?.user?.id) {
-    const info = await checkMembership(session.user.id);
-    membership = { tier: info.tier, isActive: info.isActive };
-  }
 
   if (session?.user?.id) {
     try {
