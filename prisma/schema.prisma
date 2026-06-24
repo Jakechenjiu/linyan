@@ -29,6 +29,7 @@ model User {
   simulations  Simulation[]
   reports      Report[]
   membershipCode MembershipCode? @relation("CodeUser")
+  creationDrafts CreationDraft?
 }
 
 model MembershipCode {
@@ -406,6 +407,8 @@ model CreationDraft {
   id          String   @id @default(cuid())
   userId      String   @unique
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  novelId     String?
+  novel       Novel?   @relation(fields: [novelId], references: [id])
   messages    String   @default("[]")  // JSON array of messages
   wizardData  String?  // JSON wizard data
   createdAt   DateTime @default(now())
