@@ -26,6 +26,7 @@
     "@react-three/fiber": "^9.6.1",
     "animejs": "^4.4.1",
     "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
     "hono": "^4.12.22",
     "jszip": "^3.10.1",
     "lucide-react": "^1.16.0",
