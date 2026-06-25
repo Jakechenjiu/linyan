@@ -76,51 +76,26 @@ export default async function StarPage() {
           <p className="text-sm text-muted-foreground mt-1">长篇智能创作引擎</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {membership.isActive && (
-            <Link
-              href="/workspace/star/analytics"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm border border-card-border hover:border-[var(--cyan)] transition-colors"
-            >
-              <BarChart3 size={16} /> 写作分析
-            </Link>
-          )}
+          <Link
+            href="/workspace/star/analytics"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm border border-card-border hover:border-[var(--cyan)] transition-colors"
+          >
+            <BarChart3 size={16} /> 写作分析
+          </Link>
           <ImportButton type="novel" accept=".txt,.epub" />
-          {!membership.isActive && novels.length >= FREE_LIMITS.maxNovels ? (
-            <Link
-              href="/workspace/settings#membership"
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[var(--star)]/15 text-[var(--star)] hover:bg-[var(--star)] hover:text-[#0a0e17] transition-all"
-            >
-              <Crown size={16} /> 升级 Pro 解锁更多
-            </Link>
-          ) : (
-            <Link
-              href="/workspace/star/create"
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_20px_rgba(0,229,255,0.3)] transition-all"
-              style={{ color: "#0a0e17" }}
-            >
-              <Plus size={16} /> 新建小说
-            </Link>
-          )}
+          <Link
+            href="/workspace/star/create"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_20px_rgba(0,229,255,0.3)] transition-all"
+            style={{ color: "#0a0e17" }}
+          >
+            <Plus size={16} /> 新建小说
+          </Link>
         </div>
       </div>
 
       {fetchError && (
         <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/20 text-xs text-red-400">
           {fetchError}
-        </div>
-      )}
-
-      {/* Free user limit notice */}
-      {session && !membership.isActive && (
-        <div className="p-3 rounded-xl bg-[var(--star)]/5 border border-[var(--star)]/20 text-xs flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Crown size={14} className="text-[var(--star)]" />
-            <span className="text-[var(--star)]">免费版</span>
-            <span className="text-muted-foreground">· 最多 {FREE_LIMITS.maxNovels} 本小说 · 每本 {FREE_LIMITS.maxChaptersPerNovel} 章 · 无AI对话编辑</span>
-          </div>
-          <Link href="/workspace/settings#membership" className="text-[var(--star)] hover:underline font-medium">
-            升级 Pro
-          </Link>
         </div>
       )}
 
