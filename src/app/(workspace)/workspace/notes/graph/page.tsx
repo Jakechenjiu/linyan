@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getGraphData } from "@/lib/notes";
+import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import GraphView from "./GraphView";
 
