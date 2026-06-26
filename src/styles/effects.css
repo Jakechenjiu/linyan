@@ -210,6 +210,7 @@ body::after {
   );
   transform: translateX(-100%);
   transition: transform 0.8s ease;
+  pointer-events: none;
 }
 .btn-shimmer:hover::after {
   transform: translateX(100%);

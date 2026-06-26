@@ -19,12 +19,27 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const result = await signIn("credentials", { email, password, redirect: false });
-    if (result?.error) {
-      setError("邮箱或密码错误");
-      setLoading(false);
-    } else {
+
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (!result || result.error) {
+        setError(result?.error === "CredentialsSignin" ? "邮箱或密码错误" : "登录失败，请重试");
+        setLoading(false);
+        return;
+      }
+
+      // 登录成功，跳转
       router.push("/workspace");
+      router.refresh();
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("网络错误，请检查连接后重试");
+      setLoading(false);
     }
   };
 
