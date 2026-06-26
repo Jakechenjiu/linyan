@@ -33,9 +33,9 @@ export default function LoginPage() {
         return;
       }
 
-      // 登录成功，跳转
-      router.push("/workspace");
-      router.refresh();
+      // 使用 window.location 做全页跳转（而非 router.push），
+      // 确保浏览器携带最新的 session cookie
+      window.location.href = "/workspace";
     } catch (err) {
       console.error("Login error:", err);
       setError("网络错误，请检查连接后重试");
