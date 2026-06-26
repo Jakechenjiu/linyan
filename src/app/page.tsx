@@ -144,6 +144,7 @@ export default async function Home() {
               <p className="text-xs text-muted-foreground">{s.desc}</p>
             </div>
           ))}
+          </div>
         </div>
       </section>
 
