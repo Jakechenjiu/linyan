@@ -1,0 +1,106 @@
+/* ===== 排版体系 ===== */
+/* clamp-based 缩放，从 320px 到 1920px 平滑过渡 */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* == 基础排版 == */
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* == 标题缩放 == */
+h1, .h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-h1);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+h2, .h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-h2);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+h3, .h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* == 单色文本 == */
+.text-mono {
+  font-family: var(--font-mono);
+}
+
+.text-display {
+  font-family: var(--font-display);
+}
+
+/* == 编码文本样式 == */
+.font-hero {
+  font-size: var(--text-hero);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+/* == 文本渐变 == */
+.text-gradient-cyan {
+  background: linear-gradient(135deg, var(--cyan), #00b8d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-nebula {
+  background: linear-gradient(135deg, #a78bfa, var(--nebula));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-animated {
+  background: linear-gradient(90deg, var(--cyan), var(--nebula), var(--cyan));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 3s linear infinite;
+}
+
+.text-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--foreground) 0%,
+    var(--cyan) 25%,
+    var(--foreground) 50%,
+    var(--nebula) 75%,
+    var(--foreground) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: textShimmer 3s linear infinite;
+}
+
+/* == 字符逐出动画 == */
+.char-reveal {
+  display: inline-block;
+  animation: char-reveal 0.8s var(--ease-cinematic) both;
+}
+
+/* == 光标闪烁 == */
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+}

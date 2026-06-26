@@ -1,58 +1,46 @@
-/* 响应式设计 CSS */
+/* ===== 响应式设计 ===== */
 
-/* 移动端适配 */
+/* == 移动端适配 (max 767px) == */
 @media (max-width: 767px) {
-  /* 隐藏桌面端元素 */
-  .desktop-only {
-    display: none !important;
+  .desktop-only { display: none !important; }
+  .mobile-fullscreen { width: 100% !important; height: 100% !important; }
+
+  /* 移动端排版 */
+  h1, .h1 { font-size: clamp(1.5rem, 6vw, 2rem); }
+  h2, .h2 { font-size: clamp(1.2rem, 4vw, 1.5rem); }
+
+  /* 移动端输入框防缩放 */
+  input, textarea, select { font-size: 16px !important; }
+
+  /* 移动端侧边栏 — 毛玻璃背景 */
+  .mobile-sidebar-overlay {
+    background: rgba(4, 9, 18, 0.85);
+    backdrop-filter: blur(12px) saturate(1.2);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2);
   }
 
-  /* 移动端全屏 */
-  .mobile-fullscreen {
-    width: 100% !important;
-    height: 100% !important;
+  /* 移动端 Bento 改单列 */
+  .bento-grid {
+    grid-template-columns: 1fr !important;
   }
 
-  /* 移动端字体调整 */
-  .mobile-text-sm {
-    font-size: 12px;
-  }
-
-  /* 移动端按钮调整 */
-  .mobile-btn {
-    min-height: 44px;
-    min-width: 44px;
-  }
-
-  /* 移动端输入框调整 */
-  .mobile-input {
-    font-size: 16px; /* 防止 iOS 缩放 */
-  }
+  /* 更大触摸目标 */
+  .mobile-btn { min-height: 44px; min-width: 44px; }
 }
 
-/* 平板适配 */
+/* == 平板适配 (768-1023px) == */
 @media (min-width: 768px) and (max-width: 1023px) {
-  .tablet-sidebar {
-    width: 12rem;
-  }
-
-  .tablet-panel {
-    width: 24rem;
-  }
+  .tablet-sidebar { width: 12rem; }
+  .tablet-panel { width: 24rem; }
 }
 
-/* 桌面适配 */
+/* == 桌面适配 (1024px+) == */
 @media (min-width: 1024px) {
-  .desktop-sidebar {
-    width: 14rem;
-  }
-
-  .desktop-panel {
-    width: 30rem;
-  }
+  .desktop-sidebar { width: 14rem; }
+  .desktop-panel { width: 30rem; }
 }
 
-/* 暗色模式适配 */
+/* == 暗色模式 == */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0e17;
@@ -62,70 +50,61 @@
   }
 }
 
-/* 打印样式 */
+/* == 打印样式 == */
 @media print {
-  .no-print {
-    display: none !important;
-  }
-
-  .print-only {
-    display: block !important;
-  }
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
 }
 
-/* 触摸设备优化 */
+/* == 触摸设备优化 == */
 @media (hover: none) and (pointer: coarse) {
-  /* 增大触摸目标 */
-  button,
-  a,
-  input,
-  select,
-  textarea {
+  button, a, input, select, textarea {
     min-height: 44px;
     min-width: 44px;
   }
-
-  /* 移除 hover 效果 */
-  .hover-effect:hover {
-    background-color: transparent;
-  }
+  .hover-effect:hover { background-color: transparent; }
 }
 
-/* 高分辨率屏幕优化 */
+/* == DPR 适配 == */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-  /* 使用更高分辨率的图片 */
-  .high-res-img {
-    image-rendering: -webkit-optimize-contrast;
-  }
+  .high-res-img { image-rendering: crisp-edges; }
 }
 
-/* 减少动画（用户偏好） */
+/* == 动画偏好 == */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
 
-/* 隐藏滚动条 */
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+/* == Container Queries — 模块卡片自适应 == */
+.card-container {
+  container-type: inline-size;
+  container-name: card;
 }
 
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
+@container card (max-width: 280px) {
+  .card-compact { flex-direction: column; padding: 0.75rem; }
+  .card-compact-icon { width: 32px; height: 32px; }
+  .card-compact-title { font-size: 0.75rem; }
 }
 
-/* 平滑滚动 */
-.smooth-scroll {
-  scroll-behavior: smooth;
+@container card (min-width: 400px) {
+  .card-spacious { gap: 1.25rem; padding: 1.5rem; }
 }
 
-/* 优化触摸滚动 */
-.touch-scroll {
-  -webkit-overflow-scrolling: touch;
+/* == 滚动实用类 == */
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.smooth-scroll { scroll-behavior: smooth; }
+.touch-scroll { -webkit-overflow-scrolling: touch; }
+
+/* == 移动端安全区 == */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
 }

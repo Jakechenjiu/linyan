@@ -1,0 +1,122 @@
+/* ===== 设计令牌 ===== */
+/* 深空暗色主题 — 语义令牌层 */
+
+:root {
+  /* == 背景层级 == */
+  --bg-abyss: #040912;
+  --background: #0a0e17;
+  --bg-elevated: #0f1624;
+  --bg-surface: #141c2c;
+
+  /* == 语义背景别名 == */
+  --color-surface-abyss: var(--bg-abyss);
+  --color-surface-primary: var(--background);
+  --color-surface-elevated: var(--bg-elevated);
+  --color-surface-card: var(--bg-surface);
+
+  /* == 前景文本层级 == */
+  --foreground: #e0e8f0;
+  --text-primary: #edf2f9;
+  --text-secondary: #8896ab;
+  --text-muted: #556278;
+
+  /* == 语义文本别名 == */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
+  /* == 主色调 — Cyan == */
+  --cyan: #00e5ff;
+  --cyan-dim: #0099aa;
+  --cyan-soft: color-mix(in oklch, var(--cyan) 8%, transparent);
+  --cyan-10: color-mix(in oklch, var(--cyan) 10%, transparent);
+  --cyan-15: color-mix(in oklch, var(--cyan) 15%, transparent);
+  --cyan-20: color-mix(in oklch, var(--cyan) 20%, transparent);
+  --color-accent-primary: var(--cyan);
+
+  /* == 次色调 — Nebula Purple == */
+  --nebula: #7c3aed;
+  --nebula-soft: color-mix(in oklch, var(--nebula) 10%, transparent);
+  --nebula-15: color-mix(in oklch, var(--nebula) 15%, transparent);
+  --color-accent-secondary: var(--nebula);
+
+  /* == 点缀色 — Star Gold == */
+  --star: #f0e68c;
+  --star-soft: color-mix(in oklch, var(--star) 10%, transparent);
+  --color-accent-tertiary: var(--star);
+
+  /* == 液态玻璃 == */
+  --glass-bg: rgba(10, 14, 23, 0.55);
+  --glass-bg-hover: rgba(15, 22, 36, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-border-hover: color-mix(in oklch, var(--cyan) 18%, transparent);
+  --glass-blur: 24px;
+  --glass-saturate: 1.2;
+
+  /* == 表面 == */
+  --card: #111827;
+  --card-hover: #161f32;
+  --card-border: color-mix(in oklch, var(--cyan) 10%, transparent);
+  --color-surface-card-solid: var(--card);
+
+  /* == 语义状态 == */
+  --muted: #4b5563;
+  --muted-foreground: #9ca3af;
+  --accent: #1e293b;
+  --accent-foreground: #e2e8f0;
+  --destructive: #ef4444;
+  --destructive-foreground: #fef2f2;
+  --ring: color-mix(in oklch, var(--cyan) 30%, transparent);
+
+  /* == 圆角 == */
+  --radius-sm: 0.5rem;
+  --radius: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+
+  /* == 阴影 == */
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.3), 0 0 1px rgba(255,255,255,0.04);
+  --shadow-card-hover: 0 8px 32px rgba(0,0,0,0.4), 0 0 20px rgba(0,229,255,0.06);
+  --shadow-glow-cyan: 0 0 20px rgba(0,229,255,0.10), 0 0 60px rgba(0,229,255,0.04);
+  --shadow-glow-nebula: 0 0 20px rgba(124,58,237,0.10), 0 0 60px rgba(124,58,237,0.04);
+  --shadow-glow-star: 0 0 20px rgba(240,230,140,0.10), 0 0 60px rgba(240,230,140,0.04);
+  --shadow-liquid: inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 24px rgba(0,0,0,0.3);
+
+  /* == 缓动曲线 == */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-cinematic: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* == 排版缩放 (clamp-based) == */
+  --text-hero: clamp(2.5rem, 1rem + 5vw, 5rem);
+  --text-h1: clamp(1.75rem, 0.8rem + 3vw, 3rem);
+  --text-h2: clamp(1.25rem, 0.6rem + 2vw, 2rem);
+  --text-h3: clamp(1.1rem, 0.5rem + 1.5vw, 1.5rem);
+  --text-body: clamp(0.875rem, 0.8rem + 0.3vw, 1rem);
+  --text-caption: 0.75rem;
+  --text-label: 0.6875rem;
+}
+
+/* == Tailwind v4 令牌桥接 == */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-cyan: var(--cyan);
+  --color-nebula: var(--nebula);
+  --color-star: var(--star);
+  --color-card: var(--card);
+  --color-card-border: var(--card-border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-ring: var(--ring);
+  --radius: var(--radius);
+  --font-sans: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  --font-display: "PingFang SC", "Noto Serif SC", serif;
+}
