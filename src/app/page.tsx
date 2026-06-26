@@ -166,7 +166,7 @@ export default async function Home() {
         </p>
         <Link
           href={hasSession ? "/workspace" : "/register"}
-          className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-base font-bold bg-[var(--cyan)] hover:shadow-[0_0_32px_rgba(0,229,255,0.4)] transition-all"
+          className="squash-stretch inline-flex items-center gap-2 px-8 py-4 rounded-xl text-base font-bold bg-[var(--cyan)] hover:shadow-[0_0_32px_rgba(0,229,255,0.4)] transition-all"
           style={{ color: "#0a0e17" }}
         >
           {hasSession ? "进入工作台" : "免费注册"} <ArrowRight size={18} />

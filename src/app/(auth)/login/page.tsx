@@ -50,7 +50,7 @@ export default function LoginPage() {
 
       <div className="relative z-10 w-full max-w-sm space-y-8 px-6">
         {/* Card */}
-        <div className="glass-card p-8 space-y-6 animate-scale-in" style={{ viewTransitionName: "auth-card" }}>
+        <div className="glass-card ca-border p-8 space-y-6 animate-scale-in" style={{ viewTransitionName: "auth-card" }}>
           <div className="flex justify-center">
             <Logo size="lg" />
           </div>
@@ -63,7 +63,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="邮箱"
               required
-              className="w-full rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-2.5 text-sm outline-none focus:border-[var(--cyan)] focus:bg-white/[0.04] transition-all duration-200 placeholder:text-muted-foreground/50"
+              className="field-3state w-full rounded-xl px-4 py-2.5 text-sm outline-none transition-all duration-200 bg-white/[0.02] border-white/[0.06] placeholder:text-muted-foreground/50"
             />
             <input
               type="password"
@@ -72,13 +72,13 @@ export default function LoginPage() {
               placeholder="密码"
               required
               minLength={6}
-              className="w-full rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-2.5 text-sm outline-none focus:border-[var(--cyan)] focus:bg-white/[0.04] transition-all duration-200 placeholder:text-muted-foreground/50"
+              className="field-3state w-full rounded-xl px-4 py-2.5 text-sm outline-none transition-all duration-200 bg-white/[0.02] border-white/[0.06] placeholder:text-muted-foreground/50"
             />
             {error && <p className="text-xs text-destructive">{error}</p>}
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl py-2.5 text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_24px_rgba(0,229,255,0.3)] transition-all duration-300 disabled:opacity-40 btn-shimmer"
+              className="squash-stretch haptic-press w-full rounded-xl py-2.5 text-sm font-bold bg-[var(--cyan)] hover:shadow-[0_0_24px_rgba(0,229,255,0.3)] transition-all duration-300 disabled:opacity-40 btn-shimmer"
               style={{ color: "#0a0e17" }}
             >
               {loading ? "登录中…" : "登录"}

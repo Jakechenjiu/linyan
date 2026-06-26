@@ -72,7 +72,7 @@ export default async function WorkspaceDashboard() {
           <div className="flex flex-wrap gap-2 mt-4">
             {actions.map((a) => (
               <Link key={a.href} href={a.href}
-                className="btn-shimmer ripple inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium border border-card-border hover:border-[var(--cyan)]/30 hover:bg-[var(--accent)] transition-all duration-300"
+                className="squash-stretch btn-shimmer ripple inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium border border-card-border hover:border-[var(--cyan)]/30 hover:bg-[var(--accent)] transition-all duration-300"
                 style={{ color: a.color }}>
                 {a.icon} {a.label}
               </Link>
@@ -87,7 +87,7 @@ export default async function WorkspaceDashboard() {
       {/* Bento 网格：主模块 2列 + 小模块 2列 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 stagger-item" style={{ animationDelay: "0.12s" }}>
         {/* 左大卡片：星图写作 */}
-        <Link href="/workspace/star" className="md:col-span-2 row-span-2 gradient-border-card rounded-2xl p-5 group hover:border-[var(--cyan)]/30 transition-all duration-500 hover:-translate-y-0.5">
+        <Link href="/workspace/star" className="spotlight-track md:col-span-2 row-span-2 gradient-border-card rounded-2xl p-5 group hover:border-[var(--cyan)]/30 transition-all duration-500 hover:-translate-y-0.5">
           <div className="flex items-start justify-between mb-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in oklch, var(--cyan) 12%, transparent)", color: "var(--cyan)" }}>
               <Star size={20} />
@@ -119,7 +119,7 @@ export default async function WorkspaceDashboard() {
         </Link>
 
         {/* 光子发布 */}
-        <Link href="/workspace/photon" className="gradient-border-card rounded-2xl p-5 group hover:border-[var(--nebula)]/30 transition-all duration-500 hover:-translate-y-0.5">
+        <Link href="/workspace/photon" className="spotlight-track gradient-border-card rounded-2xl p-5 group hover:border-[var(--nebula)]/30 transition-all duration-500 hover:-translate-y-0.5">
           <div className="flex items-start justify-between mb-3">
             <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "color-mix(in oklch, var(--nebula) 12%, transparent)", color: "var(--nebula)" }}>
               <Zap size={18} />

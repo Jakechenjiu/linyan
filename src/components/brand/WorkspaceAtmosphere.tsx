@@ -99,9 +99,9 @@ const metaballFragmentShader = `
 
     blendColor /= max(totalWeight, 0.001);
 
-    // 边缘发光 + 中心透明
-    float alpha = smoothstep(1.3, 0.3, d) * 0.06;
-    float edgeGlow = smoothstep(1.1, 0.9, d) * 0.03;
+    // 边缘发光 + 中心透明 (提高不透明度)
+    float alpha = smoothstep(1.3, 0.3, d) * 0.12;
+    float edgeGlow = smoothstep(1.1, 0.9, d) * 0.06;
 
     gl_FragColor = vec4(blendColor, alpha + edgeGlow);
   }
@@ -213,10 +213,10 @@ export default function WorkspaceAtmosphere() {
       {/* Bloom 后处理 — 真实泛光替代 CSS fake glow */}
       <EffectComposer multisampling={0}>
         <Bloom
-          luminanceThreshold={0.25}
+          luminanceThreshold={0.15}
           mipmapBlur
-          intensity={0.35}
-          radius={0.7}
+          intensity={0.6}
+          radius={0.9}
         />
       </EffectComposer>
     </Canvas>
