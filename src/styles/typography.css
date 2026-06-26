@@ -27,24 +27,22 @@ p, li, .text-pretty {
   text-wrap: pretty;
 }
 
-/* == 标题缩放 == */
-h1, .h1 {
+/* == 标题缩放 — 仅通过显式类名使用，不覆盖 Tailwind 默认 == */
+.font-display {
   font-family: var(--font-display);
+}
+.font-h1 {
   font-size: var(--text-h1);
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: -0.02em;
 }
-
-h2, .h2 {
-  font-family: var(--font-display);
+.font-h2 {
   font-size: var(--text-h2);
   font-weight: 600;
   line-height: 1.2;
 }
-
-h3, .h3 {
-  font-family: var(--font-display);
+.font-h3 {
   font-size: var(--text-h3);
   font-weight: 600;
   line-height: 1.3;

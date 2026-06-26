@@ -62,7 +62,7 @@ export default async function WorkspaceDashboard() {
       <div className="relative overflow-hidden rounded-2xl gradient-border-card p-6 md:p-8 stagger-item">
         <div className="relative z-10">
           <p className="text-caption font-mono text-[var(--cyan)] tracking-widest uppercase mb-1">创作工作台</p>
-          <h1 className="font-display text-h2 font-bold tracking-tight mb-1">
+          <h1 className="font-mono text-2xl font-bold tracking-tight mb-1">
             欢迎回来，<span className="text-gradient-cyan glow-text">{session?.user?.name ?? "创作者"}</span>
           </h1>
           <p className="text-caption text-muted-foreground max-w-lg">
