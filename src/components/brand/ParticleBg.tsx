@@ -13,7 +13,7 @@ interface Particle {
   a: number;
 }
 
-export default function ParticleBg() {
+export default function ParticleBg({ density = "normal" }: { density?: "normal" | "high" }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouseRef = useRef({ x: -1000, y: -1000 });
   const starsRef = useRef<Star[]>([]);
@@ -35,9 +35,10 @@ export default function ParticleBg() {
       initParticles();
     };
 
+    const densityFactor = density === "high" ? 2.5 : 1;
     // —— Static starfield background ——
     const initStars = () => {
-      const count = Math.floor((w * h) / 2800);
+      const count = Math.floor((w * h) / (2800 / densityFactor));
       starsRef.current = Array.from({ length: count }, () => ({
         x: Math.random() * w,
         y: Math.random() * h,
@@ -50,7 +51,7 @@ export default function ParticleBg() {
 
     // —— Floating interactive particles ——
     const initParticles = () => {
-      const count = Math.min(70, Math.floor((w * h) / 20000));
+      const count = Math.min(density === "high" ? 200 : 70, Math.floor((w * h) / (density === "high" ? 7000 : 20000)));
       particlesRef.current = Array.from({ length: count }, () => ({
         x: Math.random() * w,
         y: Math.random() * h,
