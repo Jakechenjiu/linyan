@@ -50,7 +50,7 @@ export default function LoginPage() {
 
       <div className="relative z-10 w-full max-w-sm space-y-8 px-6">
         {/* Card */}
-        <div className="glass-card p-8 space-y-6 animate-scale-in">
+        <div className="glass-card p-8 space-y-6 animate-scale-in" style={{ viewTransitionName: "auth-card" }}>
           <div className="flex justify-center">
             <Logo size="lg" />
           </div>

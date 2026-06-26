@@ -55,51 +55,56 @@ export default async function Home() {
       {/* Hero */}
       <CinematicHero hasSession={hasSession} />
 
-      {/* Module Cards */}
-      <section className="relative z-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto px-6 pb-20">
-        <div className="animate-slide-up" style={{ animationDelay: "0.3s" }}>
-          <ModuleCard
-            href={hasSession ? "/workspace/star" : "/register"}
-            icon={<Star size={24} />}
-            title="星图写作"
-            subtitle="Star Writing"
-            desc="长篇小说智能引擎。AI 对话编辑、五种写作模式、素材库自动注入。"
-            color="var(--cyan)"
-            features={["AI对话编辑", "五种模式", "素材库", "事实追踪"]}
-          />
-        </div>
-        <div className="animate-slide-up" style={{ animationDelay: "0.4s" }}>
-          <ModuleCard
-            href={hasSession ? "/workspace/photon" : "/register"}
-            icon={<Zap size={24} />}
-            title="光子发布"
-            subtitle="Photon Publishing"
-            desc="短视频和内容引擎。一键生成、多平台适配、导出剪映。"
-            color="var(--nebula)"
-            features={["一键生成", "多平台", "AI改写", "导出剪映"]}
-          />
-        </div>
-        <div className="animate-slide-up" style={{ animationDelay: "0.5s" }}>
-          <ModuleCard
-            href={hasSession ? "/workspace/notes" : "/register"}
-            icon={<Brain size={24} />}
-            title="灵思笔记"
-            subtitle="LingSi Notes"
-            desc="知识中枢。双向链接、知识图谱、自动归纳。"
-            color="var(--cyan)"
-            features={["双向链接", "知识图谱", "自动归纳", "AI辅助"]}
-          />
-        </div>
-        <div className="animate-slide-up" style={{ animationDelay: "0.6s" }}>
-          <ModuleCard
-            href={hasSession ? "/workspace/wanxiang" : "/register"}
-            icon={<Network size={24} />}
-            title="万象推演"
-            subtitle="Wanxiang Sandbox"
-            desc="多智能体推演引擎。场景模板、AI深度分析、报告导出。"
-            color="var(--nebula)"
-            features={["场景模板", "AI分析", "报告导出", "笔记联动"]}
-          />
+      {/* Module Cards — Collage Layout */}
+      <section className="relative z-10 max-w-6xl mx-auto px-6 pb-20">
+        <div className="collage-grid">
+          {/* 主卡片 span7 */}
+          <div className="collage-item-main animate-slide-up" style={{ animationDelay: "0.3s" }}>
+            <ModuleCard
+              href={hasSession ? "/workspace/star" : "/register"}
+              icon={<Star size={24} />}
+              title="星图写作"
+              subtitle="Star Writing"
+              desc="长篇小说智能引擎。AI对话编辑、五种写作模式、素材库自动注入、角色Agent系统、20维度审计。"
+              color="var(--cyan)"
+              features={["AI对话编辑", "五种模式", "素材库", "事实追踪", "角色Agent"]}
+            />
+          </div>
+          {/* 侧卡片 span5 + 负margin重叠 */}
+          <div className="collage-item-side animate-slide-up" style={{ animationDelay: "0.4s" }}>
+            <ModuleCard
+              href={hasSession ? "/workspace/photon" : "/register"}
+              icon={<Zap size={24} />}
+              title="光子发布"
+              subtitle="Photon Publishing"
+              desc="短视频和内容引擎。一键生成、多平台适配、导出剪映。"
+              color="var(--nebula)"
+              features={["一键生成", "多平台", "AI改写", "导出剪映"]}
+            />
+          </div>
+          {/* 底部卡片 span4 + 向上覆盖 */}
+          <div className="collage-item-accent animate-slide-up" style={{ animationDelay: "0.5s" }}>
+            <ModuleCard
+              href={hasSession ? "/workspace/notes" : "/register"}
+              icon={<Brain size={20} />}
+              title="灵思笔记"
+              subtitle="LingSi Notes"
+              desc="知识中枢。双向链接、知识图谱、自动归纳。"
+              color="var(--cyan)"
+              features={["双向链接", "知识图谱", "自动归纳", "AI辅助"]}
+            />
+          </div>
+          <div className="collage-item-accent animate-slide-up" style={{ animationDelay: "0.55s" }}>
+            <ModuleCard
+              href={hasSession ? "/workspace/wanxiang" : "/register"}
+              icon={<Network size={20} />}
+              title="万象推演"
+              subtitle="Wanxiang Sandbox"
+              desc="多智能体推演引擎。场景模板、AI深度分析、报告导出。"
+              color="var(--nebula)"
+              features={["场景模板", "AI分析", "报告导出", "笔记联动"]}
+            />
+          </div>
         </div>
       </section>
 
@@ -122,10 +127,11 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="relative z-10 max-w-4xl mx-auto px-6 pb-20">
+      {/* How it works — Blueprint Aesthetic */}
+      <section className="relative z-10 max-w-4xl mx-auto px-6 pb-20 below-fold">
         <h2 className="font-mono text-2xl font-bold text-center mb-12">工作流程</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="blueprint-empty halftone-overlay">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
           {[
             { step: "01", title: "输入", desc: "一句话描述需求" },
             { step: "02", title: "生成", desc: "AI 自动生成内容" },
@@ -141,9 +147,9 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Social proof */}
-      <section className="relative z-10 max-w-3xl mx-auto px-6 pb-20 text-center">
-        <div className="space-card rounded-2xl p-8">
+      {/* Social proof — Anti-Vibe微瑕疵 */}
+      <section className="relative z-10 max-w-3xl mx-auto px-6 pb-20 text-center below-fold">
+        <div className="space-card rounded-2xl p-8 anti-vibe" style={{ "--jitter": "-0.3deg", "--jitter-x": "-1px" } as React.CSSProperties}>
           <p className="text-sm text-muted-foreground leading-relaxed mb-4">
             &ldquo;灵砚让我一个人就能完成整个创作团队的工作。从写小说到做视频，一个平台搞定。&rdquo;
           </p>

@@ -220,3 +220,132 @@
 .float-slow { animation: float 6s ease-in-out infinite; }
 .float-fast { animation: float 3s ease-in-out infinite; }
 .float-delayed { animation: float 6s ease-in-out infinite; animation-delay: 2s; }
+
+/* ===== DISNEY 12 PRINCIPLES FOR UI ===== */
+
+/* == Squash & Stretch — 挤压与拉伸 == */
+.squash-stretch {
+  transition: transform var(--motion-duration-sm) var(--ease-spring);
+}
+.squash-stretch:active {
+  transform: scale(0.96);
+}
+.squash-stretch-sm:active {
+  transform: scale(0.98);
+}
+
+/* == Anticipation — 预备动作 (删除前微摇) == */
+@keyframes wobble-anticipate {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-2deg); }
+  75% { transform: rotate(2deg); }
+}
+.anticipate-wobble:hover {
+  animation: wobble-anticipate 0.3s var(--ease-smooth);
+}
+
+/* == Haptic-Style Visual Feedback — 120ms按压 == */
+.haptic-press {
+  transition: transform 120ms var(--ease-smooth);
+}
+.haptic-press:active {
+  transform: scale(0.97);
+}
+
+/* == Velocity-Synced — 高加速度弹入 + 双重脉冲 == */
+@keyframes velocity-pop {
+  0% { transform: scale(0.85); opacity: 0; }
+  60% { transform: scale(1.03); opacity: 1; }
+  80% { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+.velocity-pop {
+  animation: velocity-pop 0.35s var(--ease-bounce) both;
+}
+
+/* == Choreographed stagger — 编排延迟 == */
+.choreo-1 { animation-delay: 0ms; }
+.choreo-2 { animation-delay: 80ms; }
+.choreo-3 { animation-delay: 160ms; }
+.choreo-4 { animation-delay: 240ms; }
+.choreo-5 { animation-delay: 320ms; }
+.choreo-6 { animation-delay: 400ms; }
+
+/* ===== INTERACTION STATE MATRIX ===== */
+
+/* == 双状态按钮 Two-State Button == */
+.btn-ghost {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  transition: all 150ms var(--ease-smooth);
+}
+.btn-ghost:hover {
+  background: color-mix(in oklch, var(--cyan) 6%, transparent);
+  color: var(--text-primary);
+}
+.btn-ghost:active {
+  background: color-mix(in oklch, var(--cyan) 12%, transparent);
+}
+.btn-ghost:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+/* == 三状态表单字段 == */
+.field-3state {
+  border: 1px solid var(--glass-border);
+  transition: border-color var(--motion-duration-sm) var(--ease-smooth),
+              box-shadow var(--motion-duration-sm) var(--ease-smooth);
+}
+.field-3state:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--cyan) 15%, transparent);
+}
+.field-3state[aria-invalid="true"],
+.field-3state.has-error {
+  border-color: var(--destructive);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--destructive) 15%, transparent);
+}
+.field-3state[aria-valid="true"],
+.field-3state.has-success {
+  border-color: var(--state-success);
+}
+
+/* == Loading 按钮态 == */
+.btn-loading {
+  position: relative;
+  cursor: wait;
+  color: transparent !important;
+}
+.btn-loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* == focus-visible 环 == */
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* == @starting-style — 首次渲染过渡 == */
+@starting-style {
+  .dialog-enter {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+}

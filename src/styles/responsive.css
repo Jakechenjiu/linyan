@@ -102,9 +102,30 @@
 .touch-scroll { -webkit-overflow-scrolling: touch; }
 
 /* == 移动端安全区 == */
-.safe-area-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+.safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.safe-area-top { padding-top: env(safe-area-inset-top, 0px); }
+
+/* == 性能：折叠线以下延迟渲染 == */
+@media (min-height: 800px) {
+  .below-fold {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 500px;
+  }
 }
-.safe-area-top {
-  padding-top: env(safe-area-inset-top, 0px);
+
+/* == 无障碍：跳过导航 == */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 10000;
+  padding: 0.5rem 1rem;
+  background: var(--cyan);
+  color: var(--bg-abyss);
+  font-weight: 700;
+  border-radius: var(--radius);
+  transition: top 0.2s;
+}
+.skip-link:focus {
+  top: 1rem;
 }

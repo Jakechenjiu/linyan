@@ -88,6 +88,23 @@
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-cinematic: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1.2);
+  --ease-snap: cubic-bezier(0.68, -0.55, 0.27, 1.55);
+
+  /* == 动效令牌 (Motion Tokens) == */
+  --motion-duration-xs: 80ms;
+  --motion-duration-sm: 150ms;
+  --motion-duration-md: 220ms;
+  --motion-duration-lg: 350ms;
+  --motion-duration-xl: 500ms;
+
+  /* == 交互状态色 == */
+  --state-success: #10b981;
+  --state-success-soft: color-mix(in oklch, #10b981 12%, transparent);
+  --state-warning: #f59e0b;
+  --state-error: var(--destructive);
+  --state-info: var(--cyan);
+  --ease-cinematic: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* == 排版缩放 (clamp-based) == */
   --text-hero: clamp(2.5rem, 1rem + 5vw, 5rem);

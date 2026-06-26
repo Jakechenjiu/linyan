@@ -423,3 +423,152 @@ body::after {
 @view-transition {
   navigation: auto;
 }
+
+/* 命名过渡元素 */
+::view-transition-old(auth-card) {
+  animation: fade-out 0.3s var(--ease-smooth);
+}
+::view-transition-new(auth-card) {
+  animation: scale-in 0.4s var(--ease-spring);
+}
+
+/* ============ CHROMATIC ABERRATION BORDER ============ */
+/* 1px超薄高色度渐变模拟棱镜分光 */
+
+.ca-border {
+  position: relative;
+}
+.ca-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    #ff6b6b, var(--cyan), var(--nebula), #ff6b6b
+  );
+  z-index: -1;
+  opacity: 0.4;
+  filter: blur(0.5px);
+  transition: opacity 0.5s var(--ease-cinematic);
+}
+.ca-border:hover::before {
+  opacity: 0.8;
+}
+
+/* ============ SPOTLIGHT TRACKING ============ */
+/* 卡片内鼠标跟随径向渐变高光 */
+
+.spotlight-track {
+  position: relative;
+  overflow: hidden;
+}
+.spotlight-track::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    600px circle at var(--spotlight-x, 50%) var(--spotlight-y, 50%),
+    color-mix(in oklch, var(--cyan) 8%, transparent),
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  z-index: 1;
+}
+.spotlight-track:hover::before {
+  opacity: 1;
+}
+
+/* ============ FROSTED ATMOSPHERE ============ */
+
+.frost-orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  opacity: 0.08;
+  animation: float-wide 15s ease-in-out infinite;
+}
+
+/* ============ HALFTONE DOTS ============ */
+
+.halftone-overlay {
+  position: relative;
+}
+.halftone-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, var(--cyan) 0.5px, transparent 0.5px);
+  background-size: 6px 6px;
+  opacity: 0.03;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ============ COLLAGE LAYOUT ============ */
+
+.collage-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1rem;
+}
+.collage-item-main {
+  grid-column: span 7;
+}
+.collage-item-side {
+  grid-column: span 5;
+}
+.collage-item-accent {
+  grid-column: span 4;
+  margin-top: -2rem;
+  z-index: 2;
+}
+
+/* ============ BLUEPRINT AESTHETIC ============ */
+
+.blueprint-bg {
+  background:
+    linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-color: var(--bg-abyss);
+}
+
+.blueprint-empty {
+  border: 1px dashed rgba(0, 229, 255, 0.15);
+  border-radius: var(--radius-xl);
+  padding: 3rem 2rem;
+  text-align: center;
+  position: relative;
+}
+.blueprint-empty::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px dashed rgba(0, 229, 255, 0.06);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* ============ ANTI-VIBE MICRO-JITTER ============ */
+/* 手工感微瑕疵，反AI同质化 */
+
+.anti-vibe {
+  transform: rotate(var(--jitter, 0deg)) translate(var(--jitter-x, 0px), var(--jitter-y, 0px));
+}
+
+/* ============ REDUCED MOTION ENHANCED ============ */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .squash-stretch:active { transform: none; }
+  .anticipate-wobble:hover { transform: none; }
+  .haptic-press:active { transform: none; }
+}

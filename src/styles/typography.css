@@ -12,6 +12,19 @@ body {
   line-height: 1.75;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-wrap: pretty;
+}
+
+/* == 标题文本平衡 == */
+h1, h2, h3, h4, .h1, .h2, .h3, .text-balance {
+  text-wrap: balance;
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
+}
+
+/* == 段落防孤行 == */
+p, li, .text-pretty {
+  text-wrap: pretty;
 }
 
 /* == 标题缩放 == */
