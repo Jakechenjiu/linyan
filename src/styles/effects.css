@@ -508,23 +508,32 @@ body::after {
   border-radius: inherit;
 }
 
-/* ============ COLLAGE LAYOUT ============ */
+/* ============ COLLAGE / BENTO LAYOUT ============ */
 
 .collage-grid {
   display: grid;
-  grid-template-columns: repeat(12, 1fr);
+  grid-template-columns: repeat(1, 1fr);
   gap: 1rem;
 }
-.collage-item-main {
-  grid-column: span 7;
+
+@media (min-width: 768px) {
+  .collage-grid {
+    grid-template-columns: repeat(12, 1fr);
+    grid-auto-rows: minmax(180px, auto);
+  }
+  .collage-item-main { grid-column: span 7; grid-row: span 2; }
+  .collage-item-side { grid-column: span 5; }
+  .collage-item-accent { grid-column: span 6; }
 }
-.collage-item-side {
-  grid-column: span 5;
-}
-.collage-item-accent {
-  grid-column: span 4;
-  margin-top: -2rem;
-  z-index: 2;
+
+/* 移动端所有卡片等宽单列 */
+@media (max-width: 767px) {
+  .collage-item-main,
+  .collage-item-side,
+  .collage-item-accent {
+    grid-column: 1 / -1;
+    margin-top: 0;
+  }
 }
 
 /* ============ BLUEPRINT AESTHETIC ============ */
