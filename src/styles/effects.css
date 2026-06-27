@@ -518,12 +518,12 @@ body::after {
 
 @media (min-width: 768px) {
   .collage-grid {
-    grid-template-columns: repeat(12, 1fr);
-    grid-auto-rows: minmax(180px, auto);
+    grid-template-columns: repeat(2, 1fr);
   }
-  .collage-item-main { grid-column: span 7; grid-row: span 2; }
-  .collage-item-side { grid-column: span 5; }
-  .collage-item-accent { grid-column: span 6; }
+  /* 主卡片和侧卡片等高并排 */
+  .collage-item-main { grid-column: span 1; }
+  .collage-item-side { grid-column: span 1; }
+  .collage-item-accent { grid-column: span 1; }
 }
 
 /* 移动端所有卡片等宽单列 */
